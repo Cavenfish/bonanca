@@ -1,0 +1,16 @@
+[package]
+name = "bonanca"
+version = "0.1.0"
+edition = "2024"
+description = "A CLI for managing crypto index funds"
+
+[dependencies]
+anyhow = "1.0.99"
+clap = { version = "4.5.41", features = ["derive"] }
+dirs = "6.0.0"
+serde = { version = "1.0.221", features = ["derive"] }
+solana-client = "3.0.2"
+solana-sdk = "3.0.0"
+solana-system-interface = "2.0.0"
+tokio = "1.47.1"
+toml = "0.9.5"

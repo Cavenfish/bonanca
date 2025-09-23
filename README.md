@@ -4,7 +4,7 @@
 
 ### Utils
 
-- [ ] Read in user config
+- [x] Read in user config
 - [ ] Update user config
 - [ ] Read pub key
 - [ ] Load encrypted (default) or unencrypted private key

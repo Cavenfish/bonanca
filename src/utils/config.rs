@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use dirs::data_dir;
 use serde::{Deserialize, Serialize};
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -6,37 +6,60 @@ use solana_sdk::{
     signature::Keypair,
     signer::keypair::{read_keypair_file, write_keypair_file},
 };
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+fn init_config(fname: &Path) -> Result<()> {
+    let cfg = Config::default();
+    let cfg_str = toml::to_string(&cfg)?;
+
+    fs::write(fname, cfg_str)?;
+
+    Ok(())
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    rpc_url: String,
-    keypair_file: PathBuf,
+    pub rpc_url: String,
+    pub keypair_file: PathBuf,
 }
 
 impl Config {
     fn default() -> Self {
         let kp = Keypair::new();
         let kfile = data_dir().unwrap().join("bonance/keypair.json");
-        write_keypair_file(&kp, &kfile);
+        write_keypair_file(&kp, &kfile).unwrap();
         Self {
             rpc_url: "https://api.devnet.solana.com".to_string(),
             keypair_file: kfile,
         }
     }
-}
 
-fn init_config(fname: &PathBuf) -> Result<()> {
-    let cfg = Config::default();
-}
+    pub fn load_account() -> Result<Self> {
+        let fname = data_dir().unwrap().join("bonance/config.toml");
 
-pub fn load_account() -> Result<(Keypair, RpcClient)> {
-    let fname = data_dir().unwrap().join("bonance/config.toml");
-    let buf = fs::read_to_string(fname)?;
-    let cfg: Config = toml::from_str(&buf)?;
+        if !fname.is_file() {
+            println!("No config file found, initializing default config file.");
+            init_config(&fname)?;
+        }
 
-    let key_pair = read_keypair_file(cfg.keypair_file).unwrap();
-    let rpc = RpcClient::new(cfg.rpc_url);
+        let buf = fs::read_to_string(fname)?;
+        let cfg: Config = toml::from_str(&buf)?;
 
-    Ok((key_pair, rpc))
+        Ok(cfg)
+    }
+
+    pub fn get_rpc_client(&self) -> Result<RpcClient> {
+        let rpc = RpcClient::new(self.rpc_url.clone());
+
+        Ok(rpc)
+    }
+
+    pub fn get_keypair(&self) -> Result<Keypair> {
+        let kp = read_keypair_file(self.keypair_file.clone()).unwrap();
+
+        Ok(kp)
+    }
 }

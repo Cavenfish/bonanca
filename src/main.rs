@@ -1,30 +1,34 @@
+mod cmc_api;
 mod finance_tk;
 mod utils;
 mod wallets;
 
-use std::path::{Path, PathBuf};
-
-use alloy_primitives::address;
-use finance_tk::indexes::load_index_fund;
-use solana_sdk::signer::Signer;
+use cmc_api::get::get_token_price;
 use utils::config::Config;
-use wallets::evm::EvmWallet;
 
 #[tokio::main]
 async fn main() {
-    let ks = PathBuf::from("./test_wallet.json");
-    let wallie = EvmWallet::new(ks, "https://rpc-amoy.polygon.technology/");
+    let cfg = Config::load_account().unwrap();
 
-    let bal = wallie.balance().await.unwrap();
+    let td = get_token_price("BTC", &cfg.api_url, &cfg.api_key)
+        .await
+        .unwrap();
 
-    println!("{}", wallie.pubkey);
-    println!("{}", bal);
+    println!("{:?}", td);
 
-    let tkn = address!("0xc3Bf644bebc4dAaC868041b4fd1342C4Ae6E934e");
+    // let ks = PathBuf::from("./test_wallet.json");
+    // let wallie = EvmWallet::new(ks, "https://rpc-amoy.polygon.technology/");
 
-    let tbal = wallie.token_balance(tkn).await.unwrap();
+    // let bal = wallie.balance().await.unwrap();
 
-    println!("{}", tbal);
+    // println!("{}", wallie.pubkey);
+    // println!("{}", bal);
+
+    // let tkn = address!("0xc3Bf644bebc4dAaC868041b4fd1342C4Ae6E934e");
+
+    // let tbal = wallie.token_balance(tkn).await.unwrap();
+
+    // println!("{}", tbal);
 
     // let cfg = Config::load_account().unwrap();
     // let kp = cfg.get_keypair().unwrap();

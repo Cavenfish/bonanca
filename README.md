@@ -28,8 +28,9 @@
 ### EVM Wallet
 
 - [x] Check token balances
-- [ ] Transfer tokens
+- [x] Transfer tokens
 - [ ] Trade tokens on UniSwap
+- [ ] Trade tokens on 1Inch
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
 

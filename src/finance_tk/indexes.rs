@@ -1,10 +1,17 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::BufReader, path::Path};
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IndexFund {
     pub name: String,
+    pub chain: String,
+    pub rpc: String,
+    pub keystore: PathBuf,
 
     pub sectors: Vec<Sector>,
 }

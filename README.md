@@ -25,6 +25,14 @@
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
 
+### EVM Wallet
+
+- [x] Check token balances
+- [ ] Transfer tokens
+- [ ] Trade tokens on UniSwap
+- [ ] Interact with lending protocols?
+- [ ] Interact with liquidity pools?
+
 ### Ledger (SQLite)
 
 - [ ] Record deposits

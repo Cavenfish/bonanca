@@ -23,6 +23,8 @@ fn init_config(fname: &Path) -> Result<()> {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub rpc_url: String,
+    pub api_url: String,
+    pub api_key: String,
     pub keypair_file: PathBuf,
 }
 
@@ -33,6 +35,8 @@ impl Config {
         write_keypair_file(&kp, &kfile).unwrap();
         Self {
             rpc_url: "https://api.devnet.solana.com".to_string(),
+            api_url: "https://pro-api.coinmarketcap.com".to_string(),
+            api_key: "ADD_YOUR_KEY".to_string(),
             keypair_file: kfile,
         }
     }

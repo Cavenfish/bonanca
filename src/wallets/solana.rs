@@ -1,9 +1,10 @@
 use anyhow::Result;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
+    account::Account,
     pubkey::Pubkey,
-    signature::{Keypair, Signature},
-    signer::Signer,
+    signature::Signature,
+    signer::{Signer, keypair::Keypair},
     transaction::Transaction,
 };
 use solana_system_interface::instruction::transfer;
@@ -34,5 +35,12 @@ impl SolWallet {
         let sig = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(sig)
+    }
+
+    pub async fn get_accounts(&self) -> Result<Vec<(Pubkey, Account)>> {
+        let publickey = self.key_pair.pubkey();
+        let accts = self.rpc.get_program_accounts(&publickey).await?;
+
+        Ok(accts)
     }
 }

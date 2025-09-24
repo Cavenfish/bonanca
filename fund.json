@@ -1,0 +1,34 @@
+{
+    "name": "Basic Index Fund",
+
+    "sectors": [
+        {
+            "name": "Layer 1",
+            "weight": 0.5,
+            "assets": [
+                {
+                    "name": "BTC",
+                    "token": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh"
+                },
+                {
+                    "name": "SOL",
+                    "token": "So11111111111111111111111111111111111111112"
+                }
+            ]
+        },
+        {
+            "name": "DEX",
+            "weight": 0.5,
+            "assets": [
+                {
+                    "name": "RAY",
+                    "token": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
+                },
+                {
+                    "name": "JUP",
+                    "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"
+                }
+            ]
+        }
+    ]
+}

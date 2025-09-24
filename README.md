@@ -8,10 +8,14 @@
 - [ ] Update user config
 - [ ] Read pub key
 - [ ] Load encrypted (default) or unencrypted private key
-- [ ] Pull token price data from some API
 - [ ] Display balance
 - [ ] Display index summary
 - [ ] Display profit
+
+### CoinMarketCap API Lib
+
+- [ ] Pull token price data
+- [ ]
 
 ### Solana Wallet
 
@@ -32,4 +36,5 @@
 - [ ] Balance index fund
 - [ ] Calculate volatility
 - [ ] Create index fund
+- [x] Read index fund
 - [ ] Update index fund

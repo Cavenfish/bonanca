@@ -20,7 +20,7 @@
 
 - [x] Create token account
 - [x] Check token balances
-- [ ] Transfer tokens
+- [x] Transfer tokens
 - [ ] Trade tokens on Jupiter
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?

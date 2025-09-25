@@ -1,3 +1,4 @@
+use alloy::sol_types::sol_data::Address;
 use anyhow::Result;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
@@ -88,7 +89,7 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn token_balance(&self, mint: Pubkey) -> Result<String> {
+    pub async fn get_token_account(&self, mint: Pubkey) -> Result<Pubkey> {
         // Get token account
         let accounts = self
             .rpc
@@ -99,9 +100,39 @@ impl SolWallet {
         // Get token account pubkey
         let addy = Pubkey::from_str_const(&token.pubkey);
 
+        Ok(addy)
+    }
+
+    pub async fn token_balance(&self, mint: Pubkey) -> Result<String> {
+        // Get token account pubkey
+        let addy = self.get_token_account(mint).await?;
+
         // Get token balance
         let bal = self.rpc.get_token_account_balance(&addy).await?;
 
         Ok(bal.amount)
+    }
+
+    pub async fn transfer_token(&self, mint: Pubkey, amount: u64, to: &Pubkey) -> Result<()> {
+        // Get token account pubkey
+        let my_addy = self.get_token_account(mint).await?;
+
+        // Get to token account pubkey
+        let accounts = self.rpc.get_token_accounts_by_owner(to, Mint(mint)).await?;
+        let token = accounts.get(0).unwrap();
+        let to_addy = Pubkey::from_str_const(&token.pubkey);
+
+        // Build transfer
+        let info = transfer(&my_addy, &to_addy, amount);
+        let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
+
+        // Get latest blockhash and sign transaction
+        let blockhash = self.rpc.get_latest_blockhash().await?;
+        trans.sign(&[&self.key_pair], blockhash);
+
+        // Send and wait for confirmation
+        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+
+        Ok(())
     }
 }

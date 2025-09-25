@@ -1,8 +1,8 @@
 use anyhow::Result;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
     account::Account,
-    entrypoint::__Pubkey,
     pubkey::Pubkey,
     signature::Signature,
     signer::{
@@ -11,13 +11,16 @@ use solana_sdk::{
     },
     transaction::Transaction,
 };
-use solana_system_interface::instruction::transfer;
+use solana_system_interface::{
+    instruction::{create_account, transfer},
+    program,
+};
 use std::path::PathBuf;
 
 pub struct SolWallet {
     pub key_pair: Keypair,
     pub rpc: RpcClient,
-    pub pubkey: __Pubkey,
+    pub pubkey: Pubkey,
 }
 
 impl SolWallet {
@@ -58,5 +61,47 @@ impl SolWallet {
         let accts = self.rpc.get_program_accounts(&self.pubkey).await?;
 
         Ok(accts)
+    }
+
+    pub async fn create_token_account(&self, mint: &Pubkey) -> Result<()> {
+        // Get rent
+        let rent = self.rpc.get_minimum_balance_for_rent_exemption(165).await?;
+
+        // Make keypair for token account
+        let new_kp = Keypair::new();
+
+        // Build instructions and get blockhash
+        let instr = create_account(&self.pubkey, &new_kp.pubkey(), rent, 165, &program::id());
+        let blockhash = self.rpc.get_latest_blockhash().await?;
+
+        // Sign transaction
+        let tx = Transaction::new_signed_with_payer(
+            &[instr],
+            Some(&self.pubkey),
+            &[&self.key_pair, &new_kp],
+            blockhash,
+        );
+
+        // Send and wait for confirmation
+        let _ = self.rpc.send_and_confirm_transaction(&tx).await?;
+
+        Ok(())
+    }
+
+    pub async fn token_balance(&self, mint: Pubkey) -> Result<String> {
+        // Get token account
+        let accounts = self
+            .rpc
+            .get_token_accounts_by_owner(&self.pubkey, Mint(mint))
+            .await?;
+        let token = accounts.get(0).unwrap();
+
+        // Get token account pubkey
+        let addy = Pubkey::from_str_const(&token.pubkey);
+
+        // Get token balance
+        let bal = self.rpc.get_token_account_balance(&addy).await?;
+
+        Ok(bal.amount)
     }
 }

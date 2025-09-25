@@ -14,11 +14,11 @@
 
 ### CoinMarketCap API Lib
 
-- [ ] Pull token price data
-- [ ]
+- [x] Pull token price data
 
 ### Solana Wallet
 
+- [ ] Create token account
 - [ ] Check token balances
 - [ ] Transfer tokens
 - [ ] Trade tokens on Jupiter

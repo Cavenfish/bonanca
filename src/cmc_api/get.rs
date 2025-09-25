@@ -6,32 +6,28 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct QueryData {
-    pub data: std::collections::HashMap<String, TokenData>,
+    pub data: TokenData,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TokenData {
+    pub id: u64,
     pub symbol: String,
-    pub id: String,
     pub name: String,
 
-    #[serde(flatten)]
     pub quote: std::collections::HashMap<String, Quote>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Quote {
     pub price: f64,
-    pub market_cap: f64,
 }
 
-pub async fn get_token_price(symbol: &str, api_url: &str, api_key: &str) -> Result<QueryData> {
+pub async fn get_token_value(id: u64, amount: f64, api_url: &str, api_key: &str) -> Result<f64> {
     let url = format!(
-        "{}/v2/cryptocurrency/quotes/latest?symbol={}",
-        api_url, symbol
+        "{}/v2/tools/price-conversion?id={}&amount={}&convert=USD",
+        api_url, id, amount
     );
-
-    println!("{}", url);
 
     let client = Client::new();
     let resp = client
@@ -43,7 +39,7 @@ pub async fn get_token_price(symbol: &str, api_url: &str, api_key: &str) -> Resu
         .json::<QueryData>()
         .await?;
 
-    println!("{:?}", resp);
+    let price = resp.data.quote.get("USD").unwrap().price;
 
-    Ok(resp)
+    Ok(price)
 }

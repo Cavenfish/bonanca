@@ -3,18 +3,18 @@ mod finance_tk;
 mod utils;
 mod wallets;
 
-use cmc_api::get::get_token_price;
+use cmc_api::get::get_token_value;
 use utils::config::Config;
 
 #[tokio::main]
 async fn main() {
     let cfg = Config::load_account().unwrap();
 
-    let td = get_token_price("BTC", &cfg.api_url, &cfg.api_key)
+    let value = get_token_value(1, 1.0, &cfg.api_url, &cfg.api_key)
         .await
         .unwrap();
 
-    println!("{:?}", td);
+    println!("{:?}", value);
 
     // let ks = PathBuf::from("./test_wallet.json");
     // let wallie = EvmWallet::new(ks, "https://rpc-amoy.polygon.technology/");

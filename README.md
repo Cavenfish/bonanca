@@ -18,8 +18,8 @@
 
 ### Solana Wallet
 
-- [ ] Create token account
-- [ ] Check token balances
+- [x] Create token account
+- [x] Check token balances
 - [ ] Transfer tokens
 - [ ] Trade tokens on Jupiter
 - [ ] Interact with lending protocols?

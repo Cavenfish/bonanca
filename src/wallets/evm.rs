@@ -28,7 +28,7 @@ pub struct EvmWallet {
 }
 
 impl EvmWallet {
-    pub fn new(keystore: PathBuf, rpc: &str) -> Self {
+    pub fn from(keystore: PathBuf, rpc: &str) -> Self {
         let signer = LocalSigner::decrypt_keystore(&keystore, "test").unwrap();
         let rpc_url = Url::parse(&rpc).unwrap();
         let pubkey = signer.address();

@@ -21,7 +21,7 @@ pub struct SolWallet {
 }
 
 impl SolWallet {
-    pub fn new(keystore: PathBuf, rpc: String) -> Self {
+    pub fn from(keystore: PathBuf, rpc: String) -> Self {
         let kp = read_keypair_file(keystore).unwrap();
         let rp = RpcClient::new(rpc);
         let pk = kp.pubkey();

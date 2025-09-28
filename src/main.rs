@@ -8,7 +8,6 @@ use wallets::solana::SolWallet;
 
 use cmc_api::get::get_token_value;
 use solana_sdk::pubkey::Pubkey;
-use spl_token::id;
 use utils::config::Config;
 
 #[tokio::main]

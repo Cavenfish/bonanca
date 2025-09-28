@@ -1,21 +1,32 @@
 use anyhow::Result;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
+use bincode::deserialize;
+use jup_ag_sdk::{
+    JupiterClient,
+    types::{QuoteGetSwapModeEnum, QuoteRequest, SwapRequest, SwapResponse},
+};
+use serde::Serialize;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
     account::Account,
+    instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
     signature::Signature,
     signer::{
         Signer,
         keypair::{Keypair, read_keypair_file, write_keypair_file},
     },
-    transaction::Transaction,
+    transaction::{Transaction, VersionedTransaction},
 };
 use solana_system_interface::{
     instruction::{create_account, transfer},
     program,
 };
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
+
+const SYSTEM_PROGRAM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 
 pub struct SolWallet {
     pub key_pair: Keypair,
@@ -60,25 +71,42 @@ impl SolWallet {
     pub async fn get_accounts(&self) -> Result<Vec<(Pubkey, Account)>> {
         let accts = self.rpc.get_program_accounts(&self.pubkey).await?;
 
+        println!("{}", &program::id());
+
         Ok(accts)
     }
 
     pub async fn create_token_account(&self, mint: &Pubkey) -> Result<()> {
-        // Get rent
-        let rent = self.rpc.get_minimum_balance_for_rent_exemption(165).await?;
+        let id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")?;
 
         // Make keypair for token account
-        let new_kp = Keypair::new();
+        let (token_account, _) = Pubkey::find_program_address(
+            &[&self.pubkey.to_bytes(), &id.to_bytes(), &mint.to_bytes()],
+            &id,
+        );
+
+        let instr = Instruction {
+            program_id: id,
+            accounts: vec![
+                AccountMeta::new(self.pubkey, true),
+                AccountMeta::new(token_account, false),
+                AccountMeta::new_readonly(self.pubkey, false),
+                AccountMeta::new_readonly(*mint, false),
+                AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
+                AccountMeta::new_readonly(id, false),
+            ],
+            data: vec![0],
+        };
 
         // Build instructions and get blockhash
-        let instr = create_account(&self.pubkey, &new_kp.pubkey(), rent, 165, &program::id());
+        // let instr = create_associated_token_account(&self.pubkey, &self.pubkey, mint, &id);
         let blockhash = self.rpc.get_latest_blockhash().await?;
 
         // Sign transaction
         let tx = Transaction::new_signed_with_payer(
             &[instr],
             Some(&self.pubkey),
-            &[&self.key_pair, &new_kp],
+            &[&self.key_pair],
             blockhash,
         );
 
@@ -124,6 +152,42 @@ impl SolWallet {
         // Build transfer
         let info = transfer(&my_addy, &to_addy, amount);
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
+
+        // Get latest blockhash and sign transaction
+        let blockhash = self.rpc.get_latest_blockhash().await?;
+        trans.sign(&[&self.key_pair], blockhash);
+
+        // Send and wait for confirmation
+        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+
+        Ok(())
+    }
+
+    pub async fn swap(&self, sell: &Pubkey, buy: &Pubkey, amount: u64) -> Result<()> {
+        let client = JupiterClient::new("https://lite-api.jup.ag");
+
+        let quote = QuoteRequest::new(&sell.to_string(), &buy.to_string(), amount)
+            .swap_mode(QuoteGetSwapModeEnum::ExactOut);
+
+        let quote_res = client.get_quote(&quote).await?;
+
+        let payload = SwapRequest::new(
+            &self.pubkey.to_string(),
+            &self.pubkey.to_string(),
+            quote_res,
+        );
+
+        println!("Check 0");
+
+        let swap_res: SwapResponse = client.get_swap_transaction(&payload).await?;
+
+        println!("Check 1");
+
+        let swap_tx_bytes = STANDARD.decode(swap_res.swap_transaction)?;
+
+        let mut trans: Transaction = deserialize(&swap_tx_bytes).unwrap();
+
+        println!("Check 2");
 
         // Get latest blockhash and sign transaction
         let blockhash = self.rpc.get_latest_blockhash().await?;

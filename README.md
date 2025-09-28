@@ -6,11 +6,6 @@
 
 - [x] Read in user config
 - [ ] Update user config
-- [ ] Read pub key
-- [ ] Load encrypted (default) or unencrypted private key
-- [ ] Display balance
-- [ ] Display index summary
-- [ ] Display profit
 
 ### CoinMarketCap API Lib
 
@@ -18,6 +13,8 @@
 
 ### Solana Wallet
 
+- [x] Read pub key
+- [ ] Load encrypted (default) or unencrypted private key
 - [x] Create token account
 - [x] Check token balances
 - [x] Transfer tokens
@@ -27,6 +24,8 @@
 
 ### EVM Wallet
 
+- [x] Read pub key
+- [ ] Load encrypted (default) or unencrypted private key
 - [x] Check token balances
 - [x] Transfer tokens
 - [ ] Trade tokens on UniSwap
@@ -42,6 +41,9 @@
 
 ### Finance TK
 
+- [ ] Display balances
+- [ ] Display index summary
+- [ ] Display profit
 - [ ] Balance index fund
 - [ ] Calculate volatility
 - [ ] Create index fund

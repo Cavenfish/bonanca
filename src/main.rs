@@ -3,18 +3,38 @@ mod finance_tk;
 mod utils;
 mod wallets;
 
+use std::str::FromStr;
+use wallets::solana::SolWallet;
+
 use cmc_api::get::get_token_value;
+use solana_sdk::pubkey::Pubkey;
+use spl_token::id;
 use utils::config::Config;
 
 #[tokio::main]
 async fn main() {
     let cfg = Config::load_account().unwrap();
+    let ks = dirs::data_dir().unwrap().join("bonance/keypair.json");
+    let rpc = "https://api.devnet.solana.com".to_string();
+    let wallie = SolWallet::from(ks, rpc);
 
-    let value = get_token_value(1, 1.0, &cfg.api_url, &cfg.api_key)
-        .await
-        .unwrap();
+    let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+    let buy = Pubkey::from_str("DW2rM3gWM5nojTWuWhtW2FfeA5si7e4nBCon3wqn2LEu").unwrap();
 
-    println!("{:?}", value);
+    let _ = wallie.create_token_account(&buy).await.unwrap();
+    // println!("{}", id());
+
+    // let accts = wallie.get_accounts().await.unwrap();
+
+    // println!("{:?}", accts);
+
+    // let _ = wallie.swap(&sell, &buy, 1_000_000).await.unwrap();
+
+    // let value = get_token_value(1, 1.0, &cfg.api_url, &cfg.api_key)
+    //     .await
+    //     .unwrap();
+
+    // println!("{:?}", value);
 
     // let ks = PathBuf::from("./test_wallet.json");
     // let wallie = EvmWallet::new(ks, "https://rpc-amoy.polygon.technology/");

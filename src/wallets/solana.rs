@@ -69,14 +69,6 @@ impl SolWallet {
         Ok(sig)
     }
 
-    pub async fn get_accounts(&self) -> Result<Vec<(Pubkey, Account)>> {
-        let accts = self.rpc.get_program_accounts(&self.pubkey).await?;
-
-        println!("{}", &program::id());
-
-        Ok(accts)
-    }
-
     pub async fn create_token_account(&self, mint: &Pubkey) -> Result<()> {
         // Get associated token account address
         let (token_account, _) = Pubkey::find_program_address(

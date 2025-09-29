@@ -18,7 +18,7 @@ async fn main() {
     let wallie = SolWallet::from(ks, rpc);
 
     let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
-    let buy = Pubkey::from_str("DW2rM3gWM5nojTWuWhtW2FfeA5si7e4nBCon3wqn2LEu").unwrap();
+    let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
 
     let _ = wallie.create_token_account(&buy).await.unwrap();
     // println!("{}", id());

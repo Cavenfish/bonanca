@@ -6,7 +6,6 @@ use jup_ag_sdk::{
     JupiterClient,
     types::{QuoteGetSwapModeEnum, QuoteRequest, SwapRequest, SwapResponse},
 };
-use serde::Serialize;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
@@ -26,7 +25,9 @@ use solana_system_interface::{
 };
 use std::{path::PathBuf, str::FromStr};
 
-const SYSTEM_PROGRAM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
+const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
+const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
 pub struct SolWallet {
     pub key_pair: Keypair,
@@ -77,32 +78,32 @@ impl SolWallet {
     }
 
     pub async fn create_token_account(&self, mint: &Pubkey) -> Result<()> {
-        let id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")?;
-
-        // Make keypair for token account
+        // Get associated token account address
         let (token_account, _) = Pubkey::find_program_address(
-            &[&self.pubkey.to_bytes(), &id.to_bytes(), &mint.to_bytes()],
-            &id,
+            &[
+                &self.pubkey.to_bytes(),
+                &TOKEN_ID.to_bytes(),
+                &mint.to_bytes(),
+            ],
+            &ATOKEN_ID,
         );
 
+        // Build create instructions
         let instr = Instruction {
-            program_id: id,
+            program_id: ATOKEN_ID,
             accounts: vec![
                 AccountMeta::new(self.pubkey, true),
                 AccountMeta::new(token_account, false),
                 AccountMeta::new_readonly(self.pubkey, false),
                 AccountMeta::new_readonly(*mint, false),
-                AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
-                AccountMeta::new_readonly(id, false),
+                AccountMeta::new_readonly(SYSTEM_ID, false),
+                AccountMeta::new_readonly(TOKEN_ID, false),
             ],
             data: vec![0],
         };
 
-        // Build instructions and get blockhash
-        // let instr = create_associated_token_account(&self.pubkey, &self.pubkey, mint, &id);
+        // Get blockhash and sign transaction
         let blockhash = self.rpc.get_latest_blockhash().await?;
-
-        // Sign transaction
         let tx = Transaction::new_signed_with_payer(
             &[instr],
             Some(&self.pubkey),

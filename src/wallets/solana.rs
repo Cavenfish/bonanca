@@ -47,6 +47,22 @@ impl SolWallet {
         }
     }
 
+    pub async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
+        // Get blockhash and sign transaction
+        let blockhash = self.rpc.get_latest_blockhash().await?;
+        let tx = Transaction::new_signed_with_payer(
+            &[instr],
+            Some(&self.pubkey),
+            &[&self.key_pair],
+            blockhash,
+        );
+
+        // Send and wait for confirmation
+        let _ = self.rpc.send_and_confirm_transaction(&tx).await?;
+
+        Ok(())
+    }
+
     pub async fn balance(&self) -> Result<f64> {
         let balance = self.rpc.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
@@ -95,25 +111,36 @@ impl SolWallet {
         };
 
         // Get blockhash and sign transaction
-        let blockhash = self.rpc.get_latest_blockhash().await?;
-        let tx = Transaction::new_signed_with_payer(
-            &[instr],
-            Some(&self.pubkey),
-            &[&self.key_pair],
-            blockhash,
-        );
-
-        // Send and wait for confirmation
-        let _ = self.rpc.send_and_confirm_transaction(&tx).await?;
+        let _ = self.build_sign_and_send(instr).await?;
 
         Ok(())
     }
 
-    pub async fn get_token_account(&self, mint: Pubkey) -> Result<Pubkey> {
+    pub async fn close_token_account(&self, mint: &Pubkey) -> Result<()> {
+        let token_account = self.get_token_account(mint).await?;
+
+        // Build close instructions
+        let instr = Instruction {
+            program_id: TOKEN_ID,
+            accounts: vec![
+                AccountMeta::new(token_account, false),
+                AccountMeta::new(self.pubkey, true),
+                AccountMeta::new(self.pubkey, true),
+            ],
+            data: vec![],
+        };
+
+        // Get blockhash and sign transaction
+        let _ = self.build_sign_and_send(instr).await?;
+
+        Ok(())
+    }
+
+    pub async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
         // Get token account
         let accounts = self
             .rpc
-            .get_token_accounts_by_owner(&self.pubkey, Mint(mint))
+            .get_token_accounts_by_owner(&self.pubkey, Mint(*mint))
             .await?;
         let token = accounts.get(0).unwrap();
 
@@ -123,7 +150,7 @@ impl SolWallet {
         Ok(addy)
     }
 
-    pub async fn token_balance(&self, mint: Pubkey) -> Result<String> {
+    pub async fn token_balance(&self, mint: &Pubkey) -> Result<String> {
         // Get token account pubkey
         let addy = self.get_token_account(mint).await?;
 
@@ -133,12 +160,15 @@ impl SolWallet {
         Ok(bal.amount)
     }
 
-    pub async fn transfer_token(&self, mint: Pubkey, amount: u64, to: &Pubkey) -> Result<()> {
+    pub async fn transfer_token(&self, mint: &Pubkey, amount: u64, to: &Pubkey) -> Result<()> {
         // Get token account pubkey
         let my_addy = self.get_token_account(mint).await?;
 
         // Get to token account pubkey
-        let accounts = self.rpc.get_token_accounts_by_owner(to, Mint(mint)).await?;
+        let accounts = self
+            .rpc
+            .get_token_accounts_by_owner(to, Mint(*mint))
+            .await?;
         let token = accounts.get(0).unwrap();
         let to_addy = Pubkey::from_str_const(&token.pubkey);
 

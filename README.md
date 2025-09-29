@@ -16,6 +16,7 @@
 - [x] Read pub key
 - [ ] Load encrypted (default) or unencrypted private key
 - [x] Create token account
+- [ ] Close token account
 - [x] Check token balances
 - [x] Transfer tokens
 - [ ] Trade tokens on Jupiter

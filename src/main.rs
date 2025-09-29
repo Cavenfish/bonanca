@@ -13,19 +13,23 @@ use utils::config::Config;
 #[tokio::main]
 async fn main() {
     let cfg = Config::load_account().unwrap();
-    let ks = dirs::data_dir().unwrap().join("bonance/keypair.json");
+    let ks = dirs::data_dir().unwrap().join("bonanca/keypair.json");
     let rpc = "https://api.devnet.solana.com".to_string();
     let wallie = SolWallet::from(ks, rpc);
 
     let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
     let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
 
-    let _ = wallie.create_token_account(&buy).await.unwrap();
+    // let _ = wallie.create_token_account(&buy).await.unwrap();
     // println!("{}", id());
 
-    // let accts = wallie.get_accounts().await.unwrap();
+    let _ = wallie.close_token_account(&buy).await.unwrap();
 
-    // println!("{:?}", accts);
+    // let tkn = wallie.get_token_account(buy).await.unwrap();
+    // let bal = wallie.token_balance(buy).await.unwrap();
+
+    // println!("{}", tkn);
+    // println!("{}", bal);
 
     // let _ = wallie.swap(&sell, &buy, 1_000_000).await.unwrap();
 

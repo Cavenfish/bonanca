@@ -27,7 +27,7 @@ impl Config {
     }
 
     pub fn load_account() -> Result<Self> {
-        let fname = data_dir().unwrap().join("bonance/config.toml");
+        let fname = data_dir().unwrap().join("bonanca/config.toml");
 
         if !fname.is_file() {
             println!("No config file found, initializing default config file.");

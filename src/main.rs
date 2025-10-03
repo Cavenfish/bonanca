@@ -1,10 +1,10 @@
 mod cmc_api;
+mod exchanges;
 mod finance_tk;
 mod utils;
 mod wallets;
 
 use std::path::PathBuf;
-use std::str::FromStr;
 use wallets::evm::EvmWallet;
 use wallets::solana::SolWallet;
 

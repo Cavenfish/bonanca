@@ -41,6 +41,10 @@ impl Wallet for EvmWallet {
         }
     }
 
+    fn get_pubkey(&self) -> Result<String> {
+        Ok(self.pubkey.to_string())
+    }
+
     async fn balance(&self) -> Result<f64> {
         let client = self.get_client();
 

@@ -1,11 +1,4 @@
 use anyhow::Result;
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD;
-use bincode::deserialize;
-use jup_ag_sdk::{
-    JupiterClient,
-    types::{QuoteGetSwapModeEnum, QuoteRequest, SwapRequest, SwapResponse},
-};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
@@ -48,6 +41,10 @@ impl Wallet for SolWallet {
             rpc: rp,
             pubkey: pk,
         }
+    }
+
+    fn get_pubkey(&self) -> Result<String> {
+        Ok(self.pubkey.to_string())
     }
 
     async fn balance(&self) -> Result<f64> {
@@ -188,41 +185,5 @@ impl SolWallet {
         let addy = Pubkey::from_str_const(&token.pubkey);
 
         Ok(addy)
-    }
-
-    pub async fn swap(&self, sell: &Pubkey, buy: &Pubkey, amount: u64) -> Result<()> {
-        let client = JupiterClient::new("https://lite-api.jup.ag");
-
-        let quote = QuoteRequest::new(&sell.to_string(), &buy.to_string(), amount)
-            .swap_mode(QuoteGetSwapModeEnum::ExactOut);
-
-        let quote_res = client.get_quote(&quote).await?;
-
-        let payload = SwapRequest::new(
-            &self.pubkey.to_string(),
-            &self.pubkey.to_string(),
-            quote_res,
-        );
-
-        println!("Check 0");
-
-        let swap_res: SwapResponse = client.get_swap_transaction(&payload).await?;
-
-        println!("Check 1");
-
-        let swap_tx_bytes = STANDARD.decode(swap_res.swap_transaction)?;
-
-        let mut trans: Transaction = deserialize(&swap_tx_bytes).unwrap();
-
-        println!("Check 2");
-
-        // Get latest blockhash and sign transaction
-        let blockhash = self.rpc.get_latest_blockhash().await?;
-        trans.sign(&[&self.key_pair], blockhash);
-
-        // Send and wait for confirmation
-        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
-
-        Ok(())
     }
 }

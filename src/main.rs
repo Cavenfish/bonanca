@@ -3,27 +3,31 @@ mod finance_tk;
 mod utils;
 mod wallets;
 
+use std::path::PathBuf;
 use std::str::FromStr;
+use wallets::evm::EvmWallet;
 use wallets::solana::SolWallet;
 
 use cmc_api::get::get_token_value;
 use solana_sdk::pubkey::Pubkey;
 use utils::config::Config;
 
+use crate::wallets::traits::Wallet;
+
 #[tokio::main]
 async fn main() {
-    let cfg = Config::load_account().unwrap();
-    let ks = dirs::data_dir().unwrap().join("bonanca/keypair.json");
-    let rpc = "https://api.devnet.solana.com".to_string();
-    let wallie = SolWallet::from(ks, rpc);
+    // let cfg = Config::load_account().unwrap();
+    // let ks = dirs::data_dir().unwrap().join("bonanca/keypair.json");
+    // let rpc = "https://api.devnet.solana.com".to_string();
+    // let wallie = SolWallet::from(ks, rpc);
 
-    let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
-    let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
+    // let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+    // let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
 
     // let _ = wallie.create_token_account(&buy).await.unwrap();
     // println!("{}", id());
 
-    let _ = wallie.close_token_account(&buy).await.unwrap();
+    // let _ = wallie.close_token_account(&buy).await.unwrap();
 
     // let tkn = wallie.get_token_account(buy).await.unwrap();
     // let bal = wallie.token_balance(buy).await.unwrap();
@@ -39,12 +43,12 @@ async fn main() {
 
     // println!("{:?}", value);
 
-    // let ks = PathBuf::from("./test_wallet.json");
-    // let wallie = EvmWallet::new(ks, "https://rpc-amoy.polygon.technology/");
+    let ks = PathBuf::from("./test_wallet.json");
+    let wallie = EvmWallet::load(ks, "https://rpc-amoy.polygon.technology/".to_string());
 
     // let bal = wallie.balance().await.unwrap();
 
-    // println!("{}", wallie.pubkey);
+    println!("{}", wallie.pubkey);
     // println!("{}", bal);
 
     // let tkn = address!("0xc3Bf644bebc4dAaC868041b4fd1342C4Ae6E934e");

@@ -62,7 +62,12 @@ impl Wallet for SolWallet {
 
     async fn token_balance(&self, mint: &str) -> Result<f64> {
         let mint_pubkey = Pubkey::from_str_const(mint);
-        let addy = self.get_token_account(&mint_pubkey).await?;
+        let addy_result = self.get_token_account(&mint_pubkey).await;
+
+        let addy = match addy_result {
+            Ok(addy) => addy,
+            Err(_) => self.create_token_account(&mint_pubkey).await?,
+        };
 
         let bal = self.rpc.get_token_account_balance(&addy).await?;
         let amount: f64 = bal.amount.parse()?;
@@ -124,7 +129,7 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn create_token_account(&self, mint: &Pubkey) -> Result<()> {
+    pub async fn create_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
         // Get associated token account address
         let (token_account, _) = Pubkey::find_program_address(
             &[
@@ -152,7 +157,7 @@ impl SolWallet {
         // Get blockhash and sign transaction
         let _ = self.build_sign_and_send(instr).await?;
 
-        Ok(())
+        Ok(token_account)
     }
 
     pub async fn close_token_account(&self, mint: &Pubkey) -> Result<()> {

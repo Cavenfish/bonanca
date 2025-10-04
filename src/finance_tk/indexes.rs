@@ -10,10 +10,17 @@ use std::{
 pub struct IndexFund {
     pub name: String,
     pub chain: String,
-    pub rpc: String,
+    pub rpc_url: String,
     pub keystore: PathBuf,
-
+    pub aggregator: ApiInfo,
+    pub oracle: ApiInfo,
     pub sectors: Vec<Sector>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ApiInfo {
+    pub api_url: String,
+    pub api_key: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

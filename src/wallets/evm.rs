@@ -11,6 +11,7 @@ use alloy_primitives::{
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
+use async_trait::async_trait;
 use std::{ops::Add, path::PathBuf, str::FromStr};
 
 use crate::wallets::traits::Wallet;
@@ -29,18 +30,8 @@ pub struct EvmWallet {
     pub pubkey: Address,
 }
 
+#[async_trait]
 impl Wallet for EvmWallet {
-    fn load(keystore: PathBuf, rpc: String) -> Self {
-        let signer = LocalSigner::decrypt_keystore(&keystore, "test").unwrap();
-        let rpc_url = Url::parse(&rpc).unwrap();
-        let pubkey = signer.address();
-        Self {
-            signer: signer,
-            rpc: rpc_url,
-            pubkey: pubkey,
-        }
-    }
-
     fn get_pubkey(&self) -> Result<String> {
         Ok(self.pubkey.to_string())
     }
@@ -109,6 +100,17 @@ impl Wallet for EvmWallet {
 }
 
 impl EvmWallet {
+    pub fn load(keystore: PathBuf, rpc: String) -> Self {
+        let signer = LocalSigner::decrypt_keystore(&keystore, "test").unwrap();
+        let rpc_url = Url::parse(&rpc).unwrap();
+        let pubkey = signer.address();
+        Self {
+            signer: signer,
+            rpc: rpc_url,
+            pubkey: pubkey,
+        }
+    }
+
     // Builds the client (RPC connection)
     fn get_client(&self) -> impl Provider {
         ProviderBuilder::new()

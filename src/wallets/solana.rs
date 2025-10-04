@@ -1,4 +1,5 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
+use async_trait::async_trait;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_client::SerializableTransaction};
 use solana_sdk::{
@@ -31,18 +32,8 @@ pub struct SolWallet {
     pub pubkey: Pubkey,
 }
 
+#[async_trait]
 impl Wallet for SolWallet {
-    fn load(keystore: PathBuf, rpc: String) -> Self {
-        let kp = read_keypair_file(keystore).unwrap();
-        let rp = RpcClient::new(rpc);
-        let pk = kp.pubkey();
-        Self {
-            key_pair: kp,
-            rpc: rp,
-            pubkey: pk,
-        }
-    }
-
     fn get_pubkey(&self) -> Result<String> {
         Ok(self.pubkey.to_string())
     }
@@ -106,6 +97,17 @@ impl Wallet for SolWallet {
 }
 
 impl SolWallet {
+    pub fn load(keystore: PathBuf, rpc: String) -> Self {
+        let kp = read_keypair_file(keystore).unwrap();
+        let rp = RpcClient::new(rpc);
+        let pk = kp.pubkey();
+        Self {
+            key_pair: kp,
+            rpc: rp,
+            pubkey: pk,
+        }
+    }
+
     pub async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
         // Get blockhash and sign transaction
         let blockhash = self.rpc.get_latest_blockhash().await?;
@@ -179,7 +181,7 @@ impl SolWallet {
             .rpc
             .get_token_accounts_by_owner(&self.pubkey, Mint(*mint))
             .await?;
-        let token = accounts.get(0).unwrap();
+        let token = accounts.get(0).context("Could not find token account")?;
 
         // Get token account pubkey
         let addy = Pubkey::from_str_const(&token.pubkey);

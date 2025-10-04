@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -9,17 +11,11 @@ pub struct Bonanca {
 
 #[derive(Debug, Subcommand)]
 pub enum BonArgs {
-    /// List managed indexes
-    List,
-
-    /// Print the balance of indexes
+    /// Print the balance of an index
     Balance(BalArgs),
 
-    /// Rebalance indexes
+    /// Rebalance index
     Rebalance(RebalArgs),
-
-    /// Print summary of managed indexes
-    Summary(SummaryArgs),
 
     /// Withdraw from index
     Withdraw(OutArgs),
@@ -29,28 +25,27 @@ pub enum BonArgs {
 pub struct BalArgs {
     /// Name of index
     #[arg(short)]
-    pub index: String,
+    pub index: PathBuf,
 }
 
 #[derive(Debug, Args)]
 pub struct RebalArgs {
     /// Name of index
     #[arg(short)]
-    pub index: String,
-}
-
-#[derive(Debug, Args)]
-pub struct SummaryArgs {
-    /// Name of index
-    #[arg(short)]
-    pub index: String,
+    pub index: PathBuf,
 }
 
 #[derive(Debug, Args)]
 pub struct OutArgs {
+    /// Name of index
+    #[arg(short)]
+    pub index: PathBuf,
+
     /// Account to send funds to
+    #[arg(short)]
     pub to: String,
 
     /// Amount to withdraw
+    #[arg(short)]
     pub amount: f64,
 }

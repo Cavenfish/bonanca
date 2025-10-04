@@ -1,8 +1,12 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use std::path::PathBuf;
 
+use super::{evm::EvmWallet, solana::SolWallet};
+
+#[async_trait]
 pub trait Wallet {
-    fn load(keystore: PathBuf, rpc: String) -> Self;
+    // fn load(keystore: PathBuf, rpc: String) -> Self;
 
     fn get_pubkey(&self) -> Result<String>;
 

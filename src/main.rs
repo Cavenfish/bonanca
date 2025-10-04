@@ -12,10 +12,22 @@ use cmc_api::get::get_token_value;
 use solana_sdk::pubkey::Pubkey;
 use utils::config::Config;
 
+use crate::utils::args::{BonArgs, Bonanca};
+use crate::utils::cmds::show_index_balance;
 use crate::wallets::traits::Wallet;
+
+use clap::Parser;
 
 #[tokio::main]
 async fn main() {
+    let args = Bonanca::parse();
+
+    match args.command {
+        BonArgs::Balance(cmd) => show_index_balance(cmd).await.unwrap(),
+        BonArgs::Rebalance(cmd) => todo!(),
+        BonArgs::Withdraw(cmd) => todo!(),
+    };
+
     // let cfg = Config::load_account().unwrap();
     // let ks = dirs::data_dir().unwrap().join("bonanca/keypair.json");
     // let rpc = "https://api.devnet.solana.com".to_string();
@@ -43,12 +55,12 @@ async fn main() {
 
     // println!("{:?}", value);
 
-    let ks = PathBuf::from("./test_wallet.json");
-    let wallie = EvmWallet::load(ks, "https://rpc-amoy.polygon.technology/".to_string());
+    // let ks = PathBuf::from("./test_wallet.json");
+    // let wallie = EvmWallet::load(ks, "https://rpc-amoy.polygon.technology/".to_string());
 
     // let bal = wallie.balance().await.unwrap();
 
-    println!("{}", wallie.pubkey);
+    // println!("{}", wallie.pubkey);
     // println!("{}", bal);
 
     // let tkn = address!("0xc3Bf644bebc4dAaC868041b4fd1342C4Ae6E934e");

@@ -30,16 +30,16 @@ async fn main() {
 
     // let cfg = Config::load_account().unwrap();
     // let ks = dirs::data_dir().unwrap().join("bonanca/keypair.json");
-    // let rpc = "https://api.devnet.solana.com".to_string();
-    // let wallie = SolWallet::from(ks, rpc);
+    // let rpc = "https://api.mainnet-beta.solana.com".to_string();
+    // let wallie = SolWallet::load(ks, rpc);
 
-    // let sell = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+    // let sell = Pubkey::from_str_const("3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh");
     // let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
 
     // let _ = wallie.create_token_account(&buy).await.unwrap();
     // println!("{}", id());
 
-    // let _ = wallie.close_token_account(&buy).await.unwrap();
+    // let _ = wallie.close_token_account(&sell).await.unwrap();
 
     // let tkn = wallie.get_token_account(buy).await.unwrap();
     // let bal = wallie.token_balance(buy).await.unwrap();

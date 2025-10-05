@@ -16,7 +16,7 @@
 - [x] Read pub key
 - [ ] Load encrypted (default) or unencrypted private key
 - [x] Create token account
-- [ ] Close token account
+- [x] Close token account
 - [x] Check token balances
 - [x] Transfer tokens
 - [ ] Trade tokens on Jupiter
@@ -29,6 +29,7 @@
 - [ ] Load encrypted (default) or unencrypted private key
 - [x] Check token balances
 - [x] Transfer tokens
+- [ ] Approve tokens for spending
 - [ ] Trade tokens on UniSwap
 - [ ] Trade tokens on 1Inch
 - [ ] Interact with lending protocols?
@@ -42,7 +43,7 @@
 
 ### Finance TK
 
-- [ ] Display balances
+- [x] Display balances
 - [ ] Display index summary
 - [ ] Display profit
 - [ ] Balance index fund

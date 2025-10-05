@@ -171,7 +171,7 @@ impl SolWallet {
                 AccountMeta::new(self.pubkey, true),
                 AccountMeta::new(self.pubkey, true),
             ],
-            data: vec![],
+            data: vec![9],
         };
 
         // Get blockhash and sign transaction

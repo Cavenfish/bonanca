@@ -14,6 +14,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::{ops::Add, path::PathBuf, str::FromStr};
 
+use crate::exchanges::traits::SwapData;
 use crate::wallets::traits::Wallet;
 
 // ABI for smart contracts
@@ -94,6 +95,15 @@ impl Wallet for EvmWallet {
 
         // Send transaction
         let _ = erc20.transfer(to_addy, amnt).send().await?.watch().await?;
+
+        Ok(())
+    }
+
+    async fn swap(&self, swap_data: SwapData) -> Result<()> {
+        let data = match swap_data {
+            SwapData::Evm(trans) => trans,
+            _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
+        };
 
         Ok(())
     }

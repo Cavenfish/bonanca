@@ -13,7 +13,7 @@ use solana_sdk::pubkey::Pubkey;
 use utils::config::Config;
 
 use crate::utils::args::{BonArgs, Bonanca};
-use crate::utils::cmds::show_index_balance;
+use crate::utils::cmds::{rebalance_index_fund, show_index_balance};
 use crate::wallets::traits::Wallet;
 
 use clap::Parser;
@@ -24,7 +24,7 @@ async fn main() {
 
     match args.command {
         BonArgs::Balance(cmd) => show_index_balance(cmd).await.unwrap(),
-        BonArgs::Rebalance(cmd) => todo!(),
+        BonArgs::Rebalance(cmd) => rebalance_index_fund(cmd).await.unwrap(),
         BonArgs::Withdraw(cmd) => todo!(),
     };
 
@@ -33,7 +33,7 @@ async fn main() {
     // let rpc = "https://api.mainnet-beta.solana.com".to_string();
     // let wallie = SolWallet::load(ks, rpc);
 
-    // let sell = Pubkey::from_str_const("3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh");
+    // let sell = Pubkey::from_str_const("So11111111111111111111111111111111111111112");
     // let buy = Pubkey::from_str("3wQct2e43J1Z99h2RWrhPAhf6E32ZpuzEt6tgwfEAKAy").unwrap();
 
     // let _ = wallie.create_token_account(&buy).await.unwrap();

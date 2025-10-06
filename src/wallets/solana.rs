@@ -20,6 +20,7 @@ use solana_system_interface::{
 };
 use std::{path::PathBuf, str::FromStr};
 
+use crate::exchanges::traits::SwapData;
 use crate::wallets::traits::Wallet;
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
@@ -95,6 +96,22 @@ impl Wallet for SolWallet {
         let blockhash = self.rpc.get_latest_blockhash().await?;
         trans.sign(&[&self.key_pair], blockhash);
 
+        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+
+        Ok(())
+    }
+
+    async fn swap(&self, swap_data: SwapData) -> Result<()> {
+        let mut trans = match swap_data {
+            SwapData::Sol(trans) => trans,
+            _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
+        };
+
+        // Get latest blockhash and sign transaction
+        let blockhash = self.rpc.get_latest_blockhash().await?;
+        trans.sign(&[&self.key_pair], blockhash);
+
+        // Send and wait for confirmation
         let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(())

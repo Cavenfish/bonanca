@@ -1,7 +1,7 @@
 use super::args::BalArgs;
 
 use crate::{
-    exchanges::{jupiter::Jup, traits::Dex},
+    exchanges::jupiter::Jupiter,
     finance_tk::indexes::load_index_fund,
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
@@ -46,15 +46,17 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);
 
-    let dex = Jup::new();
+    let dex = Jupiter::new(fund.aggregator.api_url, fund.aggregator.api_key);
 
     let sell = "So11111111111111111111111111111111111111112";
     let buy = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
     let amount = 1_000;
+    let taker = wallet.get_pubkey()?;
 
-    let swap_data = dex.get_swap_data(&wallet, sell, buy, amount).await?;
+    // let swap_data = dex.get_ultra_order(sell, buy, amount, &taker).await?;
+    let swap_data = dex.get_swap_quote(sell, buy, amount).await?;
 
-    let _ = wallet.swap(swap_data).await?;
+    println!("{:?}", swap_data);
 
     Ok(())
 }

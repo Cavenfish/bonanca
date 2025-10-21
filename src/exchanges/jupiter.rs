@@ -1,5 +1,5 @@
 use crate::{
-    exchanges::traits::{Dex, SwapData},
+    exchanges::traits::{Dex, SwapTransactionData},
     wallets::traits::Wallet,
 };
 
@@ -8,8 +8,8 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
 use reqwest::Client;
-use serde::Deserialize;
-use solana_sdk::transaction::Transaction;
+use serde::{Deserialize, Serialize};
+use solana_sdk::transaction::VersionedTransaction;
 
 pub struct Jupiter {
     pub base_url: String,
@@ -25,7 +25,7 @@ impl Jupiter {
     }
 
     pub async fn get_ultra_order(
-        self,
+        &self,
         sell: &str,
         buy: &str,
         amount: u64,
@@ -49,7 +49,7 @@ impl Jupiter {
         Ok(order)
     }
 
-    pub async fn get_swap_quote(self, sell: &str, buy: &str, amount: u64) -> Result<SwapQuote> {
+    pub async fn get_swap_quote(&self, sell: &str, buy: &str, amount: u64) -> Result<SwapQuote> {
         let client = Client::new();
 
         let url = format!(
@@ -57,7 +57,7 @@ impl Jupiter {
             &self.base_url, sell, buy, amount
         );
 
-        let order: SwapQuote = client
+        let quote: SwapQuote = client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -65,7 +65,52 @@ impl Jupiter {
             .json::<SwapQuote>()
             .await?;
 
+        Ok(quote)
+    }
+
+    pub async fn get_swap_order(&self, pubkey: &str, swap_quote: SwapQuote) -> Result<SwapOrder> {
+        let client = Client::new();
+
+        let url = format!("{}/swap/v1/swap", &self.base_url);
+
+        let swap_data = SwapData {
+            user_public_key: pubkey.to_string(),
+            quote_response: swap_quote,
+        };
+
+        let order: SwapOrder = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&swap_data)
+            .send()
+            .await?
+            .json::<SwapOrder>()
+            .await?;
+
         Ok(order)
+    }
+}
+
+impl Dex for Jupiter {
+    async fn get_swap_data(
+        &self,
+        wallet: &Box<dyn Wallet>,
+        sell: &str,
+        buy: &str,
+        amount: u64,
+    ) -> Result<super::traits::SwapTransactionData> {
+        let taker = wallet.get_pubkey()?;
+        let swap_quote = self.get_swap_quote(sell, buy, amount).await?;
+
+        let swap_order = self.get_swap_order(&taker, swap_quote).await?;
+
+        let swap_tx_bytes = STANDARD
+            .decode(swap_order.swap_transaction)
+            .expect("Failed to decode base64 transaction");
+
+        let mut tx: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+
+        Ok(SwapTransactionData::Sol(tx))
     }
 }
 
@@ -104,7 +149,7 @@ pub struct UltraOrder {
     pub total_time: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SwapQuote {
     pub input_mint: String,
@@ -128,6 +173,14 @@ pub struct SwapQuote {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SwapOrder {
+    pub swap_transaction: String,
+    pub last_valid_block_height: u32,
+    pub prioritization_fee_lamports: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RoutePlan {
     #[serde(rename = "swapInfo")]
     pub swap_info: SwapInfo,
@@ -135,7 +188,7 @@ pub struct RoutePlan {
     pub bps: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SwapInfo {
     pub amm_key: String,
@@ -152,4 +205,11 @@ pub struct SwapInfo {
 pub struct PlatformFee {
     #[serde(rename = "feeBps")]
     pub fee_bps: u32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SwapData {
+    pub user_public_key: String,
+    pub quote_response: SwapQuote,
 }

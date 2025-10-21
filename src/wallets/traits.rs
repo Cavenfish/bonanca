@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::path::PathBuf;
 
-use crate::exchanges::traits::SwapData;
+use crate::exchanges::traits::SwapTransactionData;
 
 use super::{evm::EvmWallet, solana::SolWallet};
 
@@ -18,5 +18,5 @@ pub trait Wallet {
 
     async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<()>;
 
-    async fn swap(&self, swap_data: SwapData) -> Result<()>;
+    async fn swap(&self, swap_data: SwapTransactionData) -> Result<()>;
 }

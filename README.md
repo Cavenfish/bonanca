@@ -19,7 +19,7 @@
 - [x] Close token account
 - [x] Check token balances
 - [x] Transfer tokens
-- [ ] Trade tokens on Jupiter
+- [x] Trade tokens on Jupiter
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
 

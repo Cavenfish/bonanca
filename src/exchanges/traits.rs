@@ -1,11 +1,11 @@
 use alloy::rpc::types::TransactionRequest;
 use anyhow::Result;
-use solana_sdk::transaction::Transaction;
+use solana_sdk::transaction::VersionedTransaction;
 
 use crate::wallets::traits::Wallet;
 
-pub enum SwapData {
-    Sol(Transaction),
+pub enum SwapTransactionData {
+    Sol(VersionedTransaction),
     Evm(TransactionRequest),
 }
 
@@ -16,5 +16,5 @@ pub trait Dex {
         sell: &str,
         buy: &str,
         amount: u64,
-    ) -> Result<SwapData>;
+    ) -> Result<SwapTransactionData>;
 }

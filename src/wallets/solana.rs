@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use bincode::de;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_client::SerializableTransaction};
 use solana_sdk::{
@@ -70,10 +71,10 @@ impl Wallet for SolWallet {
             Err(_) => self.create_token_account(&mint_pubkey).await?,
         };
 
-        let bal = self.rpc.get_token_account_balance(&addy).await?;
-        let amount: f64 = bal.amount.parse()?;
+        let token_data = self.rpc.get_token_account_balance(&addy).await?;
+        let bal = token_data.ui_amount.unwrap_or(0.0);
 
-        Ok(amount)
+        Ok(bal)
     }
 
     async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<()> {

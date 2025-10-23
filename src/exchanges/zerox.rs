@@ -7,11 +7,11 @@ use alloy::{
     network::TransactionBuilder,
     rpc::types::{TransactionInput, TransactionRequest},
 };
-use alloy_primitives::{Address, Bytes, Uint};
+use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
-use std::{ptr::null, str::FromStr};
+use std::str::FromStr;
 
 pub struct ZeroX {
     pub base_url: String,
@@ -38,7 +38,7 @@ impl ZeroX {
         let client = Client::new();
 
         let url = format!(
-            "{}/swap/allowance-holder/quote?chainId={}&sellToken={}&sellAmount={}&buyToken={}&taker={}",
+            "{}/swap/permit2/quote?chainId={}&sellToken={}&sellAmount={}&buyToken={}&taker={}",
             &self.base_url, &self.chain_id, sell, amount, buy, taker,
         );
 
@@ -70,17 +70,22 @@ impl Dex for ZeroX {
 
         let taker_addy = Address::from_str(&taker)?;
         let to_addy = Address::from_str(&quote.transaction.to)?;
-        let tmp = quote.transaction.data.into_bytes();
+        let tmp = decode(quote.transaction.data)?;
         let data = Bytes::copy_from_slice(&tmp);
         let value: Uint<256, 4> = quote.transaction.value.parse()?;
+        let gas_limit: u64 = quote.transaction.gas.parse()?;
+        let gas_price: u128 = quote.transaction.gas_price.parse()?;
 
         let input = TransactionInput::new(data);
 
         let tx = TransactionRequest::default()
             .input(input)
+            .with_input_and_data()
             .with_from(taker_addy)
             .with_to(to_addy)
-            .with_value(value);
+            .with_value(value)
+            .with_gas_limit(gas_limit)
+            .with_max_fee_per_gas(gas_price);
 
         Ok(SwapTransactionData::Evm(tx))
     }

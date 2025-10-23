@@ -55,10 +55,10 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 
     // let sell = "So11111111111111111111111111111111111111112";
     // let buy = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
-    let sell = "0x0000000000000000000000000000000000001010";
+    let sell = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
     let buy = "0xb33EaAd8d922B1083446DC23f610c2567fB5180f";
 
-    let amount = 5e17 as u64;
+    let amount: u64 = (0.00001502 * 1e18) as u64;
 
     // let swap_data = dex.get_ultra_order(sell, buy, amount, &taker).await?;
     let swap_data = dex.get_swap_data(&wallet, sell, buy, amount).await?;

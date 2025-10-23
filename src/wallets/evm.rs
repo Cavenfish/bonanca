@@ -106,9 +106,7 @@ impl Wallet for EvmWallet {
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
 
-        println!("almost swapping");
         let _ = client.send_transaction(tx).await?.watch().await?;
-        println!("done swapping");
 
         Ok(())
     }

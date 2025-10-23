@@ -29,9 +29,10 @@
 - [ ] Load encrypted (default) or unencrypted private key
 - [x] Check token balances
 - [x] Transfer tokens
-- [ ] Approve tokens for spending
+- [x] Approve tokens for spending
 - [ ] Trade tokens on UniSwap
 - [ ] Trade tokens on 1Inch
+- [x] Trade tokens on 0x
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
 

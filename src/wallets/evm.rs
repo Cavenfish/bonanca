@@ -7,7 +7,7 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use alloy_primitives::{
-    Address, U256,
+    Address, U256, Uint,
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
@@ -91,7 +91,7 @@ impl Wallet for EvmWallet {
         let deci = erc20.decimals().call().await?;
 
         // Format amount to send
-        let amnt = parse_units(&amount.to_string(), deci)?.into();
+        let amnt: Uint<256, 4> = parse_units(&amount.to_string(), deci)?.into();
 
         // Send transaction
         let _ = erc20.transfer(to_addy, amnt).send().await?.watch().await?;
@@ -126,5 +126,30 @@ impl EvmWallet {
         ProviderBuilder::new()
             .wallet(self.signer.clone())
             .connect_http(self.rpc.clone())
+    }
+
+    pub async fn approve_token_spending(
+        &self,
+        token: &str,
+        spender: &str,
+        amount: f64,
+    ) -> Result<()> {
+        let token_addy = Address::from_str(token)?;
+        let spender_addy = Address::from_str(spender)?;
+        let client = self.get_client();
+
+        let erc20 = ERC20::new(token_addy, client);
+
+        let decimals = erc20.decimals().call().await?;
+        let value: Uint<256, 4> = parse_units(&amount.to_string(), decimals)?.into();
+
+        let _ = erc20
+            .approve(spender_addy, value)
+            .send()
+            .await?
+            .watch()
+            .await?;
+
+        Ok(())
     }
 }

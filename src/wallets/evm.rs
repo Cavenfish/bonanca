@@ -100,10 +100,15 @@ impl Wallet for EvmWallet {
     }
 
     async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
-        let data = match swap_data {
+        let client = self.get_client();
+        let tx = match swap_data {
             SwapTransactionData::Evm(trans) => trans,
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
+
+        println!("almost swapping");
+        let _ = client.send_transaction(tx).await?.watch().await?;
+        println!("done swapping");
 
         Ok(())
     }

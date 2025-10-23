@@ -10,6 +10,7 @@ use std::{
 pub struct IndexFund {
     pub name: String,
     pub chain: String,
+    pub chain_id: Option<u16>,
     pub rpc_url: String,
     pub keystore: PathBuf,
     pub aggregator: ApiInfo,

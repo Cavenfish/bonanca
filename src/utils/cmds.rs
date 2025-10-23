@@ -1,7 +1,7 @@
 use super::args::BalArgs;
 
 use crate::{
-    exchanges::{jupiter::Jupiter, traits::Dex},
+    exchanges::{jupiter::Jupiter, traits::Dex, zerox::ZeroX},
     finance_tk::indexes::load_index_fund,
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
@@ -46,11 +46,19 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);
 
-    let dex = Jupiter::new(fund.aggregator.api_url, fund.aggregator.api_key);
+    // let dex = Jupiter::new(fund.aggregator.api_url, fund.aggregator.api_key);
+    let dex = ZeroX::new(
+        fund.aggregator.api_url,
+        fund.aggregator.api_key,
+        fund.chain_id.unwrap(),
+    );
 
-    let sell = "So11111111111111111111111111111111111111112";
-    let buy = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
-    let amount = 1_000;
+    // let sell = "So11111111111111111111111111111111111111112";
+    // let buy = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
+    let sell = "0x0000000000000000000000000000000000001010";
+    let buy = "0xb33EaAd8d922B1083446DC23f610c2567fB5180f";
+
+    let amount = 5e17 as u64;
 
     // let swap_data = dex.get_ultra_order(sell, buy, amount, &taker).await?;
     let swap_data = dex.get_swap_data(&wallet, sell, buy, amount).await?;

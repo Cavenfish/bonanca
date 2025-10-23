@@ -30,7 +30,7 @@ impl Jupiter {
         buy: &str,
         amount: u64,
         taker: &str,
-    ) -> Result<UltraOrder> {
+    ) -> Result<JupiterUltraOrder> {
         let client = Client::new();
 
         let url = format!(
@@ -38,18 +38,23 @@ impl Jupiter {
             &self.base_url, sell, buy, amount, taker
         );
 
-        let order: UltraOrder = client
+        let order: JupiterUltraOrder = client
             .get(&url)
             .header("Accept", "application/json")
             .send()
             .await?
-            .json::<UltraOrder>()
+            .json::<JupiterUltraOrder>()
             .await?;
 
         Ok(order)
     }
 
-    pub async fn get_swap_quote(&self, sell: &str, buy: &str, amount: u64) -> Result<SwapQuote> {
+    pub async fn get_swap_quote(
+        &self,
+        sell: &str,
+        buy: &str,
+        amount: u64,
+    ) -> Result<JupiterSwapQuote> {
         let client = Client::new();
 
         let url = format!(
@@ -57,18 +62,22 @@ impl Jupiter {
             &self.base_url, sell, buy, amount
         );
 
-        let quote: SwapQuote = client
+        let quote: JupiterSwapQuote = client
             .get(&url)
             .header("Accept", "application/json")
             .send()
             .await?
-            .json::<SwapQuote>()
+            .json::<JupiterSwapQuote>()
             .await?;
 
         Ok(quote)
     }
 
-    pub async fn get_swap_order(&self, pubkey: &str, swap_quote: SwapQuote) -> Result<SwapOrder> {
+    pub async fn get_swap_order(
+        &self,
+        pubkey: &str,
+        swap_quote: JupiterSwapQuote,
+    ) -> Result<SwapOrder> {
         let client = Client::new();
 
         let url = format!("{}/swap/v1/swap", &self.base_url);
@@ -108,7 +117,7 @@ impl Dex for Jupiter {
             .decode(swap_order.swap_transaction)
             .expect("Failed to decode base64 transaction");
 
-        let mut tx: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+        let tx: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
 
         Ok(SwapTransactionData::Sol(tx))
     }
@@ -116,7 +125,7 @@ impl Dex for Jupiter {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UltraOrder {
+pub struct JupiterUltraOrder {
     pub in_amount: String,
     pub out_amount: String,
     pub other_amount_threshold: String,
@@ -151,7 +160,7 @@ pub struct UltraOrder {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SwapQuote {
+pub struct JupiterSwapQuote {
     pub input_mint: String,
     pub in_amount: String,
     pub output_mint: String,
@@ -211,5 +220,5 @@ pub struct PlatformFee {
 #[serde(rename_all = "camelCase")]
 pub struct SwapData {
     pub user_public_key: String,
-    pub quote_response: SwapQuote,
+    pub quote_response: JupiterSwapQuote,
 }

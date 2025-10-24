@@ -2,6 +2,8 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 
+use crate::api_lib::oracles::Oracle;
+
 pub struct CoinMarketCap {
     pub base_url: String,
     pub api_key: String,
@@ -15,7 +17,7 @@ impl CoinMarketCap {
         }
     }
 
-    pub async fn get_price(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {
+    pub async fn get_price_quote(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {
         let client = Client::new();
         let url = format!(
             "{}/v2/tools/price-conversion?symbol={}&amount={}&convert=USD",
@@ -32,6 +34,18 @@ impl CoinMarketCap {
             .await?;
 
         Ok(resp)
+    }
+}
+
+impl Oracle for CoinMarketCap {
+    async fn get_token_value(&self, token: &str, amount: f64) -> Result<f64> {
+        let quote = self.get_price_quote(token, amount).await?;
+
+        let data = quote.data.get(0).unwrap();
+
+        let value = data.quote.USD.price.unwrap();
+
+        Ok(value)
     }
 }
 
@@ -56,7 +70,7 @@ pub struct TokenData {
     pub id: i64,
     pub symbol: String,
     pub name: String,
-    pub amount: i32,
+    pub amount: f64,
     pub last_updated: Option<String>,
     pub quote: Quote,
 }

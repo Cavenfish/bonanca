@@ -3,7 +3,9 @@ use anyhow::{Ok, Result};
 use super::args::BalArgs;
 
 use crate::{
-    api_lib::{aggregators::Exchange, jupiter::Jupiter, zerox::ZeroX},
+    api_lib::{
+        aggregators::Exchange, cmc::CoinMarketCap, jupiter::Jupiter, oracles::Oracle, zerox::ZeroX,
+    },
     finance_tk::indexes::load_index_fund,
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
@@ -18,6 +20,8 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,
     };
 
+    let oracle = CoinMarketCap::new(fund.oracle.api_url, fund.oracle.api_key);
+
     println!("{} Balances:", fund.name);
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);
@@ -27,7 +31,13 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         for asset in sector.assets {
             let bal = wallet.token_balance(&asset.token).await?;
 
-            println!("{}: {}", asset.name, bal);
+            let usd = if bal != 0.0 {
+                oracle.get_token_value(&asset.name, bal).await?
+            } else {
+                0.0
+            };
+
+            println!("{}: {}", asset.name, usd);
         }
     }
 

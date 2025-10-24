@@ -1,3 +1,5 @@
+use anyhow::{Ok, Result};
+
 use super::args::BalArgs;
 
 use crate::{
@@ -6,8 +8,6 @@ use crate::{
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
 };
-
-use anyhow::{Ok, Result};
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = load_index_fund(&cmd.index)?;

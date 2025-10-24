@@ -14,10 +14,29 @@ impl CoinMarketCap {
             api_key: api_key,
         }
     }
+
+    pub async fn get_price(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {
+        let client = Client::new();
+        let url = format!(
+            "{}/v2/tools/price-conversion?symbol={}&amount={}&convert=USD",
+            &self.base_url, token, amount
+        );
+
+        let resp = client
+            .get(&url)
+            .header("X-CMC_PRO_API_KEY", &self.api_key)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<CmcPriceQuote>()
+            .await?;
+
+        Ok(resp)
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CmcResponse {
+pub struct CmcPriceQuote {
     pub status: Status,
     pub data: Vec<TokenData>,
 }

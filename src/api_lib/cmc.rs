@@ -1,8 +1,9 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::api_lib::traits::Oracle;
+use crate::{api_lib::traits::Oracle, finance_tk::indexes::Asset};
 
 pub struct CoinMarketCap {
     pub base_url: String,
@@ -37,13 +38,14 @@ impl CoinMarketCap {
     }
 }
 
+#[async_trait]
 impl Oracle for CoinMarketCap {
-    async fn get_token_value(&self, token: &str, amount: f64) -> Result<f64> {
-        let quote = self.get_price_quote(token, amount).await?;
+    async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64> {
+        let quote = self.get_price_quote(&asset.symbol, amount).await?;
 
         let data = quote.data.get(0).unwrap();
 
-        let value = data.quote.USD.price.unwrap();
+        let value = data.quote.usd.price.unwrap();
 
         Ok(value)
     }
@@ -77,7 +79,8 @@ pub struct TokenData {
 
 #[derive(Debug, Deserialize)]
 pub struct Quote {
-    pub USD: UsdQuote,
+    #[serde(rename = "USD")]
+    pub usd: UsdQuote,
 }
 
 #[derive(Debug, Deserialize)]

@@ -20,6 +20,7 @@ pub struct IndexFund {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ApiInfo {
+    pub name: String,
     pub api_url: String,
     pub api_key: String,
 }
@@ -27,17 +28,15 @@ pub struct ApiInfo {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Sector {
     pub name: String,
-
     pub assets: Vec<Asset>,
-
     pub weight: f64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Asset {
     pub name: String,
-
-    pub token: String,
+    pub symbol: String,
+    pub address: String,
 }
 
 pub fn load_index_fund(fname: &Path) -> Result<IndexFund> {

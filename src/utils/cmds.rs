@@ -23,7 +23,11 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,
     };
 
-    let oracle = CoinMarketCap::new(fund.oracle.api_url, fund.oracle.api_key);
+    let oracle: Box<dyn Oracle> = match fund.oracle.name.as_str() {
+        "CoinMarketCap" => Box::new(CoinMarketCap::new(fund.oracle.api_url, fund.oracle.api_key)),
+        "Jupiter" => Box::new(Jupiter::new(fund.oracle.api_url, fund.oracle.api_key)),
+        _ => Err(anyhow::anyhow!("Unsupported oracle"))?,
+    };
 
     println!("{} Balances:", fund.name);
     println!("Public Key: {}", wallet.get_pubkey()?);
@@ -32,10 +36,10 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     for sector in fund.sectors {
         println!("{} Sector ({})", sector.name, sector.weight);
         for asset in sector.assets {
-            let bal = wallet.token_balance(&asset.token).await?;
+            let bal = wallet.token_balance(&asset.address).await?;
 
             let usd = if bal != 0.0 {
-                oracle.get_token_value(&asset.name, bal).await?
+                oracle.get_token_value(&asset, bal).await?
             } else {
                 0.0
             };

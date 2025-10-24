@@ -1,13 +1,15 @@
-use super::traits::{Exchange, SwapTransactionData};
-use crate::wallets::traits::Wallet;
-
 use anyhow::Result;
+use async_trait::async_trait;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use solana_sdk::transaction::VersionedTransaction;
+use std::collections::HashMap;
+
+use super::traits::{Exchange, Oracle, SwapTransactionData};
+use crate::{finance_tk::indexes::Asset, wallets::traits::Wallet};
 
 pub struct Jupiter {
     pub base_url: String,
@@ -45,6 +47,22 @@ impl Jupiter {
             .await?;
 
         Ok(order)
+    }
+
+    pub async fn get_price_quote(&self, token: &str) -> Result<HashMap<String, TokenPrice>> {
+        let client = Client::new();
+
+        let url = format!("{}/price/v3?ids={}", &self.base_url, token);
+
+        let quote: HashMap<String, TokenPrice> = client
+            .get(&url)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<HashMap<String, TokenPrice>>()
+            .await?;
+
+        Ok(quote)
     }
 
     pub async fn get_swap_quote(
@@ -120,6 +138,26 @@ impl Exchange for Jupiter {
 
         Ok(SwapTransactionData::Sol(tx))
     }
+}
+
+#[async_trait]
+impl Oracle for Jupiter {
+    async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64> {
+        let quote_map = self.get_price_quote(&asset.address).await?;
+        let quote = quote_map.get(&asset.address).unwrap();
+        let value = amount * quote.usd_price;
+
+        Ok(value)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenPrice {
+    pub usd_price: f64,
+    pub block_id: u64,
+    pub decimals: u8,
+    pub price_change_24h: f64,
 }
 
 #[derive(Debug, Deserialize)]

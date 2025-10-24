@@ -1,5 +1,5 @@
 use super::traits::{Exchange, SwapTransactionData};
-use crate::wallets::traits::Wallet;
+use crate::wallets::{evm::EvmWallet, traits::Wallet};
 
 use alloy::{
     network::TransactionBuilder,
@@ -24,6 +24,32 @@ impl ZeroX {
             api_key: api_key,
             chain_id: chain_id,
         }
+    }
+
+    pub async fn get_price_quote(
+        &self,
+        sell: &str,
+        buy: &str,
+        amount: u64,
+    ) -> Result<ZeroXPriceQuote> {
+        let client = Client::new();
+
+        let url = format!(
+            "{}/swap/allowance-holder/price?chainId={}&sellToken={}&sellAmount={}&buyToken={}",
+            &self.base_url, &self.chain_id, sell, amount, buy
+        );
+
+        let quote: ZeroXPriceQuote = client
+            .get(&url)
+            .header("0x-api-key", &self.api_key)
+            .header("0x-version", "v2")
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<ZeroXPriceQuote>()
+            .await?;
+
+        Ok(quote)
     }
 
     pub async fn get_swap_quote(
@@ -102,6 +128,25 @@ impl Exchange for ZeroX {
 
         Ok(SwapTransactionData::Evm(tx))
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ZeroXPriceQuote {
+    pub allowance_target: String,
+    pub block_number: String,
+    pub buy_amount: String,
+    pub buy_token: String,
+    pub fees: Fees,
+    pub issues: Issues,
+    pub liquidity_available: bool,
+    pub min_buy_amount: String,
+    pub route: Route,
+    pub sell_amount: String,
+    pub sell_token: String,
+    pub token_metadata: TokenMetadata,
+    pub total_network_fee: String,
+    pub zid: String,
 }
 
 #[derive(Debug, Deserialize)]

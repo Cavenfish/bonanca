@@ -1,5 +1,4 @@
-mod cmc_api;
-mod exchanges;
+mod api_lib;
 mod finance_tk;
 mod utils;
 mod wallets;
@@ -8,7 +7,6 @@ use std::path::PathBuf;
 use wallets::evm::EvmWallet;
 use wallets::solana::SolWallet;
 
-use cmc_api::get::get_token_value;
 use solana_sdk::pubkey::Pubkey;
 use utils::config::Config;
 

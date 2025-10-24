@@ -21,7 +21,7 @@ use solana_system_interface::{
 };
 use std::{path::PathBuf, str::FromStr};
 
-use crate::exchanges::traits::SwapTransactionData;
+use crate::api_lib::aggregators::SwapTransactionData;
 use crate::wallets::traits::Wallet;
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");

@@ -1,7 +1,5 @@
-use crate::{
-    exchanges::traits::{Dex, SwapTransactionData},
-    wallets::traits::Wallet,
-};
+use super::aggregators::{Dex, SwapTransactionData};
+use crate::wallets::traits::Wallet;
 
 use alloy::{
     network::TransactionBuilder,

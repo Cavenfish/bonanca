@@ -1,7 +1,5 @@
-use crate::{
-    exchanges::traits::{Dex, SwapTransactionData},
-    wallets::traits::Wallet,
-};
+use super::aggregators::{Dex, SwapTransactionData};
+use crate::wallets::traits::Wallet;
 
 use anyhow::Result;
 use base64::Engine;
@@ -107,7 +105,7 @@ impl Dex for Jupiter {
         sell: &str,
         buy: &str,
         amount: f64,
-    ) -> Result<super::traits::SwapTransactionData> {
+    ) -> Result<SwapTransactionData> {
         let taker = wallet.get_pubkey()?;
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
         let swap_quote = self.get_swap_quote(sell, buy, big_amount).await?;

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::exchanges::traits::SwapTransactionData;
+use crate::api_lib::aggregators::SwapTransactionData;
 
 #[async_trait]
 pub trait Wallet {

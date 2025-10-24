@@ -2,7 +2,7 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::api_lib::oracles::Oracle;
+use crate::api_lib::traits::Oracle;
 
 pub struct CoinMarketCap {
     pub base_url: String,

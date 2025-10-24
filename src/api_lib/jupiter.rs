@@ -1,4 +1,4 @@
-use super::aggregators::{Exchange, SwapTransactionData};
+use super::traits::{Exchange, SwapTransactionData};
 use crate::wallets::traits::Wallet;
 
 use anyhow::Result;

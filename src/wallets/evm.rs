@@ -14,7 +14,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::{ops::Add, path::PathBuf, str::FromStr};
 
-use crate::api_lib::aggregators::SwapTransactionData;
+use crate::api_lib::traits::SwapTransactionData;
 use crate::wallets::traits::Wallet;
 
 // ABI for smart contracts

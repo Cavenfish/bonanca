@@ -4,7 +4,10 @@ use super::args::BalArgs;
 
 use crate::{
     api_lib::{
-        aggregators::Exchange, cmc::CoinMarketCap, jupiter::Jupiter, oracles::Oracle, zerox::ZeroX,
+        cmc::CoinMarketCap,
+        jupiter::Jupiter,
+        traits::{Exchange, Oracle},
+        zerox::ZeroX,
     },
     finance_tk::indexes::load_index_fund,
     utils::args::RebalArgs,

@@ -9,7 +9,7 @@ pub enum SwapTransactionData {
     Evm(TransactionRequest),
 }
 
-pub trait Dex {
+pub trait Exchange {
     async fn get_swap_data(
         &self,
         wallet: &Box<dyn Wallet>,

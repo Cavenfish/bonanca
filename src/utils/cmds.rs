@@ -1,7 +1,7 @@
 use super::args::BalArgs;
 
 use crate::{
-    api_lib::{aggregators::Dex, jupiter::Jupiter, zerox::ZeroX},
+    api_lib::{aggregators::Exchange, jupiter::Jupiter, zerox::ZeroX},
     finance_tk::indexes::load_index_fund,
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},

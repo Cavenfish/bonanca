@@ -1,4 +1,4 @@
-use super::aggregators::{Dex, SwapTransactionData};
+use super::aggregators::{Exchange, SwapTransactionData};
 use crate::wallets::traits::Wallet;
 
 use alloy::{
@@ -54,7 +54,7 @@ impl ZeroX {
     }
 }
 
-impl Dex for ZeroX {
+impl Exchange for ZeroX {
     async fn get_swap_data(
         &self,
         wallet: &Box<dyn Wallet>,

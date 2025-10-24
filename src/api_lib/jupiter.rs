@@ -1,4 +1,4 @@
-use super::aggregators::{Dex, SwapTransactionData};
+use super::aggregators::{Exchange, SwapTransactionData};
 use crate::wallets::traits::Wallet;
 
 use anyhow::Result;
@@ -98,7 +98,7 @@ impl Jupiter {
     }
 }
 
-impl Dex for Jupiter {
+impl Exchange for Jupiter {
     async fn get_swap_data(
         &self,
         wallet: &Box<dyn Wallet>,

@@ -37,6 +37,25 @@ impl Wallet for EvmWallet {
         Ok(self.pubkey.to_string())
     }
 
+    fn parse_native_amount(&self, amount: f64) -> Result<u64> {
+        let amt = (amount * 1e18) as u64;
+
+        Ok(amt)
+    }
+
+    async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
+        let token_addy = Address::from_str(token)?;
+        let client = self.get_client();
+
+        // Instantiate the contract instance
+        let erc20 = ERC20::new(token_addy, client);
+        let deci = erc20.decimals().call().await?;
+
+        let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
+
+        Ok(amt)
+    }
+
     async fn balance(&self) -> Result<f64> {
         let client = self.get_client();
 
@@ -99,6 +118,24 @@ impl Wallet for EvmWallet {
         Ok(())
     }
 
+    async fn check_swap(&self, token: &str, amount: f64, spender: Option<&str>) -> Result<bool> {
+        let bal = self.token_balance(token).await?;
+        if bal < amount {
+            return Ok(false);
+        };
+
+        let allow = self.get_token_allowance(token, spender.unwrap()).await?;
+        if allow < amount {
+            let to_add = amount - allow;
+
+            let _ = self
+                .approve_token_spending(token, spender.unwrap(), to_add)
+                .await?;
+        };
+
+        Ok(true)
+    }
+
     async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
         let client = self.get_client();
         let tx = match swap_data {
@@ -131,12 +168,8 @@ impl EvmWallet {
             .connect_http(self.rpc.clone())
     }
 
-    pub async fn approve_token_spending(
-        &self,
-        token: &str,
-        spender: &str,
-        amount: f64,
-    ) -> Result<()> {
+    // Approve token for spending
+    async fn approve_token_spending(&self, token: &str, spender: &str, amount: f64) -> Result<()> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
         let client = self.get_client();
@@ -154,5 +187,20 @@ impl EvmWallet {
             .await?;
 
         Ok(())
+    }
+
+    async fn get_token_allowance(&self, token: &str, spender: &str) -> Result<f64> {
+        let token_addy = Address::from_str(token)?;
+        let spender_addy = Address::from_str(spender)?;
+        let client = self.get_client();
+
+        let erc20 = ERC20::new(token_addy, client);
+
+        let value = erc20.allowance(self.pubkey, spender_addy).call().await?;
+
+        let deci = erc20.decimals().call().await?;
+        let allow = format_units(value, deci)?;
+
+        Ok(allow.parse()?)
     }
 }

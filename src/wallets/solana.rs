@@ -40,6 +40,23 @@ impl Wallet for SolWallet {
         Ok(self.pubkey.to_string())
     }
 
+    fn parse_native_amount(&self, amount: f64) -> Result<u64> {
+        let amt = (amount * 1e9) as u64;
+
+        Ok(amt)
+    }
+
+    async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
+        let token_addy = Pubkey::from_str_const(token);
+        let acct = self.rpc.get_token_account(&token_addy).await?.unwrap();
+
+        let deci = acct.token_amount.decimals;
+
+        let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
+
+        Ok(amt)
+    }
+
     async fn balance(&self) -> Result<f64> {
         let balance = self.rpc.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
@@ -49,7 +66,7 @@ impl Wallet for SolWallet {
 
     async fn transfer(&self, to: &str, amount: f64) -> Result<()> {
         let to_pubkey = Pubkey::from_str_const(to);
-        let lamp = sol_str_to_lamports(&amount.to_string()).unwrap();
+        let lamp = self.parse_native_amount(amount)?;
 
         let info = transfer(&self.pubkey, &to_pubkey, lamp);
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
@@ -81,7 +98,7 @@ impl Wallet for SolWallet {
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
         let my_addy = self.get_token_account(&mint_pubkey).await?;
-        let lamp = sol_str_to_lamports(&amount.to_string()).unwrap();
+        let lamp = self.parse_token_amount(amount, mint).await?;
 
         let accounts = self
             .rpc
@@ -100,6 +117,16 @@ impl Wallet for SolWallet {
         let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(())
+    }
+
+    async fn check_swap(&self, token: &str, amount: f64, _spender: Option<&str>) -> Result<bool> {
+        let bal = self.token_balance(token).await?;
+
+        if bal < amount {
+            return Ok(false);
+        };
+
+        Ok(true)
     }
 
     async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {

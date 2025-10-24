@@ -106,10 +106,11 @@ impl Dex for Jupiter {
         wallet: &Box<dyn Wallet>,
         sell: &str,
         buy: &str,
-        amount: u64,
+        amount: f64,
     ) -> Result<super::traits::SwapTransactionData> {
         let taker = wallet.get_pubkey()?;
-        let swap_quote = self.get_swap_quote(sell, buy, amount).await?;
+        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let swap_quote = self.get_swap_quote(sell, buy, big_amount).await?;
 
         let swap_order = self.get_swap_order(&taker, swap_quote).await?;
 

@@ -7,7 +7,7 @@ use alloy::{
     network::TransactionBuilder,
     rpc::types::{TransactionInput, TransactionRequest},
 };
-use alloy_primitives::{Address, Bytes, Uint, hex::decode};
+use alloy_primitives::{Address, Bytes, Uint, hex::decode, utils::parse_units};
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
@@ -38,7 +38,7 @@ impl ZeroX {
         let client = Client::new();
 
         let url = format!(
-            "{}/swap/permit2/quote?chainId={}&sellToken={}&sellAmount={}&buyToken={}&taker={}",
+            "{}/swap/allowance-holder/quote?chainId={}&sellToken={}&sellAmount={}&buyToken={}&taker={}",
             &self.base_url, &self.chain_id, sell, amount, buy, taker,
         );
 
@@ -62,11 +62,26 @@ impl Dex for ZeroX {
         wallet: &Box<dyn Wallet>,
         sell: &str,
         buy: &str,
-        amount: u64,
+        amount: f64,
     ) -> Result<SwapTransactionData> {
         let taker = wallet.get_pubkey()?;
 
-        let quote = self.get_swap_quote(sell, buy, amount, &taker).await?;
+        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+
+        let quote = self.get_swap_quote(sell, buy, big_amount, &taker).await?;
+
+        match quote.issues.allowance {
+            Some(issues) => {
+                let tmp = wallet
+                    .check_swap(sell, amount, Some(&issues.spender))
+                    .await?;
+
+                if !tmp {
+                    std::process::exit(1)
+                };
+            }
+            None => {}
+        };
 
         let taker_addy = Address::from_str(&taker)?;
         let to_addy = Address::from_str(&quote.transaction.to)?;

@@ -15,6 +15,6 @@ pub trait Dex {
         wallet: &Box<dyn Wallet>,
         sell: &str,
         buy: &str,
-        amount: u64,
+        amount: f64,
     ) -> Result<SwapTransactionData>;
 }

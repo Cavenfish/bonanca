@@ -9,42 +9,38 @@ use crate::{
         traits::{Exchange, Oracle},
         zerox::ZeroX,
     },
-    finance_tk::indexes::load_index_fund,
+    finance_tk::indexes::IndexFund,
     utils::args::RebalArgs,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
 };
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
-    let fund = load_index_fund(&cmd.index)?;
-
-    let wallet: Box<dyn Wallet> = match fund.chain.as_str() {
-        "EVM" => Box::new(EvmWallet::load(fund.keystore, fund.rpc_url)),
-        "Solana" => Box::new(SolWallet::load(fund.keystore, fund.rpc_url)),
-        _ => Err(anyhow::anyhow!("Unsupported chain"))?,
-    };
-
-    let oracle: Box<dyn Oracle> = match fund.oracle.name.as_str() {
-        "CoinMarketCap" => Box::new(CoinMarketCap::new(fund.oracle.api_url, fund.oracle.api_key)),
-        "Jupiter" => Box::new(Jupiter::new(fund.oracle.api_url, fund.oracle.api_key)),
-        _ => Err(anyhow::anyhow!("Unsupported oracle"))?,
-    };
+    let fund = IndexFund::load(&cmd.index);
+    let wallet = fund.get_wallet()?;
 
     println!("{} Balances:", fund.name);
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);
 
-    for sector in fund.sectors {
-        println!("{} Sector ({})", sector.name, sector.weight);
-        for asset in sector.assets {
-            let bal = wallet.token_balance(&asset.address).await?;
+    let bals = fund.get_balances().await?;
+    let trades = fund.get_trades(&bals)?;
 
-            let usd = if bal != 0.0 {
-                oracle.get_token_value(&asset, bal).await?
-            } else {
-                0.0
-            };
+    println!("Total Balance: {:.4}", bals.total);
 
-            println!("{}: {}", asset.name, usd);
+    for sector in &fund.sectors {
+        println!("{} Sector", sector.name);
+
+        let target = sector.weight / (sector.assets.len() as f64);
+        for asset in &sector.assets {
+            let bal = bals.balances.get(&asset.name).unwrap();
+
+            let actual = bal / bals.total;
+            let trade = trades.get(&asset.name).unwrap();
+
+            println!(
+                "{}: {:.4} ({:.4}/{:.4}) -- {:.4}",
+                asset.name, bal, actual, target, trade
+            );
         }
     }
 
@@ -52,13 +48,9 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
 }
 
 pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
-    let fund = load_index_fund(&cmd.index)?;
+    let fund = IndexFund::load(&cmd.index);
 
-    let wallet: Box<dyn Wallet> = match fund.chain.as_str() {
-        "EVM" => Box::new(EvmWallet::load(fund.keystore, fund.rpc_url)),
-        "Solana" => Box::new(SolWallet::load(fund.keystore, fund.rpc_url)),
-        _ => Err(anyhow::anyhow!("Unsupported chain"))?,
-    };
+    let wallet = fund.get_wallet()?;
 
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);

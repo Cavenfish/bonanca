@@ -12,7 +12,7 @@ use alloy_primitives::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use std::{ops::Add, path::PathBuf, str::FromStr};
+use std::{ops::Add, path::Path, str::FromStr};
 
 use crate::api_lib::traits::SwapTransactionData;
 use crate::wallets::traits::Wallet;
@@ -150,7 +150,7 @@ impl Wallet for EvmWallet {
 }
 
 impl EvmWallet {
-    pub fn load(keystore: PathBuf, rpc: String) -> Self {
+    pub fn load(keystore: &Path, rpc: &str) -> Self {
         let signer = LocalSigner::decrypt_keystore(&keystore, "test").unwrap();
         let rpc_url = Url::parse(&rpc).unwrap();
         let pubkey = signer.address();

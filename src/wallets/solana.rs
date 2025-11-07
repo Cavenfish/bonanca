@@ -19,7 +19,7 @@ use solana_system_interface::{
     instruction::{create_account, transfer},
     program,
 };
-use std::{path::PathBuf, str::FromStr};
+use std::path::Path;
 
 use crate::api_lib::traits::SwapTransactionData;
 use crate::wallets::traits::Wallet;
@@ -153,9 +153,9 @@ impl Wallet for SolWallet {
 }
 
 impl SolWallet {
-    pub fn load(keystore: PathBuf, rpc: String) -> Self {
+    pub fn load(keystore: &Path, rpc: &str) -> Self {
         let kp = read_keypair_file(keystore).unwrap();
-        let rp = RpcClient::new(rpc);
+        let rp = RpcClient::new(rpc.to_string());
         let pk = kp.pubkey();
         Self {
             key_pair: kp,

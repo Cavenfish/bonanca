@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},
@@ -94,18 +94,58 @@ impl IndexFund {
         })
     }
 
-    pub fn get_trades(&self, bals: &IndexBalances) -> Result<HashMap<String, f64>> {
-        let mut trades: HashMap<String, f64> = HashMap::new();
+    pub fn get_trades(&self, bals: &IndexBalances) -> Result<Vec<RebalTrade>> {
+        let mut names: Vec<String> = Vec::new();
+        let mut diffs: Vec<f64> = Vec::new();
 
         for sector in &self.sectors {
             let target = sector.weight / (sector.assets.len() as f64);
             for asset in &sector.assets {
                 let bal = bals.balances.get(&asset.name).unwrap();
                 let actual = bal / bals.total;
-                let trade = (target - actual) * bals.total;
+                let diff = (target - actual) * bals.total;
 
-                trades.insert(asset.name.clone(), trade);
+                names.push(asset.name.clone());
+                diffs.push(diff);
             }
+        }
+
+        let N = diffs.len();
+        let n = N / 2;
+
+        let mut order = (0..N).collect::<Vec<_>>();
+        order.sort_by_key(|&k| (&diffs[k] * 1e6) as i64);
+
+        let mut trades: Vec<RebalTrade> = Vec::new();
+
+        for i in 0..n {
+            let j = (N - 1) - i;
+
+            let a = order[i];
+            let b = order[j];
+
+            let small = &diffs[a];
+            let from = &names[a];
+
+            let big = &diffs[b];
+            let to = &names[b];
+
+            if *big < 0.0 {
+                println!("Two negative numbers");
+                continue;
+            }
+
+            let amount = if big.abs() > small.abs() {
+                small.abs()
+            } else {
+                big.abs()
+            };
+
+            trades.push(RebalTrade {
+                from: from.clone(),
+                to: to.clone(),
+                amount: amount,
+            });
         }
 
         Ok(trades)
@@ -136,4 +176,11 @@ pub struct Asset {
 pub struct IndexBalances {
     pub total: f64,
     pub balances: HashMap<String, f64>,
+}
+
+#[derive(Debug)]
+pub struct RebalTrade {
+    pub from: String,
+    pub to: String,
+    pub amount: f64,
 }

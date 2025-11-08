@@ -25,7 +25,7 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let bals = fund.get_balances().await?;
     let trades = fund.get_trades(&bals)?;
 
-    println!("Total Balance: {:.4}", bals.total);
+    println!("Total Balance: {:.4}\n", bals.total);
 
     for sector in &fund.sectors {
         println!("{} Sector", sector.name);
@@ -35,13 +35,12 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
             let bal = bals.balances.get(&asset.name).unwrap();
 
             let actual = bal / bals.total;
-            let trade = trades.get(&asset.name).unwrap();
-
-            println!(
-                "{}: {:.4} ({:.4}/{:.4}) -- {:.4}",
-                asset.name, bal, actual, target, trade
-            );
+            println!("{}: {:.4} ({:.4}/{:.4})", asset.name, bal, actual, target);
         }
+    }
+
+    for trade in trades {
+        println!("Trade {} {} for {}", trade.amount, trade.from, trade.to);
     }
 
     Ok(())

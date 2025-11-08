@@ -110,42 +110,52 @@ impl IndexFund {
             }
         }
 
-        let N = diffs.len();
-        let n = N / 2;
+        let n = diffs.len();
 
-        let mut order = (0..N).collect::<Vec<_>>();
+        let mut order = (0..n).collect::<Vec<_>>();
         order.sort_by_key(|&k| (&diffs[k] * 1e6) as i64);
 
         let mut trades: Vec<RebalTrade> = Vec::new();
 
-        for i in 0..n {
-            let j = (N - 1) - i;
+        let tolerance = self.max_offset * bals.total;
 
+        for i in 0..(n - 1) {
             let a = order[i];
-            let b = order[j];
-
-            let small = &diffs[a];
+            let small = diffs[a];
             let from = &names[a];
 
-            let big = &diffs[b];
-            let to = &names[b];
+            let mut j = n - 1;
+            while diffs[a].abs() > tolerance {
+                let b = order[j];
+                let big = diffs[b];
+                let to = &names[b];
 
-            if *big < 0.0 {
-                println!("Two negative numbers");
-                continue;
+                if big < 0.0 {
+                    println!("Two negative numbers");
+                    break;
+                }
+
+                let amount = if big.abs() > diffs[a].abs() {
+                    diffs[a].abs()
+                } else {
+                    big.abs()
+                };
+
+                if amount == 0.0 {
+                    j -= 1;
+                    continue;
+                }
+
+                trades.push(RebalTrade {
+                    from: from.clone(),
+                    to: to.clone(),
+                    amount: amount,
+                });
+
+                diffs[a] += amount;
+                diffs[b] -= amount;
+                j -= 1;
             }
-
-            let amount = if big.abs() > small.abs() {
-                small.abs()
-            } else {
-                big.abs()
-            };
-
-            trades.push(RebalTrade {
-                from: from.clone(),
-                to: to.clone(),
-                amount: amount,
-            });
         }
 
         Ok(trades)

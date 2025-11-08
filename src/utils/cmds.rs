@@ -39,6 +39,8 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         }
     }
 
+    println!();
+
     for trade in trades {
         println!("Trade {} {} for {}", trade.amount, trade.from, trade.to);
     }

@@ -120,25 +120,21 @@ impl IndexFund {
         let tolerance = self.max_offset * bals.total;
 
         for i in 0..(n - 1) {
-            let a = order[i];
-            let small = diffs[a];
-            let from = &names[a];
+            let small = order[i];
 
             let mut j = n - 1;
-            while diffs[a].abs() > tolerance {
-                let b = order[j];
-                let big = diffs[b];
-                let to = &names[b];
+            while diffs[small].abs() > tolerance {
+                let big = order[j];
 
-                if big < 0.0 {
+                if diffs[big] < 0.0 {
                     println!("Two negative numbers");
                     break;
                 }
 
-                let amount = if big.abs() > diffs[a].abs() {
-                    diffs[a].abs()
+                let amount = if diffs[big].abs() > diffs[small].abs() {
+                    diffs[small].abs()
                 } else {
-                    big.abs()
+                    diffs[big].abs()
                 };
 
                 if amount == 0.0 {
@@ -147,13 +143,13 @@ impl IndexFund {
                 }
 
                 trades.push(RebalTrade {
-                    from: from.clone(),
-                    to: to.clone(),
+                    from: names[small].clone(),
+                    to: names[big].clone(),
                     amount: amount,
                 });
 
-                diffs[a] += amount;
-                diffs[b] -= amount;
+                diffs[small] += amount;
+                diffs[big] -= amount;
                 j -= 1;
             }
         }

@@ -1,3 +1,4 @@
+use alloy::signers::local::PrivateKeySigner;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bincode::de;

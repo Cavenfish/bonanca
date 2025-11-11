@@ -27,16 +27,12 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
 
     println!("Total Balance: {:.4}\n", bals.total);
 
-    for sector in &fund.sectors {
-        println!("{} Sector", sector.name);
-
-        let target = sector.weight / (sector.assets.len() as f64);
-        for asset in &sector.assets {
-            let bal = bals.balances.get(&asset.name).unwrap();
-
-            let actual = bal / bals.total;
-            println!("{}: {:.4} ({:.4}/{:.4})", asset.name, bal, actual, target);
-        }
+    for asset in &bals.balances {
+        let actual = asset.value / bals.total;
+        println!(
+            "{}: {:.4} ({:.4}/{:.4})",
+            asset.name, asset.value, actual, asset.target
+        );
     }
 
     println!();
@@ -51,28 +47,22 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
 pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
 
+    let dex = fund.get_exchange()?;
+
     let wallet = fund.get_wallet()?;
 
     println!("Public Key: {}", wallet.get_pubkey()?);
     println!("Gas Balance: {}", wallet.balance().await?);
 
-    // let dex = Jupiter::new(fund.aggregator.api_url, fund.aggregator.api_key);
-    let dex = ZeroX::new(
-        fund.aggregator.api_url,
-        fund.aggregator.api_key,
-        fund.chain_id.unwrap(),
-    );
+    let bals = fund.get_balances().await?;
+    let trades = fund.get_trades(&bals)?;
 
-    // let sell = "So11111111111111111111111111111111111111112";
-    // let buy = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R";
-    let sell = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
-    let buy = "0xb33EaAd8d922B1083446DC23f610c2567fB5180f";
-    let amount = 0.000006;
-
-    // let swap_data = dex.get_ultra_order(sell, buy, amount, &taker).await?;
-    let swap_data = dex.get_swap_data(&wallet, sell, buy, amount).await?;
-
-    let _ = wallet.swap(swap_data).await?;
+    for trade in trades {
+        let swap_data = dex
+            .get_swap_data(&wallet, &trade.from, &trade.to, trade.amount)
+            .await?;
+        let _ = wallet.swap(swap_data).await?;
+    }
 
     Ok(())
 }

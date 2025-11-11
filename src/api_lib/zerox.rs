@@ -7,6 +7,7 @@ use alloy::{
 };
 use alloy_primitives::{Address, Bytes, Uint, hex::decode, utils::parse_units};
 use anyhow::Result;
+use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 use std::str::FromStr;
@@ -80,10 +81,11 @@ impl ZeroX {
     }
 }
 
+#[async_trait]
 impl Exchange for ZeroX {
     async fn get_swap_data(
         &self,
-        wallet: &Box<dyn Wallet>,
+        wallet: &Box<dyn Wallet + Send + Sync>,
         sell: &str,
         buy: &str,
         amount: f64,

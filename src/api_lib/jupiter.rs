@@ -116,10 +116,11 @@ impl Jupiter {
     }
 }
 
+#[async_trait]
 impl Exchange for Jupiter {
     async fn get_swap_data(
         &self,
-        wallet: &Box<dyn Wallet>,
+        wallet: &Box<dyn Wallet + Send + Sync>,
         sell: &str,
         buy: &str,
         amount: f64,

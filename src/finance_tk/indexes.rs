@@ -11,7 +11,7 @@ use crate::{
     api_lib::{
         cmc::CoinMarketCap,
         jupiter::Jupiter,
-        traits::{Exchange, Oracle},
+        traits::{AllExchanges, Exchange, Oracle},
         zerox::ZeroX,
     },
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
@@ -39,8 +39,8 @@ impl IndexFund {
         fund
     }
 
-    pub fn get_wallet(&self) -> Result<Box<dyn Wallet>> {
-        let wallet: Box<dyn Wallet> = match self.chain.as_str() {
+    pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
+        let wallet: Box<dyn Wallet + Send + Sync> = match self.chain.as_str() {
             "EVM" => Box::new(EvmWallet::load(&self.keystore, &self.rpc_url)),
             "Solana" => Box::new(SolWallet::load(&self.keystore, &self.rpc_url)),
             _ => Err(anyhow::anyhow!("Unsupported chain"))?,
@@ -65,14 +65,32 @@ impl IndexFund {
         Ok(oracle)
     }
 
+    pub fn get_exchange(&self) -> Result<Box<dyn Exchange>> {
+        let exchange: Box<dyn Exchange> = match self.aggregator.name.as_str() {
+            "0x" => Box::new(ZeroX::new(
+                self.aggregator.api_url.clone(),
+                self.aggregator.api_key.clone(),
+                self.chain_id.unwrap(),
+            )),
+            "Jupiter" => Box::new(Jupiter::new(
+                self.aggregator.api_url.clone(),
+                self.aggregator.api_key.clone(),
+            )),
+            _ => Err(anyhow::anyhow!("Unsupported aggregator"))?,
+        };
+
+        Ok(exchange)
+    }
+
     pub async fn get_balances(&self) -> Result<IndexBalances> {
         let wallet = self.get_wallet()?;
         let oracle = self.get_oracle()?;
 
         let mut total = 0.0;
-        let mut balances: HashMap<String, f64> = HashMap::new();
+        let mut balances: Vec<AssetBalance> = Vec::new();
 
         for sector in &self.sectors {
+            let target = sector.weight / (sector.assets.len() as f64);
             for asset in &sector.assets {
                 let bal = wallet.token_balance(&asset.address).await?;
 
@@ -82,7 +100,13 @@ impl IndexFund {
                     0.0
                 };
 
-                balances.insert(asset.name.clone(), usd);
+                balances.push(AssetBalance {
+                    name: asset.name.clone(),
+                    addy: asset.address.clone(),
+                    amount: bal,
+                    value: usd,
+                    target: target,
+                });
 
                 total += usd;
             }
@@ -96,18 +120,19 @@ impl IndexFund {
 
     pub fn get_trades(&self, bals: &IndexBalances) -> Result<Vec<RebalTrade>> {
         let mut names: Vec<String> = Vec::new();
+        let mut addys: Vec<String> = Vec::new();
         let mut diffs: Vec<f64> = Vec::new();
+        let mut amounts: Vec<f64> = Vec::new();
 
-        for sector in &self.sectors {
-            let target = sector.weight / (sector.assets.len() as f64);
-            for asset in &sector.assets {
-                let bal = bals.balances.get(&asset.name).unwrap();
-                let actual = bal / bals.total;
-                let diff = (target - actual) * bals.total;
+        for asset in &bals.balances {
+            let bal = asset.value;
+            let actual = bal / bals.total;
+            let diff = asset.target - actual;
 
-                names.push(asset.name.clone());
-                diffs.push(diff);
-            }
+            names.push(asset.name.clone());
+            addys.push(asset.addy.clone());
+            diffs.push(diff);
+            amounts.push(asset.amount);
         }
 
         let n = diffs.len();
@@ -117,13 +142,11 @@ impl IndexFund {
 
         let mut trades: Vec<RebalTrade> = Vec::new();
 
-        let tolerance = self.max_offset * bals.total;
-
         for i in 0..(n - 1) {
             let small = order[i];
 
             let mut j = n - 1;
-            while diffs[small].abs() > tolerance {
+            while diffs[small].abs() > self.max_offset {
                 let big = order[j];
 
                 if diffs[big] < 0.0 {
@@ -131,25 +154,27 @@ impl IndexFund {
                     break;
                 }
 
-                let amount = if diffs[big].abs() > diffs[small].abs() {
+                let frac = if diffs[big].abs() > diffs[small].abs() {
                     diffs[small].abs()
                 } else {
                     diffs[big].abs()
                 };
 
-                if amount == 0.0 {
+                if frac == 0.0 {
                     j -= 1;
                     continue;
                 }
 
+                let amount = frac * amounts[small];
+
                 trades.push(RebalTrade {
-                    from: names[small].clone(),
-                    to: names[big].clone(),
+                    from: addys[small].clone(),
+                    to: addys[big].clone(),
                     amount: amount,
                 });
 
-                diffs[small] += amount;
-                diffs[big] -= amount;
+                diffs[small] += frac;
+                diffs[big] -= frac;
                 j -= 1;
             }
         }
@@ -181,7 +206,15 @@ pub struct Asset {
 
 pub struct IndexBalances {
     pub total: f64,
-    pub balances: HashMap<String, f64>,
+    pub balances: Vec<AssetBalance>,
+}
+
+pub struct AssetBalance {
+    pub name: String,
+    pub addy: String,
+    pub amount: f64,
+    pub value: f64,
+    pub target: f64,
 }
 
 #[derive(Debug)]

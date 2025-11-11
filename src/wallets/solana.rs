@@ -48,7 +48,8 @@ impl Wallet for SolWallet {
     }
 
     async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
-        let token_addy = Pubkey::from_str_const(token);
+        let pubkey = Pubkey::from_str_const(token);
+        let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self.rpc.get_token_account(&token_addy).await?.unwrap();
 
         let deci = acct.token_amount.decimals;

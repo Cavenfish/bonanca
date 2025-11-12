@@ -119,20 +119,20 @@ impl IndexFund {
     }
 
     pub fn get_trades(&self, bals: &IndexBalances) -> Result<Vec<RebalTrade>> {
-        let mut names: Vec<String> = Vec::new();
         let mut addys: Vec<String> = Vec::new();
         let mut diffs: Vec<f64> = Vec::new();
         let mut amounts: Vec<f64> = Vec::new();
+        let mut actuals: Vec<f64> = Vec::new();
 
         for asset in &bals.balances {
             let bal = asset.value;
             let actual = bal / bals.total;
             let diff = asset.target - actual;
 
-            names.push(asset.name.clone());
             addys.push(asset.addy.clone());
             diffs.push(diff);
             amounts.push(asset.amount);
+            actuals.push(actual);
         }
 
         let n = diffs.len();
@@ -154,17 +154,18 @@ impl IndexFund {
                     break;
                 }
 
-                let frac = if diffs[big].abs() > diffs[small].abs() {
+                let diff = if diffs[big].abs() > diffs[small].abs() {
                     diffs[small].abs()
                 } else {
                     diffs[big].abs()
                 };
 
-                if frac == 0.0 {
+                if diff == 0.0 {
                     j -= 1;
                     continue;
                 }
 
+                let frac = diff / actuals[small];
                 let amount = frac * amounts[small];
 
                 trades.push(RebalTrade {
@@ -173,8 +174,8 @@ impl IndexFund {
                     amount: amount,
                 });
 
-                diffs[small] += frac;
-                diffs[big] -= frac;
+                diffs[small] += diff;
+                diffs[big] -= diff;
                 j -= 1;
             }
         }

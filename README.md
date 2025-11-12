@@ -45,9 +45,9 @@
 ### Finance TK
 
 - [x] Display balances
-- [ ] Display index summary
+- [x] Display index summary
 - [ ] Display profit
-- [ ] Balance index fund
+- [x] Balance index fund
 - [ ] Calculate volatility
 - [ ] Create index fund
 - [x] Read index fund

@@ -12,6 +12,7 @@ use alloy_primitives::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
+use rpassword::prompt_password;
 use std::{path::Path, str::FromStr};
 
 use crate::api_lib::traits::SwapTransactionData;
@@ -26,7 +27,7 @@ sol! {
 }
 
 pub struct EvmWallet {
-    pub signer: LocalSigner<SigningKey>,
+    pub signer: Option<LocalSigner<SigningKey>>,
     pub rpc: Url,
     pub pubkey: Address,
 }
@@ -45,7 +46,7 @@ impl Wallet for EvmWallet {
 
     async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
         let token_addy = Address::from_str(token)?;
-        let client = self.get_client();
+        let client = self.get_view_client();
 
         // Instantiate the contract instance
         let erc20 = ERC20::new(token_addy, client);
@@ -57,7 +58,7 @@ impl Wallet for EvmWallet {
     }
 
     async fn balance(&self) -> Result<f64> {
-        let client = self.get_client();
+        let client = self.get_view_client();
 
         let bal = client.get_balance(self.pubkey).await?;
 
@@ -86,7 +87,7 @@ impl Wallet for EvmWallet {
 
     async fn token_balance(&self, token: &str) -> Result<f64> {
         let token_addy = Address::from_str(token)?;
-        let client = self.get_client();
+        let client = self.get_view_client();
 
         // Instantiate the contract instance
         let erc20 = ERC20::new(token_addy, client);
@@ -151,21 +152,42 @@ impl Wallet for EvmWallet {
 
 impl EvmWallet {
     pub fn load(keystore: &Path, rpc: &str) -> Self {
-        let signer = LocalSigner::decrypt_keystore(&keystore, "test").unwrap();
-        let rpc_url = Url::parse(&rpc).unwrap();
+        let password = prompt_password("Keystore Password: ").unwrap();
+        let signer = LocalSigner::decrypt_keystore(&keystore, password).unwrap();
+        let rpc_url = Url::parse(rpc).unwrap();
         let pubkey = signer.address();
         Self {
-            signer: signer,
+            signer: Some(signer),
             rpc: rpc_url,
             pubkey: pubkey,
         }
     }
 
+    pub fn view(rpc: &str, pubkey: &str) -> Self {
+        let rpc_url = Url::parse(rpc).unwrap();
+        let addy = Address::from_str(pubkey).unwrap();
+        Self {
+            signer: None,
+            rpc: rpc_url,
+            pubkey: addy,
+        }
+    }
+
     // Builds the client (RPC connection)
     fn get_client(&self) -> impl Provider {
+        if self.signer.is_none() {
+            panic!()
+        };
+
+        let signer = self.signer.clone().unwrap();
+
         ProviderBuilder::new()
-            .wallet(self.signer.clone())
+            .wallet(signer)
             .connect_http(self.rpc.clone())
+    }
+
+    fn get_view_client(&self) -> impl Provider {
+        ProviderBuilder::new().connect_http(self.rpc.clone())
     }
 
     // Approve token for spending

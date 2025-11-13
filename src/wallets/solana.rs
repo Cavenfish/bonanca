@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use core::panic;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
@@ -22,7 +23,7 @@ const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH
 const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
 pub struct SolWallet {
-    pub key_pair: Keypair,
+    pub key_pair: Option<Keypair>,
     pub rpc: RpcClient,
     pub pubkey: Pubkey,
 }
@@ -59,6 +60,7 @@ impl Wallet for SolWallet {
     }
 
     async fn transfer(&self, to: &str, amount: f64) -> Result<()> {
+        let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let lamp = self.parse_native_amount(amount)?;
 
@@ -66,7 +68,7 @@ impl Wallet for SolWallet {
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
 
         let blockhash = self.rpc.get_latest_blockhash().await?;
-        trans.sign(&[&self.key_pair], blockhash);
+        trans.sign(&[kp], blockhash);
 
         let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
 
@@ -89,6 +91,7 @@ impl Wallet for SolWallet {
     }
 
     async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<()> {
+        let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
         let my_addy = self.get_token_account(&mint_pubkey).await?;
@@ -106,7 +109,7 @@ impl Wallet for SolWallet {
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
 
         let blockhash = self.rpc.get_latest_blockhash().await?;
-        trans.sign(&[&self.key_pair], blockhash);
+        trans.sign(&[kp], blockhash);
 
         let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
 
@@ -124,13 +127,15 @@ impl Wallet for SolWallet {
     }
 
     async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
+        let kp = self.key_pair.as_ref().unwrap();
+
         let mut tx = match swap_data {
             SwapTransactionData::Sol(trans) => trans,
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
 
         let message = tx.message.serialize();
-        let signature = self.key_pair.sign_message(&message);
+        let signature = kp.sign_message(&message);
 
         if tx.signatures.is_empty() {
             // If no signatures array exists (unlikely with Jupiter)
@@ -152,21 +157,29 @@ impl SolWallet {
         let rp = RpcClient::new(rpc.to_string());
         let pk = kp.pubkey();
         Self {
-            key_pair: kp,
+            key_pair: Some(kp),
+            rpc: rp,
+            pubkey: pk,
+        }
+    }
+
+    pub fn view(rpc: &str, pubkey: &str) -> Self {
+        let rp = RpcClient::new(rpc.to_string());
+        let pk = Pubkey::from_str_const(pubkey);
+        Self {
+            key_pair: None,
             rpc: rp,
             pubkey: pk,
         }
     }
 
     pub async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
+        let kp = self.key_pair.as_ref().unwrap();
+
         // Get blockhash and sign transaction
         let blockhash = self.rpc.get_latest_blockhash().await?;
-        let tx = Transaction::new_signed_with_payer(
-            &[instr],
-            Some(&self.pubkey),
-            &[&self.key_pair],
-            blockhash,
-        );
+        let tx =
+            Transaction::new_signed_with_payer(&[instr], Some(&self.pubkey), &[&kp], blockhash);
 
         // Send and wait for confirmation
         let _ = self.rpc.send_and_confirm_transaction(&tx).await?;

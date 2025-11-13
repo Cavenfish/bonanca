@@ -9,7 +9,7 @@
 ### Solana Wallet
 
 - [x] Read pub key
-- [ ] Load encrypted (default) or unencrypted private key
+- [ ] Load encrypted (default)
 - [x] Create token account
 - [x] Close token account
 - [x] Check token balances
@@ -21,7 +21,7 @@
 ### EVM Wallet
 
 - [x] Read pub key
-- [ ] Load encrypted (default) or unencrypted private key
+- [x] Load encrypted (default)
 - [x] Check token balances
 - [x] Transfer tokens
 - [x] Approve tokens for spending

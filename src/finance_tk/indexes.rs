@@ -28,6 +28,7 @@ pub struct IndexFund {
     pub oracle: ApiInfo,
     pub sectors: Vec<Sector>,
     pub gas_address: String,
+    pub public_key: String,
     pub auxiliary_assets: Option<Vec<Asset>>,
 }
 
@@ -44,6 +45,16 @@ impl IndexFund {
         let wallet: Box<dyn Wallet + Send + Sync> = match self.chain.as_str() {
             "EVM" => Box::new(EvmWallet::load(&self.keystore, &self.rpc_url)),
             "Solana" => Box::new(SolWallet::load(&self.keystore, &self.rpc_url)),
+            _ => Err(anyhow::anyhow!("Unsupported chain"))?,
+        };
+
+        Ok(wallet)
+    }
+
+    pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
+        let wallet: Box<dyn Wallet + Send + Sync> = match self.chain.as_str() {
+            "EVM" => Box::new(EvmWallet::view(&self.rpc_url, &self.public_key)),
+            "Solana" => Box::new(SolWallet::view(&self.rpc_url, &self.public_key)),
             _ => Err(anyhow::anyhow!("Unsupported chain"))?,
         };
 
@@ -84,9 +95,10 @@ impl IndexFund {
     }
 
     pub async fn get_balances(&self) -> Result<IndexBalances> {
-        let wallet = self.get_wallet()?;
+        let wallet = self.get_wallet_view()?;
         let oracle = self.get_oracle()?;
 
+        let gas = wallet.balance().await?;
         let mut total = 0.0;
         let mut balances: Vec<AssetBalance> = Vec::new();
 
@@ -114,6 +126,7 @@ impl IndexFund {
         }
 
         Ok(IndexBalances {
+            gas: gas,
             total: total,
             balances: balances,
         })
@@ -207,6 +220,7 @@ pub struct Asset {
 }
 
 pub struct IndexBalances {
+    pub gas: f64,
     pub total: f64,
     pub balances: Vec<AssetBalance>,
 }

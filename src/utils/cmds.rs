@@ -9,15 +9,14 @@ use crate::{
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
-    let wallet = fund.get_wallet()?;
 
-    println!("{} Balances:", fund.name);
-    println!("Public Key: {}", wallet.get_pubkey()?);
-    println!("Gas Balance: {}", wallet.balance().await?);
+    println!("{} Balances:", &fund.name);
+    println!("Public Key: {}", &fund.public_key);
 
     let bals = fund.get_balances().await?;
     let trades = fund.get_trades(&bals)?;
 
+    println!("Gas Balance: {}", bals.gas);
     println!("Total Balance: {:.4}\n", bals.total);
 
     for asset in &bals.balances {

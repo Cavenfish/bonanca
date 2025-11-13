@@ -73,7 +73,7 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
 
     let to = &aux_assets
         .iter()
-        .find(|x| x.symbol == cmd.to)
+        .find(|x| x.symbol == cmd.token)
         .unwrap()
         .address;
 
@@ -96,7 +96,7 @@ pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
 
     let aux_assets = fund.auxiliary_assets.unwrap();
 
-    let from = &aux_assets.iter().find(|x| x.symbol == cmd.to).unwrap();
+    let from = &aux_assets.iter().find(|x| x.symbol == cmd.token).unwrap();
 
     let bal = wallet.token_balance(&from.address).await?;
     let usd_bal = oracle.get_token_value(from, bal).await?;

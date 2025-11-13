@@ -44,11 +44,11 @@ pub struct InOutArgs {
     #[arg(short)]
     pub index: PathBuf,
 
-    /// Account to send funds to
+    /// Auxiliary token
     #[arg(short)]
-    pub to: String,
+    pub token: String,
 
-    /// Amount to withdraw
+    /// Amount to withdraw/deposit
     #[arg(short)]
     pub amount: f64,
 }

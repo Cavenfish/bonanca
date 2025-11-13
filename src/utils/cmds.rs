@@ -2,7 +2,10 @@ use anyhow::{Ok, Result};
 
 use super::args::BalArgs;
 
-use crate::{finance_tk::indexes::IndexFund, utils::args::RebalArgs};
+use crate::{
+    finance_tk::indexes::IndexFund,
+    utils::args::{InOutArgs, RebalArgs},
+};
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
@@ -54,5 +57,61 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
         let _ = wallet.swap(swap_data).await?;
     }
 
+    Ok(())
+}
+
+pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
+    let fund = IndexFund::load(&cmd.index);
+
+    let dex = fund.get_exchange()?;
+    let wallet = fund.get_wallet()?;
+
+    let bals = fund.get_balances().await?;
+
+    let usd_amount = cmd.amount / (bals.balances.len() as f64);
+
+    let aux_assets = fund.auxiliary_assets.unwrap();
+
+    let to = &aux_assets
+        .iter()
+        .find(|x| x.symbol == cmd.to)
+        .unwrap()
+        .address;
+
+    for asset in &bals.balances {
+        let amount = usd_amount / asset.value;
+
+        let swap_data = dex.get_swap_data(&wallet, &asset.addy, &to, amount).await?;
+        let _ = wallet.swap(swap_data).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
+    let fund = IndexFund::load(&cmd.index);
+
+    let dex = fund.get_exchange()?;
+    let wallet = fund.get_wallet()?;
+    let oracle = fund.get_oracle()?;
+
+    let aux_assets = fund.auxiliary_assets.unwrap();
+
+    let from = &aux_assets.iter().find(|x| x.symbol == cmd.to).unwrap();
+
+    let bal = wallet.token_balance(&from.address).await?;
+    let usd_bal = oracle.get_token_value(from, bal).await?;
+
+    let assets: Vec<crate::finance_tk::indexes::Asset> =
+        fund.sectors.iter().flat_map(|s| s.assets.clone()).collect();
+
+    let amount = ((cmd.amount / usd_bal) / (assets.len() as f64)) * bal;
+
+    for asset in assets {
+        let swap_data = dex
+            .get_swap_data(&wallet, &from.address, &asset.address, amount)
+            .await?;
+        let _ = wallet.swap(swap_data).await?;
+    }
     Ok(())
 }

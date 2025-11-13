@@ -61,8 +61,8 @@
 - [ ] Update index fund
 - [ ] Skim index fund (take from overheld assets out of index fund)
 - [ ] Buy in (buy underheld assets from out of index fund)
-- [ ] Withdraw from index fund
-- [ ] Deposite into index fund
+- [x] Withdraw from index fund
+- [x] Deposit into index fund
 
 ### Types of Bots
 

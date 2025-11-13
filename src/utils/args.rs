@@ -18,7 +18,10 @@ pub enum BonArgs {
     Rebalance(RebalArgs),
 
     /// Withdraw from index
-    Withdraw(OutArgs),
+    Withdraw(InOutArgs),
+
+    /// Deposit into index
+    Deposit(InOutArgs),
 }
 
 #[derive(Debug, Args)]
@@ -36,7 +39,7 @@ pub struct RebalArgs {
 }
 
 #[derive(Debug, Args)]
-pub struct OutArgs {
+pub struct InOutArgs {
     /// Name of index
     #[arg(short)]
     pub index: PathBuf,

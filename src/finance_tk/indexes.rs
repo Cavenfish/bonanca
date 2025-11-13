@@ -199,7 +199,7 @@ pub struct Sector {
     pub weight: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Asset {
     pub name: String,
     pub symbol: String,

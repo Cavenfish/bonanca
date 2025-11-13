@@ -36,6 +36,13 @@
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
 
+### Additional Wallets
+
+- [ ] Osmosis (Cosmos)
+- [ ] Cardano
+- [ ] Algorand
+- [ ] Polkadot?
+
 ### Ledger (SQLite)
 
 - [ ] Record deposits
@@ -52,3 +59,14 @@
 - [ ] Create index fund
 - [x] Read index fund
 - [ ] Update index fund
+- [ ] Skim index fund (take from overheld assets out of index fund)
+- [ ] Buy in (buy underheld assets from out of index fund)
+- [ ] Withdraw from index fund
+- [ ] Deposite into index fund
+
+### Types of Bots
+
+- [ ] Index manager
+- [ ] Grid bot
+- [ ] Lending manager
+- [ ] Short/Long bot

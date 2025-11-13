@@ -2,11 +2,6 @@
 
 ## Roadmap
 
-### Utils
-
-- [x] Read in user config
-- [ ] Update user config
-
 ### CoinMarketCap API Lib
 
 - [x] Pull token price data
@@ -56,9 +51,7 @@
 - [ ] Display profit
 - [x] Balance index fund
 - [ ] Calculate volatility
-- [ ] Create index fund
 - [x] Read index fund
-- [ ] Update index fund
 - [ ] Skim index fund (take from overheld assets out of index fund)
 - [ ] Buy in (buy underheld assets from out of index fund)
 - [x] Withdraw from index fund

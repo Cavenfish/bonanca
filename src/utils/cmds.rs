@@ -2,17 +2,7 @@ use anyhow::{Ok, Result};
 
 use super::args::BalArgs;
 
-use crate::{
-    api_lib::{
-        cmc::CoinMarketCap,
-        jupiter::Jupiter,
-        traits::{Exchange, Oracle},
-        zerox::ZeroX,
-    },
-    finance_tk::indexes::IndexFund,
-    utils::args::RebalArgs,
-    wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
-};
+use crate::{finance_tk::indexes::IndexFund, utils::args::RebalArgs};
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);

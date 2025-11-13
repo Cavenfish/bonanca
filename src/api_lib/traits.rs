@@ -3,20 +3,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use solana_sdk::transaction::VersionedTransaction;
 
-use crate::{
-    api_lib::{jupiter::Jupiter, zerox::ZeroX},
-    finance_tk::indexes::Asset,
-    wallets::traits::Wallet,
-};
+use crate::{finance_tk::indexes::Asset, wallets::traits::Wallet};
 
 pub enum SwapTransactionData {
     Sol(VersionedTransaction),
     Evm(TransactionRequest),
-}
-
-pub enum AllExchanges {
-    Zero(ZeroX),
-    Jup(Jupiter),
 }
 
 #[async_trait]

@@ -7,12 +7,12 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use alloy_primitives::{
-    Address, U256, Uint,
+    Address, Uint,
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use std::{ops::Add, path::Path, str::FromStr};
+use std::{path::Path, str::FromStr};
 
 use crate::api_lib::traits::SwapTransactionData;
 use crate::wallets::traits::Wallet;

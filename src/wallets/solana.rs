@@ -1,25 +1,17 @@
-use alloy::signers::local::PrivateKeySigner;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use bincode::de;
+use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
-use solana_client::{nonblocking::rpc_client::RpcClient, rpc_client::SerializableTransaction};
 use solana_sdk::{
-    account::Account,
     instruction::{AccountMeta, Instruction},
-    native_token::sol_str_to_lamports,
     pubkey::Pubkey,
-    signature::Signature,
     signer::{
         Signer,
-        keypair::{Keypair, read_keypair_file, write_keypair_file},
+        keypair::{Keypair, read_keypair_file},
     },
-    transaction::{Transaction, VersionedTransaction},
+    transaction::Transaction,
 };
-use solana_system_interface::{
-    instruction::{create_account, transfer},
-    program,
-};
+use solana_system_interface::instruction::transfer;
 use std::path::Path;
 
 use crate::api_lib::traits::SwapTransactionData;

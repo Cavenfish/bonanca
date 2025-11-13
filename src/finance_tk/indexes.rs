@@ -1,7 +1,6 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{BTreeMap, HashMap},
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},
@@ -11,7 +10,7 @@ use crate::{
     api_lib::{
         cmc::CoinMarketCap,
         jupiter::Jupiter,
-        traits::{AllExchanges, Exchange, Oracle},
+        traits::{Exchange, Oracle},
         zerox::ZeroX,
     },
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
@@ -28,6 +27,8 @@ pub struct IndexFund {
     pub aggregator: ApiInfo,
     pub oracle: ApiInfo,
     pub sectors: Vec<Sector>,
+    pub gas_address: String,
+    pub auxiliary_assets: Option<Vec<Asset>>,
 }
 
 impl IndexFund {

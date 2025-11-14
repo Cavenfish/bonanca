@@ -14,7 +14,6 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     println!("Public Key: {}", &fund.public_key);
 
     let bals = fund.get_balances().await?;
-    let trades = fund.get_trades(&bals)?;
 
     println!("Gas Balance: {}", bals.gas);
     println!("Total Balance: {:.4}\n", bals.total);
@@ -27,12 +26,6 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         );
     }
 
-    println!();
-
-    for trade in trades {
-        println!("Trade {} {} for {}", trade.amount, trade.from, trade.to);
-    }
-
     Ok(())
 }
 
@@ -40,14 +33,18 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
 
     let dex = fund.get_exchange()?;
-
-    let wallet = fund.get_wallet()?;
-
-    println!("Public Key: {}", wallet.get_pubkey()?);
-    println!("Gas Balance: {}", wallet.balance().await?);
-
     let bals = fund.get_balances().await?;
     let trades = fund.get_trades(&bals)?;
+
+    println!("Public Key: {}", fund.public_key);
+    println!("Gas Balance: {}", bals.gas);
+
+    if cmd.preview {
+        trades.iter().for_each(|t| println!("{}", t));
+        return Ok(());
+    }
+
+    let wallet = fund.get_wallet()?;
 
     for trade in trades {
         let swap_data = dex

@@ -1,6 +1,7 @@
 use anyhow::{Ok, Result};
 use serde::{Deserialize, Serialize};
 use std::{
+    fmt,
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},
@@ -238,4 +239,10 @@ pub struct RebalTrade {
     pub from: String,
     pub to: String,
     pub amount: f64,
+}
+
+impl fmt::Display for RebalTrade {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Trade {} {} for {}", self.amount, self.from, self.to)
+    }
 }

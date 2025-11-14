@@ -36,6 +36,10 @@ pub struct RebalArgs {
     /// Name of index
     #[arg(short)]
     pub index: PathBuf,
+
+    /// Preview rebalance trades
+    #[arg(short, long, action)]
+    pub preview: bool,
 }
 
 #[derive(Debug, Args)]

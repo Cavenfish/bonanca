@@ -1,10 +1,8 @@
-mod api_lib;
-mod finance_tk;
-mod utils;
-mod wallets;
+mod args;
+mod cmds;
 
-use crate::utils::args::{BonArgs, Bonanca};
-use crate::utils::cmds::{
+use crate::args::{BonArgs, Bonanca};
+use crate::cmds::{
     deposit_into_index_fund, rebalance_index_fund, show_index_balance, withdraw_from_index_fund,
 };
 

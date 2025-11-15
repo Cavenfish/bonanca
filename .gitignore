@@ -1,3 +1,4 @@
-/target
+/*.json
 bonanca.*
 Cargo.lock
+target/

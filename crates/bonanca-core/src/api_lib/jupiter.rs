@@ -9,7 +9,7 @@ use solana_sdk::transaction::VersionedTransaction;
 use std::collections::HashMap;
 
 use super::traits::{Exchange, Oracle, SwapTransactionData};
-use crate::{finance_tk::indexes::Asset, wallets::traits::Wallet};
+use crate::{utils::Asset, wallets::traits::Wallet};
 
 pub struct Jupiter {
     pub base_url: String,

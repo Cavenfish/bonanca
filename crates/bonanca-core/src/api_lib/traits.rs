@@ -3,7 +3,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use solana_sdk::transaction::VersionedTransaction;
 
-use crate::{finance_tk::indexes::Asset, wallets::traits::Wallet};
+use crate::{utils::Asset, wallets::traits::Wallet};
 
 pub enum SwapTransactionData {
     Sol(VersionedTransaction),

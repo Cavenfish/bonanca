@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 
-use crate::{api_lib::traits::Oracle, finance_tk::indexes::Asset};
+use crate::{api_lib::traits::Oracle, utils::Asset};
 
 pub struct CoinMarketCap {
     pub base_url: String,

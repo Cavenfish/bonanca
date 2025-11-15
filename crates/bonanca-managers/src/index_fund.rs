@@ -1,13 +1,9 @@
 use anyhow::{Ok, Result};
 use bonanca_core::{
-    api_lib::{
-        cmc::CoinMarketCap,
-        jupiter::Jupiter,
-        traits::{Exchange, Oracle},
-        zerox::ZeroX,
-    },
+    api_lib::traits::{Exchange, Oracle},
+    get_exchange, get_oracle, get_wallet, get_wallet_view,
     holdings::Asset,
-    wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
+    wallets::traits::Wallet,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -43,56 +39,28 @@ impl IndexFund {
     }
 
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        let wallet: Box<dyn Wallet + Send + Sync> = match self.chain.as_str() {
-            "EVM" => Box::new(EvmWallet::load(&self.keystore, &self.rpc_url)),
-            "Solana" => Box::new(SolWallet::load(&self.keystore, &self.rpc_url)),
-            _ => Err(anyhow::anyhow!("Unsupported chain"))?,
-        };
-
-        Ok(wallet)
+        get_wallet(&self.chain, &self.keystore, &self.rpc_url)
     }
 
     pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        let wallet: Box<dyn Wallet + Send + Sync> = match self.chain.as_str() {
-            "EVM" => Box::new(EvmWallet::view(&self.rpc_url, &self.public_key)),
-            "Solana" => Box::new(SolWallet::view(&self.rpc_url, &self.public_key)),
-            _ => Err(anyhow::anyhow!("Unsupported chain"))?,
-        };
-
-        Ok(wallet)
+        get_wallet_view(&self.chain, &self.rpc_url, &self.public_key)
     }
 
     pub fn get_oracle(&self) -> Result<Box<dyn Oracle>> {
-        let oracle: Box<dyn Oracle> = match self.oracle.name.as_str() {
-            "CoinMarketCap" => Box::new(CoinMarketCap::new(
-                self.oracle.api_url.clone(),
-                self.oracle.api_key.clone(),
-            )),
-            "Jupiter" => Box::new(Jupiter::new(
-                self.oracle.api_url.clone(),
-                self.oracle.api_key.clone(),
-            )),
-            _ => Err(anyhow::anyhow!("Unsupported oracle"))?,
-        };
-
-        Ok(oracle)
+        get_oracle(
+            &self.oracle.name,
+            &self.oracle.api_url,
+            &self.oracle.api_key,
+        )
     }
 
     pub fn get_exchange(&self) -> Result<Box<dyn Exchange>> {
-        let exchange: Box<dyn Exchange> = match self.aggregator.name.as_str() {
-            "0x" => Box::new(ZeroX::new(
-                self.aggregator.api_url.clone(),
-                self.aggregator.api_key.clone(),
-                self.chain_id.unwrap(),
-            )),
-            "Jupiter" => Box::new(Jupiter::new(
-                self.aggregator.api_url.clone(),
-                self.aggregator.api_key.clone(),
-            )),
-            _ => Err(anyhow::anyhow!("Unsupported aggregator"))?,
-        };
-
-        Ok(exchange)
+        get_exchange(
+            &self.aggregator.name,
+            &self.aggregator.api_url,
+            &self.aggregator.api_key,
+            self.chain_id,
+        )
     }
 
     pub async fn get_balances(&self) -> Result<IndexBalances> {

@@ -68,11 +68,15 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
 
     let aux_assets = fund.auxiliary_assets.unwrap();
 
-    let to = &aux_assets
-        .iter()
-        .find(|x| x.symbol == cmd.token)
-        .unwrap()
-        .address;
+    let to = if cmd.token == "gas" {
+        &fund.gas_address
+    } else {
+        &aux_assets
+            .iter()
+            .find(|x| x.symbol == cmd.token)
+            .unwrap()
+            .address
+    };
 
     for asset in &bals.balances {
         let amount = usd_amount / asset.value;

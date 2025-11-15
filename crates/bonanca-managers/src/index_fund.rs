@@ -1,20 +1,20 @@
 use anyhow::{Ok, Result};
-use serde::{Deserialize, Serialize};
-use std::{
-    fmt,
-    fs::File,
-    io::BufReader,
-    path::{Path, PathBuf},
-};
-
-use crate::{
+use bonanca_core::{
     api_lib::{
         cmc::CoinMarketCap,
         jupiter::Jupiter,
         traits::{Exchange, Oracle},
         zerox::ZeroX,
     },
+    holdings::Asset,
     wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet},
+};
+use serde::{Deserialize, Serialize};
+use std::{
+    fmt,
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -211,13 +211,6 @@ pub struct Sector {
     pub name: String,
     pub assets: Vec<Asset>,
     pub weight: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Asset {
-    pub name: String,
-    pub symbol: String,
-    pub address: String,
 }
 
 pub struct IndexBalances {

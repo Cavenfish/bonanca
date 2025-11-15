@@ -1,11 +1,7 @@
 use anyhow::{Ok, Result};
+use bonanca_managers::index_fund::IndexFund;
 
-use super::args::BalArgs;
-
-use crate::{
-    finance_tk::indexes::IndexFund,
-    utils::args::{InOutArgs, RebalArgs},
-};
+use super::args::{BalArgs, InOutArgs, RebalArgs};
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
@@ -102,7 +98,7 @@ pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
     let bal = wallet.token_balance(&from.address).await?;
     let usd_bal = oracle.get_token_value(from, bal).await?;
 
-    let assets: Vec<crate::finance_tk::indexes::Asset> =
+    let assets: Vec<bonanca_core::holdings::Asset> =
         fund.sectors.iter().flat_map(|s| s.assets.clone()).collect();
 
     let amount = ((cmd.amount / usd_bal) / (assets.len() as f64)) * bal;

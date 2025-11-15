@@ -1,0 +1,10 @@
+[package]
+name = "bonanca-managers"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+bonanca-core = { version = "0.1.0", path = "../bonanca-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }

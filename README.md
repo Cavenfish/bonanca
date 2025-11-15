@@ -2,10 +2,6 @@
 
 ## Roadmap
 
-### CoinMarketCap API Lib
-
-- [x] Pull token price data
-
 ### Solana Wallet
 
 - [x] Read pub key
@@ -25,8 +21,6 @@
 - [x] Check token balances
 - [x] Transfer tokens
 - [x] Approve tokens for spending
-- [ ] Trade tokens on UniSwap
-- [ ] Trade tokens on 1Inch
 - [x] Trade tokens on 0x
 - [ ] Interact with lending protocols?
 - [ ] Interact with liquidity pools?
@@ -38,13 +32,22 @@
 - [ ] Algorand
 - [ ] Polkadot?
 
-### Ledger (SQLite)
+### Additional Oracles
+
+- [ ] CoinDesk
+
+### Additional Exchanges
+
+- [ ] 1Inch
+- [ ] Cow
+
+### Balance Sheet (SQLite)
 
 - [ ] Record deposits
 - [ ] Record trades
 - [ ] Record withdraws
 
-### Finance TK
+### Index Manager
 
 - [x] Display balances
 - [x] Display index summary

@@ -41,6 +41,13 @@
 - [ ] 1Inch
 - [ ] Cow
 
+### KeyVault
+
+- [ ] Read json file
+- [ ] Encrypt master key
+- [ ] Solana HD wallet
+- [ ] EVM HD wallet
+
 ### Balance Sheet (SQLite)
 
 - [ ] Record deposits

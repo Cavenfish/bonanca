@@ -14,6 +14,7 @@ clap = { version = "4.5.41", features = ["derive"] }
 tokio = { version = "1.48.0", features = ["full"] }
 bonanca-core = { path = "./crates/bonanca-core" }
 bonanca-managers = { path = "./crates/bonanca-managers" }
+bonanca-keyvault = { path = "./crates/bonanca-keyvault" }
 
 [workspace.dependencies]
 anyhow = "1.0.100"

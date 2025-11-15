@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use core::panic;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
@@ -173,7 +172,7 @@ impl SolWallet {
         }
     }
 
-    pub async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
+    async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
         let kp = self.key_pair.as_ref().unwrap();
 
         // Get blockhash and sign transaction
@@ -238,7 +237,7 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
+    async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
         // Get token account
         let accounts = self
             .rpc

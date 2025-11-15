@@ -1,16 +1,16 @@
-use super::traits::{Exchange, SwapTransactionData};
-use crate::wallets::{evm::EvmWallet, traits::Wallet};
-
 use alloy::{
     network::TransactionBuilder,
     rpc::types::{TransactionInput, TransactionRequest},
 };
-use alloy_primitives::{Address, Bytes, Uint, hex::decode, utils::parse_units};
+use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 use std::str::FromStr;
+
+use super::traits::{Exchange, SwapTransactionData};
+use crate::wallets::traits::Wallet;
 
 pub struct ZeroX {
     pub base_url: String,

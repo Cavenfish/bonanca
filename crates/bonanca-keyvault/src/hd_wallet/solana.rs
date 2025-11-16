@@ -3,7 +3,7 @@ use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
 use solana_sdk::signer::keypair::Keypair;
 
-use crate::hd_wallet::traits::HDWallet;
+use super::traits::{ChildKey, HDWallet};
 
 pub struct Solana {
     pub coin: u32,
@@ -27,22 +27,14 @@ impl HDWallet for Solana {
         }
     }
 
-    fn derive_child_key(&self, child: u32) -> Result<ExtendedSigningKey> {
+    fn derive_child_key(&self, child: u32) -> Result<ChildKey> {
         let derivation_path: DerivationPath =
             format!("m/44'/{}'/{}'/0'/0'", self.coin, child).parse()?;
 
         let child_key = self.master_key.derive(&derivation_path)?;
-
-        Ok(child_key)
-    }
-}
-
-impl Solana {
-    pub fn get_child_keypair(&self, child: u32) -> Result<Keypair> {
-        let child_key = self.derive_child_key(child)?;
         let secret_key = child_key.signing_key;
         let keypair = Keypair::new_from_array(secret_key.to_bytes());
 
-        Ok(keypair)
+        Ok(ChildKey::Sol(keypair))
     }
 }

@@ -1,22 +1,22 @@
-[workspace]
-resolver = "3"
-members = ["crates/*"]
-
 [package]
 name = "bonanca"
 version = "0.1.0"
 edition = "2024"
 description = "A CLI for managing crypto index funds"
 
-[dependencies]
-anyhow = { workspace = true }
-clap = { version = "4.5.41", features = ["derive"] }
-tokio = { version = "1.48.0", features = ["full"] }
-bonanca-core = { path = "./crates/bonanca-core" }
-bonanca-managers = { path = "./crates/bonanca-managers" }
-bonanca-keyvault = { path = "./crates/bonanca-keyvault" }
+[workspace]
+resolver = "3"
+members = ["crates/*"]
 
 [workspace.dependencies]
 anyhow = "1.0.100"
 serde = { version = "1.0.221", features = ["derive"] }
 serde_json = "1.0.145"
+
+[dependencies]
+anyhow = { workspace = true }
+bonanca-core = { path = "./crates/bonanca-core" }
+bonanca-keyvault = { path = "./crates/bonanca-keyvault" }
+bonanca-managers = { path = "./crates/bonanca-managers" }
+clap = { version = "4.5.41", features = ["derive"] }
+tokio = { version = "1.48.0", features = ["full"] }

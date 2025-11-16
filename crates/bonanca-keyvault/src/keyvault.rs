@@ -1,29 +1,21 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
     pub valut: Vault,
     pub chain_keys: Vec<ChainKeys>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Vault {
     pub cipher: String,
-    pub cipher_params: CipherParams,
     pub cipher_text: String,
     pub kdf: String,
-    pub kdf_params: KdfParams,
+    pub salt: String,
     pub mac: String,
 }
 
-pub struct CipherParams {
-    pub iv: String,
-}
-
-pub struct KdfParams {
-    pub dklen: u8,
-    pub n: u32,
-    pub r: u32,
-    pub p: u32,
-    pub salt: String,
-}
-
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ChainKeys {
     pub chain: String,
     pub public_keys: Vec<String>,

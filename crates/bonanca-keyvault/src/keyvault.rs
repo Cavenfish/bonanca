@@ -3,16 +3,30 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
     pub valut: Vault,
-    pub chain_keys: Vec<ChainKeys>,
+    pub chain_keys: Option<Vec<ChainKeys>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Vault {
     pub cipher: String,
+    pub cipher_params: CipherParams,
     pub cipher_text: String,
     pub kdf: String,
-    pub salt: String,
+    pub kdf_params: KdfParams,
     pub mac: String,
+    pub salt: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct KdfParams {
+    pub key_length: u8,
+    pub n: u32,
+    pub salt: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CipherParams {
+    pub nonce: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

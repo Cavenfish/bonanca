@@ -43,10 +43,11 @@
 
 ### KeyVault
 
-- [ ] Read json file
-- [ ] Encrypt master key
-- [ ] Solana HD wallet
-- [ ] EVM HD wallet
+- [x] Read json file
+- [x] Encrypt master key
+- [x] Solana HD wallet
+- [x] EVM HD wallet
+- [ ] Chain key maker
 
 ### Balance Sheet (SQLite)
 

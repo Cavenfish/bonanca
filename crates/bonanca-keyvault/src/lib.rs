@@ -4,7 +4,6 @@ pub mod keyvault;
 mod utils;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
-use alloy::hex::ToHexExt;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
 use bip39::Language;

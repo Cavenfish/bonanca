@@ -1,6 +1,6 @@
 use aes_gcm::{
-    Aes256Gcm, Key, Nonce,
-    aead::{Aead, AeadCore, KeyInit, OsRng, generic_array::GenericArray},
+    Aes256Gcm, Key,
+    aead::{Aead, KeyInit, generic_array::GenericArray},
 };
 use anyhow::Result;
 use argon2::{

@@ -11,6 +11,12 @@ pub struct Bonanca {
 
 #[derive(Debug, Subcommand)]
 pub enum BonArgs {
+    /// Create a new wallet
+    Create(CreateArgs),
+
+    /// Close a wallet
+    Close(CloseArgs),
+
     /// Print the balance of an index
     Balance(BalArgs),
 
@@ -22,6 +28,32 @@ pub enum BonArgs {
 
     /// Deposit into index
     Deposit(InOutArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct CloseArgs {
+    /// Name of chain
+    #[arg(short)]
+    pub chain: String,
+
+    /// Wallet index
+    #[arg(short)]
+    pub index: u32,
+
+    /// Wallet to send funds to
+    #[arg(short)]
+    pub send_to: String,
+}
+
+#[derive(Debug, Args)]
+pub struct CreateArgs {
+    /// Name of chain
+    #[arg(short)]
+    pub chain: String,
+
+    /// Wallet index
+    #[arg(short)]
+    pub index: u32,
 }
 
 #[derive(Debug, Args)]

@@ -1,7 +1,18 @@
 use anyhow::{Ok, Result};
+use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey};
 use bonanca_managers::index_fund::IndexFund;
+use std::path::PathBuf;
 
-use super::args::{BalArgs, InOutArgs, RebalArgs};
+use super::args::{BalArgs, CreateArgs, InOutArgs, RebalArgs};
+
+pub fn create_wallet(cmd: CreateArgs) -> Result<()> {
+    let file: PathBuf = "./keyvault_test.json".into();
+    let hd_keys = decrypt_keyvault(&file)?;
+
+    let child = hd_keys.get_child_key(&cmd.chain, cmd.index)?;
+
+    Ok(())
+}
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);

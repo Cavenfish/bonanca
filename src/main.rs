@@ -13,6 +13,8 @@ async fn main() {
     let args = Bonanca::parse();
 
     match args.command {
+        BonArgs::Create(cmd) => todo!(),
+        BonArgs::Close(cmd) => todo!(),
         BonArgs::Balance(cmd) => show_index_balance(cmd).await.unwrap(),
         BonArgs::Rebalance(cmd) => rebalance_index_fund(cmd).await.unwrap(),
         BonArgs::Withdraw(cmd) => withdraw_from_index_fund(cmd).await.unwrap(),

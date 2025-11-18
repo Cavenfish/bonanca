@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
     pub valut: Vault,
-    pub chain_keys: Option<Vec<ChainKeys>>,
+    pub chain_keys: Vec<ChainKeys>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -1,6 +1,5 @@
-mod hd_keys;
-pub mod hd_wallet;
-pub mod keyvault;
+pub mod hd_keys;
+mod keyvault;
 mod utils;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
@@ -14,8 +13,8 @@ use std::io::{BufReader, Write};
 use std::path::Path;
 
 use crate::hd_keys::HDkeys;
-use crate::keyvault::{CipherParams, KdfParams, KeyVault, Vault};
-use crate::utils::{decrypt_seed, encrypt_seed, hash_password, verify_password};
+use crate::keyvault::{ChainKeys, CipherParams, KdfParams, KeyVault, Vault};
+use crate::utils::{create_chain_keys, decrypt_seed, encrypt_seed, hash_password, verify_password};
 
 pub fn new() -> Result<()> {
     let language = Language::English;
@@ -49,9 +48,11 @@ pub fn new() -> Result<()> {
         salt: salt.as_str().to_string(),
     };
 
+    let chain_keys = create_chain_keys(&hd_key)?;
+
     let key_vault = KeyVault {
         valut: vault,
-        chain_keys: None,
+        chain_keys: chain_keys,
     };
 
     let contents = serde_json::to_string(&key_vault)?;
@@ -62,7 +63,7 @@ pub fn new() -> Result<()> {
     Ok(())
 }
 
-pub fn decrypt_keyvault(file: &Path) -> Result<[u8; 64]> {
+pub fn decrypt_keyvault(file: &Path) -> Result<HDkeys> {
     let f = File::open(file)?;
     let rdr = BufReader::new(f);
 
@@ -82,5 +83,5 @@ pub fn decrypt_keyvault(file: &Path) -> Result<[u8; 64]> {
         &keyvault.valut.kdf_params,
     )?;
 
-    Ok(seed)
+    Ok(HDkeys { seed: seed })
 }

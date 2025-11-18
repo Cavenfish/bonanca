@@ -2,7 +2,7 @@ use aes_gcm::{
     Aes256Gcm, Key,
     aead::{Aead, KeyInit, generic_array::GenericArray},
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -10,8 +10,12 @@ use argon2::{
 use hex::ToHex;
 use pbkdf2::pbkdf2_hmac;
 use sha2::Sha256;
+use solana_sdk::signer::Signer;
 
-use crate::keyvault::KdfParams;
+use crate::{
+    hd_keys::{ChildKey, HDkeys},
+    keyvault::{ChainKeys, KdfParams},
+};
 
 pub fn verify_password(mac: &str, password: &str) -> bool {
     let hash = PasswordHash::new(mac).expect("Failed to parse MAC");
@@ -84,4 +88,34 @@ pub fn decrypt_seed(
     let seed: [u8; 64] = vec_seed.as_slice().try_into()?;
 
     Ok(seed)
+}
+
+fn get_child_pubkey(hd_key: &HDkeys, chain: &str, child: u32) -> Result<String> {
+    let child = hd_key.get_child_key(chain, child)?;
+
+    let addy = match child {
+        ChildKey::Sol(kp) => kp.pubkey().to_string(),
+        ChildKey::Evm(sig) => sig.address().to_string(),
+    };
+
+    Ok(addy)
+}
+
+pub fn create_chain_keys(hd_key: &HDkeys) -> Result<Vec<ChainKeys>> {
+    let sol_addy = get_child_pubkey(&hd_key, "Solana", 0)?;
+    let evm_addy = get_child_pubkey(&hd_key, "EVM", 0)?;
+
+    let sol_keys = ChainKeys {
+        chain: "Solana".to_string(),
+        public_keys: vec![sol_addy],
+    };
+
+    let evm_keys = ChainKeys {
+        chain: "EVM".to_string(),
+        public_keys: vec![evm_addy],
+    };
+
+    let chain_keys = vec![sol_keys, evm_keys];
+
+    Ok(chain_keys)
 }

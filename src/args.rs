@@ -31,6 +31,17 @@ pub enum BonArgs {
 }
 
 #[derive(Debug, Args)]
+pub struct CreateArgs {
+    /// Name of chain
+    #[arg(short)]
+    pub filename: PathBuf,
+
+    /// Language for mnemonic phrase
+    #[arg(long, default_value = "English")]
+    pub language: String,
+}
+
+#[derive(Debug, Args)]
 pub struct CloseArgs {
     /// Index fund json file
     #[arg(short)]
@@ -39,17 +50,6 @@ pub struct CloseArgs {
     /// Wallet to send funds to
     #[arg(short)]
     pub send_to: String,
-}
-
-#[derive(Debug, Args)]
-pub struct CreateArgs {
-    /// Name of chain
-    #[arg(short)]
-    pub chain: String,
-
-    /// Wallet index
-    #[arg(short)]
-    pub index: u32,
 }
 
 #[derive(Debug, Args)]

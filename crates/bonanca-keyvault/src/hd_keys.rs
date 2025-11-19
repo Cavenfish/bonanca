@@ -21,6 +21,12 @@ impl HDkeys {
         let mnemonic = Mnemonic::generate_in_with(&mut rng, language, word_count)
             .expect("Failed to generate mnemonic");
 
+        // TODO: Ensure this is safest way of 1-time
+        // display of mnemonic
+        println!("Your mnemonic is:\n");
+        println!("\t{}\n", mnemonic.to_string());
+        println!("Safely store this offline, then clear the terminal");
+
         let seed = mnemonic.to_seed_normalized("");
 
         Self { seed: seed }

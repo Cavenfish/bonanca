@@ -67,6 +67,7 @@
 - [ ] Buy in (buy underheld assets from out of index fund)
 - [x] Withdraw from index fund
 - [x] Deposit into index fund
+- [x] Close account
 
 ### Types of Bots
 

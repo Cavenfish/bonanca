@@ -63,6 +63,21 @@ impl IndexFund {
         )
     }
 
+    pub fn get_all_assets(&self) -> Result<Vec<Asset>> {
+        let mut assets: Vec<Asset> = Vec::new();
+
+        self.sectors
+            .iter()
+            .for_each(|s| s.assets.iter().for_each(|a| assets.push(a.clone())));
+
+        match &self.auxiliary_assets {
+            Some(aux_assets) => assets.extend(aux_assets.clone()),
+            _ => (),
+        }
+
+        Ok(assets)
+    }
+
     pub async fn get_balances(&self) -> Result<IndexBalances> {
         let wallet = self.get_wallet_view()?;
         let oracle = self.get_oracle()?;

@@ -32,13 +32,9 @@ pub enum BonArgs {
 
 #[derive(Debug, Args)]
 pub struct CloseArgs {
-    /// Name of chain
+    /// Index fund json file
     #[arg(short)]
-    pub chain: String,
-
-    /// Wallet index
-    #[arg(short)]
-    pub index: u32,
+    pub index: PathBuf,
 
     /// Wallet to send funds to
     #[arg(short)]
@@ -58,14 +54,14 @@ pub struct CreateArgs {
 
 #[derive(Debug, Args)]
 pub struct BalArgs {
-    /// Name of index
+    /// Index fund json file
     #[arg(short)]
     pub index: PathBuf,
 }
 
 #[derive(Debug, Args)]
 pub struct RebalArgs {
-    /// Name of index
+    /// Index fund json file
     #[arg(short)]
     pub index: PathBuf,
 
@@ -76,7 +72,7 @@ pub struct RebalArgs {
 
 #[derive(Debug, Args)]
 pub struct InOutArgs {
-    /// Name of index
+    /// Index fund json file
     #[arg(short)]
     pub index: PathBuf,
 

@@ -57,6 +57,31 @@ impl Wallet for EvmWallet {
         Ok(amt)
     }
 
+    async fn close(&self, to: &str) -> Result<()> {
+        let to_addy = Address::from_str(to)?;
+        let client = self.get_client();
+        let bal = self.balance().await?;
+
+        let wei = parse_ether(&(bal * 0.9).to_string())?;
+
+        let fees = client.estimate_eip1559_fees().await?;
+
+        let tx = TransactionRequest::default()
+            .with_from(self.pubkey)
+            .with_to(to_addy)
+            .with_value(wei);
+
+        let gas = client.estimate_gas(tx).await?;
+
+        let total_fees_wei = (gas as u128) * fees.max_fee_per_gas;
+        let total_fees: f64 = format_ether(total_fees_wei).parse()?;
+
+        // 2 percent higher fee buffer
+        let _ = self.transfer(to, bal - (total_fees * 1.02)).await?;
+
+        Ok(())
+    }
+
     async fn balance(&self) -> Result<f64> {
         let client = self.get_view_client();
 
@@ -115,6 +140,16 @@ impl Wallet for EvmWallet {
 
         // Send transaction
         let _ = erc20.transfer(to_addy, amnt).send().await?.watch().await?;
+
+        Ok(())
+    }
+
+    async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
+        let amount = self.token_balance(token).await?;
+
+        if amount != 0.0 {
+            let _ = self.transfer_token(token, amount, to).await?;
+        }
 
         Ok(())
     }

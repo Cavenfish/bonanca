@@ -3,6 +3,8 @@ use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey};
 use bonanca_managers::index_fund::IndexFund;
 use std::path::PathBuf;
 
+use crate::args::CloseArgs;
+
 use super::args::{BalArgs, CreateArgs, InOutArgs, RebalArgs};
 
 pub fn create_wallet(cmd: CreateArgs) -> Result<()> {
@@ -10,6 +12,23 @@ pub fn create_wallet(cmd: CreateArgs) -> Result<()> {
     let hd_keys = decrypt_keyvault(&file)?;
 
     let child = hd_keys.get_child_key(&cmd.chain, cmd.index)?;
+
+    Ok(())
+}
+
+pub async fn close_account(cmd: CloseArgs) -> Result<()> {
+    let fund = IndexFund::load(&cmd.index);
+    let wallet = fund.get_wallet()?;
+
+    let assets = fund.get_all_assets()?;
+
+    for asset in assets.iter() {
+        let _ = wallet
+            .transfer_all_tokens(&asset.address, &cmd.send_to)
+            .await?;
+    }
+
+    let _ = wallet.close(&cmd.send_to).await?;
 
     Ok(())
 }

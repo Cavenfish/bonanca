@@ -51,6 +51,18 @@ impl Wallet for SolWallet {
         Ok(amt)
     }
 
+    async fn close(&self, to: &str) -> Result<()> {
+        let bal = self.balance().await?;
+
+        // Subtract rent and fee buffer
+        // TODO: find out how to not leave rent behind
+        let amount = bal - 0.00205;
+
+        let _ = self.transfer(to, amount).await?;
+
+        Ok(())
+    }
+
     async fn balance(&self) -> Result<f64> {
         let balance = self.rpc.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
@@ -78,6 +90,7 @@ impl Wallet for SolWallet {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let addy_result = self.get_token_account(&mint_pubkey).await;
 
+        // TODO: Don't always create token account
         let addy = match addy_result {
             Ok(addy) => addy,
             Err(_) => self.create_token_account(&mint_pubkey).await?,
@@ -93,8 +106,11 @@ impl Wallet for SolWallet {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
-        let my_addy = self.get_token_account(&mint_pubkey).await?;
+        let source = self.get_token_account(&mint_pubkey).await?;
         let lamp = self.parse_token_amount(amount, mint).await?;
+
+        let mut data = vec![3];
+        data.extend_from_slice(&lamp.to_le_bytes());
 
         let accounts = self
             .rpc
@@ -102,15 +118,37 @@ impl Wallet for SolWallet {
             .await?;
 
         let token = accounts.get(0).unwrap();
-        let token_pubkey = Pubkey::from_str_const(&token.pubkey);
+        let destination = Pubkey::from_str_const(&token.pubkey);
 
-        let info = transfer(&my_addy, &token_pubkey, lamp);
-        let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
+        let instruction = Instruction {
+            program_id: TOKEN_ID,
+            accounts: vec![
+                AccountMeta::new(source, false),
+                AccountMeta::new(destination, false),
+                AccountMeta::new_readonly(self.pubkey, true),
+            ],
+            data: data,
+        };
+
+        let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
 
         let blockhash = self.rpc.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
         let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+
+        Ok(())
+    }
+
+    async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<()> {
+        let amount = self.token_balance(mint).await?;
+
+        if amount != 0.0 {
+            let _ = self.transfer_token(mint, amount, to).await?;
+        }
+
+        let mint_pubkey = Pubkey::from_str_const(mint);
+        let _ = self.close_token_account(&mint_pubkey).await?;
 
         Ok(())
     }

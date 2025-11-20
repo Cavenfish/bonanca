@@ -14,12 +14,13 @@ use wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet};
 
 pub fn get_wallet(
     chain: &str,
-    keystore: &Path,
+    keyvault: &Path,
     rpc_url: &str,
+    child: u32,
 ) -> Result<Box<dyn Wallet + Send + Sync>> {
     let wallet: Box<dyn Wallet + Send + Sync> = match chain {
-        "EVM" => Box::new(EvmWallet::load(keystore, rpc_url)),
-        "Solana" => Box::new(SolWallet::load(keystore, rpc_url)),
+        "EVM" => Box::new(EvmWallet::load(keyvault, rpc_url, child)),
+        "Solana" => Box::new(SolWallet::load(keyvault, rpc_url, child)),
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,
     };
 
@@ -28,12 +29,13 @@ pub fn get_wallet(
 
 pub fn get_wallet_view(
     chain: &str,
+    keyvault: &Path,
     rpc_url: &str,
-    public_key: &str,
+    child: u32,
 ) -> Result<Box<dyn Wallet + Send + Sync>> {
     let wallet: Box<dyn Wallet + Send + Sync> = match chain {
-        "EVM" => Box::new(EvmWallet::view(rpc_url, public_key)),
-        "Solana" => Box::new(SolWallet::view(rpc_url, public_key)),
+        "EVM" => Box::new(EvmWallet::view(keyvault, rpc_url, child)),
+        "Solana" => Box::new(SolWallet::view(keyvault, rpc_url, child)),
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,
     };
 

@@ -1,5 +1,5 @@
 pub mod hd_keys;
-mod keyvault;
+pub mod keyvault;
 mod utils;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
@@ -95,4 +95,13 @@ pub fn decrypt_keyvault(file: &Path) -> Result<HDkeys> {
     )?;
 
     Ok(HDkeys { seed: seed })
+}
+
+pub fn read_keyvault(file: &Path) -> Result<KeyVault> {
+    let f = File::open(file)?;
+    let rdr = BufReader::new(f);
+
+    let keyvault: KeyVault = serde_json::from_reader(rdr)?;
+
+    Ok(keyvault)
 }

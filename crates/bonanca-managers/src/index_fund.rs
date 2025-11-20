@@ -18,14 +18,14 @@ pub struct IndexFund {
     pub name: String,
     pub chain: String,
     pub chain_id: Option<u16>,
+    pub child: u32,
     pub max_offset: f64,
     pub rpc_url: String,
-    pub keystore: PathBuf,
+    pub keyvault: PathBuf,
     pub aggregator: ApiInfo,
     pub oracle: ApiInfo,
     pub sectors: Vec<Sector>,
     pub gas_address: String,
-    pub public_key: String,
     pub auxiliary_assets: Option<Vec<Asset>>,
 }
 
@@ -39,11 +39,11 @@ impl IndexFund {
     }
 
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet(&self.chain, &self.keystore, &self.rpc_url)
+        get_wallet(&self.chain, &self.keyvault, &self.rpc_url, self.child)
     }
 
     pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet_view(&self.chain, &self.rpc_url, &self.public_key)
+        get_wallet_view(&self.chain, &self.keyvault, &self.rpc_url, self.child)
     }
 
     pub fn get_oracle(&self) -> Result<Box<dyn Oracle>> {

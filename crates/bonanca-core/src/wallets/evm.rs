@@ -12,7 +12,8 @@ use alloy_primitives::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use rpassword::prompt_password;
+use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
+use core::panic;
 use std::{path::Path, str::FromStr};
 
 use crate::api_lib::traits::SwapTransactionData;
@@ -186,9 +187,15 @@ impl Wallet for EvmWallet {
 }
 
 impl EvmWallet {
-    pub fn load(keystore: &Path, rpc: &str) -> Self {
-        let password = prompt_password("Keystore Password: ").unwrap();
-        let signer = LocalSigner::decrypt_keystore(&keystore, password).unwrap();
+    pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let hd_key = decrypt_keyvault(keyvault).expect("Failed to decrypt keyvault");
+        let child_key = hd_key.get_child_key("EVM", child).unwrap();
+
+        let signer = match child_key {
+            ChildKey::Evm(sig) => sig,
+            _ => panic!(),
+        };
+
         let rpc_url = Url::parse(rpc).unwrap();
         let pubkey = signer.address();
         Self {
@@ -198,7 +205,14 @@ impl EvmWallet {
         }
     }
 
-    pub fn view(rpc: &str, pubkey: &str) -> Self {
+    pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let key_vault = read_keyvault(keyvault).unwrap();
+        let evm_keys = key_vault
+            .chain_keys
+            .iter()
+            .find(|k| k.chain == "EVM")
+            .unwrap();
+        let pubkey = evm_keys.public_keys.get(child as usize).unwrap();
         let rpc_url = Url::parse(rpc).unwrap();
         let addy = Address::from_str(pubkey).unwrap();
         Self {

@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
@@ -90,14 +91,13 @@ impl Wallet for SolWallet {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let addy_result = self.get_token_account(&mint_pubkey).await;
 
-        // TODO: Don't always create token account
-        let addy = match addy_result {
-            Ok(addy) => addy,
-            Err(_) => self.create_token_account(&mint_pubkey).await?,
+        let bal = match addy_result {
+            Ok(addy) => {
+                let token_data = self.rpc.get_token_account_balance(&addy).await?;
+                token_data.ui_amount.unwrap_or(0.0)
+            }
+            Err(_) => 0.0,
         };
-
-        let token_data = self.rpc.get_token_account_balance(&addy).await?;
-        let bal = token_data.ui_amount.unwrap_or(0.0);
 
         Ok(bal)
     }
@@ -189,8 +189,15 @@ impl Wallet for SolWallet {
 }
 
 impl SolWallet {
-    pub fn load(keystore: &Path, rpc: &str) -> Self {
-        let kp = read_keypair_file(keystore).unwrap();
+    pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let hd_key = decrypt_keyvault(keyvault).expect("Failed to decrypt keyvault");
+        let child_key = hd_key.get_child_key("EVM", child).unwrap();
+
+        let kp = match child_key {
+            ChildKey::Sol(kp) => kp,
+            _ => panic!(),
+        };
+
         let rp = RpcClient::new(rpc.to_string());
         let pk = kp.pubkey();
         Self {
@@ -200,7 +207,14 @@ impl SolWallet {
         }
     }
 
-    pub fn view(rpc: &str, pubkey: &str) -> Self {
+    pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let key_vault = read_keyvault(keyvault).unwrap();
+        let sol_keys = key_vault
+            .chain_keys
+            .iter()
+            .find(|k| k.chain == "Solana")
+            .unwrap();
+        let pubkey = sol_keys.public_keys.get(child as usize).unwrap();
         let rp = RpcClient::new(rpc.to_string());
         let pk = Pubkey::from_str_const(pubkey);
         Self {

@@ -5,7 +5,7 @@
 ### Solana Wallet
 
 - [x] Read pub key
-- [ ] Load encrypted (default)
+- [x] Load encrypted (default)
 - [x] Create token account
 - [x] Close token account
 - [x] Check token balances

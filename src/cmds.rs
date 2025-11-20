@@ -33,7 +33,6 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
 
     println!("{} Balances:", &fund.name);
-    println!("Public Key: {}", &fund.public_key);
 
     let bals = fund.get_balances().await?;
 
@@ -58,7 +57,6 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
     let bals = fund.get_balances().await?;
     let trades = fund.get_trades(&bals)?;
 
-    println!("Public Key: {}", fund.public_key);
     println!("Gas Balance: {}", bals.gas);
 
     if cmd.preview {

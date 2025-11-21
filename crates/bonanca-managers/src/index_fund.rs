@@ -35,6 +35,10 @@ impl IndexFund {
         let reader = BufReader::new(file);
         let fund: IndexFund = serde_json::from_reader(reader).expect("Check JSON file");
 
+        let weights: Vec<f64> = fund.sectors.iter().map(|s| s.weight).collect();
+
+        assert_eq!(weights.iter().sum::<f64>(), 1.0);
+
         fund
     }
 

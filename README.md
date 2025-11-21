@@ -17,17 +17,10 @@
 
 ### Index Manager
 
-- [x] Display balances
-- [x] Display index summary
 - [ ] Display profit
-- [x] Balance index fund
 - [ ] Calculate volatility
-- [x] Read index fund
 - [ ] Skim index fund (take from overheld assets out of index fund)
 - [ ] Buy in (buy underheld assets from out of index fund)
-- [x] Withdraw from index fund
-- [x] Deposit into index fund
-- [x] Close account
 
 ### Types of Bots
 

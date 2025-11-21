@@ -118,26 +118,23 @@ pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
 
     let dex = fund.get_exchange()?;
     let wallet = fund.get_wallet()?;
-    let oracle = fund.get_oracle()?;
 
     let aux_assets = fund.auxiliary_assets.unwrap();
 
     let from = &aux_assets.iter().find(|x| x.symbol == cmd.token).unwrap();
 
-    let bal = wallet.token_balance(&from.address).await?;
-    let usd_bal = oracle.get_token_value(from, bal).await?;
+    for sector in fund.sectors.iter() {
+        let target = sector.weight / (sector.assets.len() as f64);
 
-    let assets: Vec<bonanca_core::holdings::Asset> =
-        fund.sectors.iter().flat_map(|s| s.assets.clone()).collect();
+        for asset in sector.assets.iter() {
+            let amount = cmd.amount * target;
+            let swap_data = dex
+                .get_swap_data(&wallet, &from.address, &asset.address, amount)
+                .await?;
 
-    let amount = ((cmd.amount / usd_bal) / (assets.len() as f64)) * bal;
-
-    for asset in assets {
-        let swap_data = dex
-            .get_swap_data(&wallet, &from.address, &asset.address, amount)
-            .await?;
-
-        wallet.swap(swap_data).await?;
+            wallet.swap(swap_data).await?;
+        }
     }
+
     Ok(())
 }

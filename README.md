@@ -4,12 +4,8 @@
 
 ### Documentation
 
-- [ ] Gitbooks docs
+- [ ] mdbooks docs
 - [ ] Proper readme
-
-### CI/CD
-
-- [ ] GitHub Actions for testing
 
 ## Roadmap
 

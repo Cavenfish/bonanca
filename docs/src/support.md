@@ -8,11 +8,8 @@ If you find Bonança useful and would like to support its development, there are
 4. **Spread the Word**: Share Bonança with your friends, colleagues, and on social media. The more people who know about it, the more support and contributions the project can receive.
 5. **Financial Support**: If you'd like to provide financial support, consider donating by sending cryptocurrency to the following address:
 
-```
-Solana (SOL):
-Ethereum (ETH):
-Bitcoin (BTC):
-Litecoin (LTC):
-```
+- BTC: `SOME_BTC_ADDRESS`
+- LTC: `SOME_LTC_ADDRESS`
+- ZEC: `SOME_ZEC_ADDRESS`
 
 Your support helps cover development costs and motivates me to continue improving Bonança. Thank you for being a part of the Bonança community!

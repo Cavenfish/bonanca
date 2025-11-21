@@ -1,5 +1,16 @@
 # Bonança
 
+## TODO
+
+### Documentation
+
+- [ ] Gitbooks docs
+- [ ] Proper readme
+
+### CI/CD
+
+- [ ] GitHub Actions for testing
+
 ## Roadmap
 
 ### Balance Sheet (SQLite)

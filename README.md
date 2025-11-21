@@ -2,14 +2,6 @@
 
 ## Roadmap
 
-### KeyVault
-
-- [x] Read json file
-- [x] Encrypt master key
-- [x] Solana HD wallet
-- [x] EVM HD wallet
-- [ ] Chain key maker
-
 ### Balance Sheet (SQLite)
 
 - [ ] Record deposits

@@ -39,10 +39,13 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     println!("Gas Balance: {}", bals.gas);
     println!("Total Balance: {:.4}\n", bals.total);
 
+    println!("{: <15} {: <10} {: <12}", "Token", "Balance", "Allocation");
+    println!("{:-<40}", "");
+
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
         println!(
-            "{}: {:.4} ({:.4}/{:.4})",
+            "{: <15} {:<10.4} ({:<5.4}/{:<5.4})",
             asset.name, asset.value, actual, asset.target
         );
     }

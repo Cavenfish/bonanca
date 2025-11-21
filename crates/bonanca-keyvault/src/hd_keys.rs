@@ -31,12 +31,12 @@ impl HDkeys {
         // TODO: Ensure this is safest way of 1-time
         // display of mnemonic
         println!("Your mnemonic is:\n");
-        println!("\t{}\n", mnemonic.to_string());
+        println!("\t{}\n", mnemonic);
         println!("Safely store this offline, then clear the terminal");
 
         let seed = mnemonic.to_seed_normalized("");
 
-        Self { seed: seed }
+        Self { seed }
     }
 
     pub fn from_mnemonic(mnemonic_str: &str) -> Self {
@@ -44,7 +44,7 @@ impl HDkeys {
 
         let seed = mnemonic.to_seed_normalized("");
 
-        Self { seed: seed }
+        Self { seed }
     }
 
     pub fn get_keyvault(
@@ -58,7 +58,7 @@ impl HDkeys {
             None => prompt_password("\nKeyvault Password: ")?,
         };
 
-        let mac = hash_password(&password, &salt)?;
+        let mac = hash_password(&password, salt)?;
 
         let kdf_params = KdfParams {
             key_length: 32,
@@ -66,7 +66,7 @@ impl HDkeys {
             salt: salt.as_str().to_string(),
         };
 
-        let ciphertext = encrypt_seed(self.seed, &password, &nonce, &kdf_params)?;
+        let cipher_text = encrypt_seed(self.seed, &password, nonce, &kdf_params)?;
 
         let cipher_params = CipherParams {
             nonce: nonce.to_string(),
@@ -74,20 +74,17 @@ impl HDkeys {
 
         let vault = Vault {
             cipher: "aes256-gcm".to_string(),
-            cipher_params: cipher_params,
-            cipher_text: ciphertext,
+            cipher_params,
+            cipher_text,
             kdf: "pbkdf2".to_string(),
-            kdf_params: kdf_params,
-            mac: mac,
+            kdf_params,
+            mac,
             salt: salt.as_str().to_string(),
         };
 
         let chain_keys = self.create_chain_keys()?;
 
-        let key_vault = KeyVault {
-            valut: vault,
-            chain_keys: chain_keys,
-        };
+        let key_vault = KeyVault { vault, chain_keys };
 
         Ok(key_vault)
     }

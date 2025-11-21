@@ -7,7 +7,6 @@ use anyhow::{Result, anyhow};
 use argon2::password_hash::SaltString;
 use bip39::Language;
 use rpassword::prompt_password;
-use serde_json;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -54,19 +53,19 @@ pub fn decrypt_keyvault(file: &Path) -> Result<HDkeys> {
 
     let password = prompt_password("Keyvault Password: ")?;
 
-    if !verify_password(&keyvault.valut.mac, &password) {
+    if !verify_password(&keyvault.vault.mac, &password) {
         println!("Wrong Password");
         panic!();
     };
 
     let seed = decrypt_seed(
-        &keyvault.valut.cipher_text,
+        &keyvault.vault.cipher_text,
         &password,
-        &keyvault.valut.cipher_params.nonce,
-        &keyvault.valut.kdf_params,
+        &keyvault.vault.cipher_params.nonce,
+        &keyvault.vault.kdf_params,
     )?;
 
-    Ok(HDkeys { seed: seed })
+    Ok(HDkeys { seed })
 }
 
 pub fn read_keyvault(file: &Path) -> Result<KeyVault> {
@@ -103,13 +102,13 @@ mod tests {
 
         let keyvault = hd_keys.get_keyvault(&salt, nonce, Some(password)).unwrap();
 
-        assert!(verify_password(&keyvault.valut.mac, password));
+        assert!(verify_password(&keyvault.vault.mac, password));
 
         let decrypted_seed = decrypt_seed(
-            &keyvault.valut.cipher_text,
+            &keyvault.vault.cipher_text,
             password,
-            &keyvault.valut.cipher_params.nonce,
-            &keyvault.valut.kdf_params,
+            &keyvault.vault.cipher_params.nonce,
+            &keyvault.vault.kdf_params,
         )
         .unwrap();
 
@@ -121,7 +120,7 @@ mod tests {
         let keyvault: KeyVault = serde_json::from_str(
             r#"
             {
-                "valut": {
+                "vault": {
                     "cipher": "aes256-gcm",
                     "cipher_params": { "nonce": "287189f34a1433d2de201d08" },
                     "cipher_text": "7a34170003c0a7b3ccb75bac28757801a7d9b5e1ff062afa4af5f3c03e7d8982eb1f36ccce87436e42b44ffea6bcf39eba8c15d4e79ee0bf012811fca81ae1e112c0f8ae5d8e43ac8cad1ae961b11207",
@@ -156,13 +155,13 @@ mod tests {
             .try_into()
             .unwrap();
 
-        assert!(verify_password(&keyvault.valut.mac, password));
+        assert!(verify_password(&keyvault.vault.mac, password));
 
         let decrypted_seed = decrypt_seed(
-            &keyvault.valut.cipher_text,
+            &keyvault.vault.cipher_text,
             password,
-            &keyvault.valut.cipher_params.nonce,
-            &keyvault.valut.kdf_params,
+            &keyvault.vault.cipher_params.nonce,
+            &keyvault.vault.kdf_params,
         )
         .unwrap();
 

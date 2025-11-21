@@ -7,7 +7,7 @@ use crate::args::CloseArgs;
 use super::args::{BalArgs, CreateArgs, InOutArgs, RebalArgs};
 
 pub fn create_keyvault(cmd: CreateArgs) -> Result<()> {
-    let _ = new(&cmd.filename, &cmd.language)?;
+    new(&cmd.filename, &cmd.language)?;
 
     Ok(())
 }
@@ -19,12 +19,12 @@ pub async fn close_account(cmd: CloseArgs) -> Result<()> {
     let assets = fund.get_all_assets()?;
 
     for asset in assets.iter() {
-        let _ = wallet
+        wallet
             .transfer_all_tokens(&asset.address, &cmd.send_to)
             .await?;
     }
 
-    let _ = wallet.close(&cmd.send_to).await?;
+    wallet.close(&cmd.send_to).await?;
 
     Ok(())
 }
@@ -70,7 +70,8 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
         let swap_data = dex
             .get_swap_data(&wallet, &trade.from, &trade.to, trade.amount)
             .await?;
-        let _ = wallet.swap(swap_data).await?;
+
+        wallet.swap(swap_data).await?;
     }
 
     Ok(())
@@ -101,8 +102,9 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
     for asset in &bals.balances {
         let amount = usd_amount / asset.value;
 
-        let swap_data = dex.get_swap_data(&wallet, &asset.addy, &to, amount).await?;
-        let _ = wallet.swap(swap_data).await?;
+        let swap_data = dex.get_swap_data(&wallet, &asset.addy, to, amount).await?;
+
+        wallet.swap(swap_data).await?;
     }
 
     Ok(())
@@ -131,7 +133,8 @@ pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
         let swap_data = dex
             .get_swap_data(&wallet, &from.address, &asset.address, amount)
             .await?;
-        let _ = wallet.swap(swap_data).await?;
+
+        wallet.swap(swap_data).await?;
     }
     Ok(())
 }

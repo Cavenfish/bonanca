@@ -50,7 +50,7 @@ pub fn encrypt_seed(
     let non = GenericArray::from_slice(&noncebytes);
 
     let ciphertext = cipher
-        .encrypt(&non, seed.as_ref())
+        .encrypt(non, seed.as_ref())
         .expect("Failed to encrypt master key");
 
     let text = ciphertext.encode_hex();
@@ -78,7 +78,7 @@ pub fn decrypt_seed(
 
     let ciphertext = hex::decode(cipher_text)?;
     let vec_seed = cipher
-        .decrypt(&non, &*ciphertext)
+        .decrypt(non, &*ciphertext)
         .expect("Failed to decrypt master key");
 
     let seed: [u8; 64] = vec_seed.as_slice().try_into()?;

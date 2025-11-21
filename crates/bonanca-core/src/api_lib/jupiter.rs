@@ -18,10 +18,7 @@ pub struct Jupiter {
 
 impl Jupiter {
     pub fn new(base_url: String, api_key: String) -> Self {
-        Self {
-            base_url: base_url,
-            api_key: api_key,
-        }
+        Self { base_url, api_key }
     }
 
     pub async fn get_ultra_order(

@@ -70,10 +70,9 @@ impl IndexFund {
             .iter()
             .for_each(|s| s.assets.iter().for_each(|a| assets.push(a.clone())));
 
-        match &self.auxiliary_assets {
-            Some(aux_assets) => assets.extend(aux_assets.clone()),
-            _ => (),
-        }
+        if let Some(aux_assets) = &self.auxiliary_assets {
+            assets.extend(aux_assets.clone())
+        };
 
         Ok(assets)
     }
@@ -92,7 +91,7 @@ impl IndexFund {
                 let bal = wallet.token_balance(&asset.address).await?;
 
                 let usd = if bal != 0.0 {
-                    oracle.get_token_value(&asset, bal).await?
+                    oracle.get_token_value(asset, bal).await?
                 } else {
                     0.0
                 };
@@ -102,7 +101,7 @@ impl IndexFund {
                     addy: asset.address.clone(),
                     amount: bal,
                     value: usd,
-                    target: target,
+                    target,
                 });
 
                 total += usd;
@@ -110,9 +109,9 @@ impl IndexFund {
         }
 
         Ok(IndexBalances {
-            gas: gas,
-            total: total,
-            balances: balances,
+            gas,
+            total,
+            balances,
         })
     }
 
@@ -169,7 +168,7 @@ impl IndexFund {
                 trades.push(RebalTrade {
                     from: addys[small].clone(),
                     to: addys[big].clone(),
-                    amount: amount,
+                    amount,
                 });
 
                 diffs[small] += diff;

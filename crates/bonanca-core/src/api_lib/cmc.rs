@@ -12,10 +12,7 @@ pub struct CoinMarketCap {
 
 impl CoinMarketCap {
     pub fn new(base_url: String, api_key: String) -> Self {
-        Self {
-            base_url: base_url,
-            api_key: api_key,
-        }
+        Self { base_url, api_key }
     }
 
     pub async fn get_price_quote(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {
@@ -43,7 +40,7 @@ impl Oracle for CoinMarketCap {
     async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64> {
         let quote = self.get_price_quote(&asset.symbol, amount).await?;
 
-        let data = quote.data.get(0).unwrap();
+        let data = quote.data.first().unwrap();
 
         let value = data.quote.usd.price.unwrap();
 

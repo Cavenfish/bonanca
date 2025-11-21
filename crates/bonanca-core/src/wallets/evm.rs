@@ -201,7 +201,7 @@ impl EvmWallet {
         Self {
             signer: Some(signer),
             rpc: rpc_url,
-            pubkey: pubkey,
+            pubkey,
         }
     }
 

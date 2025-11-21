@@ -21,9 +21,9 @@ pub struct ZeroX {
 impl ZeroX {
     pub fn new(base_url: String, api_key: String, chain_id: u16) -> Self {
         Self {
-            base_url: base_url,
-            api_key: api_key,
-            chain_id: chain_id,
+            base_url,
+            api_key,
+            chain_id,
         }
     }
 
@@ -96,17 +96,14 @@ impl Exchange for ZeroX {
 
         let quote = self.get_swap_quote(sell, buy, big_amount, &taker).await?;
 
-        match quote.issues.allowance {
-            Some(issues) => {
-                let tmp = wallet
-                    .check_swap(sell, amount, Some(&issues.spender))
-                    .await?;
+        if let Some(issues) = quote.issues.allowance {
+            let tmp = wallet
+                .check_swap(sell, amount, Some(&issues.spender))
+                .await?;
 
-                if !tmp {
-                    std::process::exit(1)
-                };
-            }
-            None => {}
+            if !tmp {
+                std::process::exit(1)
+            };
         };
 
         let taker_addy = Address::from_str(&taker)?;

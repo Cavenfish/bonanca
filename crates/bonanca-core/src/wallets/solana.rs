@@ -6,10 +6,7 @@ use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    signer::{
-        Signer,
-        keypair::{Keypair, read_keypair_file},
-    },
+    signer::{Signer, keypair::Keypair},
     transaction::Transaction,
 };
 use solana_system_interface::instruction::transfer;
@@ -117,7 +114,7 @@ impl Wallet for SolWallet {
             .get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey))
             .await?;
 
-        let token = accounts.get(0).unwrap();
+        let token = accounts.first().unwrap();
         let destination = Pubkey::from_str_const(&token.pubkey);
 
         let instruction = Instruction {
@@ -127,7 +124,7 @@ impl Wallet for SolWallet {
                 AccountMeta::new(destination, false),
                 AccountMeta::new_readonly(self.pubkey, true),
             ],
-            data: data,
+            data,
         };
 
         let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
@@ -263,8 +260,7 @@ impl SolWallet {
             data: vec![0],
         };
 
-        // Get blockhash and sign transaction
-        let _ = self.build_sign_and_send(instr).await?;
+        self.build_sign_and_send(instr).await?;
 
         Ok(token_account)
     }
@@ -283,8 +279,7 @@ impl SolWallet {
             data: vec![9],
         };
 
-        // Get blockhash and sign transaction
-        let _ = self.build_sign_and_send(instr).await?;
+        self.build_sign_and_send(instr).await?;
 
         Ok(())
     }
@@ -295,7 +290,7 @@ impl SolWallet {
             .rpc
             .get_token_accounts_by_owner(&self.pubkey, Mint(*mint))
             .await?;
-        let token = accounts.get(0).context("Could not find token account")?;
+        let token = accounts.first().context("Could not find token account")?;
 
         // Get token account pubkey
         let addy = Pubkey::from_str_const(&token.pubkey);

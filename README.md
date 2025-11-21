@@ -2,45 +2,6 @@
 
 ## Roadmap
 
-### Solana Wallet
-
-- [x] Read pub key
-- [x] Load encrypted (default)
-- [x] Create token account
-- [x] Close token account
-- [x] Check token balances
-- [x] Transfer tokens
-- [x] Trade tokens on Jupiter
-- [ ] Interact with lending protocols?
-- [ ] Interact with liquidity pools?
-
-### EVM Wallet
-
-- [x] Read pub key
-- [x] Load encrypted (default)
-- [x] Check token balances
-- [x] Transfer tokens
-- [x] Approve tokens for spending
-- [x] Trade tokens on 0x
-- [ ] Interact with lending protocols?
-- [ ] Interact with liquidity pools?
-
-### Additional Wallets
-
-- [ ] Osmosis (Cosmos)
-- [ ] Cardano
-- [ ] Algorand
-- [ ] Polkadot?
-
-### Additional Oracles
-
-- [ ] CoinDesk
-
-### Additional Exchanges
-
-- [ ] 1Inch
-- [ ] Cow
-
 ### KeyVault
 
 - [x] Read json file
@@ -75,3 +36,19 @@
 - [ ] Grid bot
 - [ ] Lending manager
 - [ ] Short/Long bot
+
+### Additional Wallets
+
+- [ ] Osmosis (Cosmos)
+- [ ] Cardano
+- [ ] Algorand
+- [ ] Polkadot?
+
+### Additional Oracles
+
+- [ ] CoinDesk
+
+### Additional Exchanges
+
+- [ ] 1Inch
+- [ ] Cow

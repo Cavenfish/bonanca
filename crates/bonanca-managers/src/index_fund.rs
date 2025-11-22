@@ -85,6 +85,11 @@ impl IndexFund {
     pub async fn get_balances(&self) -> Result<IndexBalances> {
         let wallet = self.get_wallet_view()?;
         let oracle = self.get_oracle()?;
+        let chain = if &self.chain == "EVM" {
+            self.evm_chain.as_ref().unwrap()
+        } else {
+            &self.chain
+        };
 
         let gas = wallet.balance().await?;
         let mut total = 0.0;
@@ -96,7 +101,7 @@ impl IndexFund {
                 let bal = wallet.token_balance(&asset.address).await?;
 
                 let usd = if bal != 0.0 {
-                    oracle.get_token_value(asset, bal).await?
+                    oracle.get_token_value(asset, bal, &chain).await?
                 } else {
                     0.0
                 };

@@ -23,5 +23,5 @@ pub trait Exchange {
 
 #[async_trait]
 pub trait Oracle {
-    async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64>;
+    async fn get_token_value(&self, asset: &Asset, amount: f64, chain: &str) -> Result<f64>;
 }

@@ -186,7 +186,7 @@ impl Exchange for Jupiter {
 
 #[async_trait]
 impl Oracle for Jupiter {
-    async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64> {
+    async fn get_token_value(&self, asset: &Asset, amount: f64, _: &str) -> Result<f64> {
         let quote_map = self.get_price_quote(&asset.address).await?;
         let quote = quote_map.get(&asset.address).unwrap();
         let value = amount * quote.usd_price;

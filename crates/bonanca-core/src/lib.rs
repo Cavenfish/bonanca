@@ -12,6 +12,8 @@ use api_lib::{
 use std::path::Path;
 use wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet};
 
+use crate::api_lib::defi_llama::DefiLlama;
+
 pub fn get_wallet(
     chain: &str,
     keyvault: &Path,
@@ -46,6 +48,7 @@ pub fn get_oracle(name: &str, api_url: &str, api_key: &Option<String>) -> Result
     let oracle: Box<dyn Oracle> = match name {
         "CoinMarketCap" => Box::new(CoinMarketCap::new(api_url.to_string(), api_key.clone())),
         "Jupiter" => Box::new(Jupiter::new(api_url.to_string(), api_key.clone())),
+        "DefiLlama" => Box::new(DefiLlama::new(api_url.to_string())),
         _ => Err(anyhow::anyhow!("Unsupported oracle"))?,
     };
 

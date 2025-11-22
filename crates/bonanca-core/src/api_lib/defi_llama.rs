@@ -33,9 +33,8 @@ impl DefiLlama {
 
 #[async_trait]
 impl Oracle for DefiLlama {
-    async fn get_token_value(&self, asset: &Asset, amount: f64) -> Result<f64> {
-        // TODO: change this to use chain:address
-        let quote = self.get_price_quote("coingeco", &asset.name).await?;
+    async fn get_token_value(&self, asset: &Asset, amount: f64, chain: &str) -> Result<f64> {
+        let quote = self.get_price_quote(chain, &asset.address).await?;
         let price = quote.coins.values().next().unwrap().price;
         let value = price * amount;
 

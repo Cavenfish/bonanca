@@ -4,7 +4,7 @@
 
 ### Documentation
 
-- [ ] mdbooks docs
+- [x] mdbooks docs
 - [ ] Proper readme
 
 ## Roadmap
@@ -24,7 +24,7 @@
 
 ### Types of Bots
 
-- [ ] Index manager
+- [x] Index manager
 - [ ] Grid bot
 - [ ] Lending manager
 - [ ] Short/Long bot

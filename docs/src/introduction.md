@@ -1,5 +1,13 @@
 # Bonança CLI
 
+Bonança (pronounced boh-nahn-sah) is a Portuguese word used to describe a period of prosperity and tranquility, that typically comes after a period of instability or hardship. In the context of this project, Bonança represents a tool that aims to bring financial stability and growth to cryptocurrency investors.
+
+A big insipration for the name comes from a verse in a famous Brazilian funk song "Rap da Felicidade" by Cidinho and Doca:
+
+> "Sofri na tempestade, agora eu quero a bonança">
+
+Which translates to "I suffered in the storm, now I want prosperity". I hope this CLI can help users find their own "bonança" in the volatile world of cryptocurrency investing.
+
 Bonança is a command-line interface (CLI) tool designed to help users manage index funds on various blockchain platforms. It provides functionalities for creating wallets, managing index funds, executing trades, and more.
 
 Bonança is fully free and completely open source. You can find the source code on [GitHub](). The crypto is your own, and you are in full control of your funds at all times.

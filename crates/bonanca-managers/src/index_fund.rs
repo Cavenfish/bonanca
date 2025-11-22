@@ -18,6 +18,7 @@ pub struct IndexFund {
     pub name: String,
     pub chain: String,
     pub chain_id: Option<u16>,
+    pub evm_chain: Option<String>,
     pub child: u32,
     pub max_offset: f64,
     pub rpc_url: String,
@@ -189,7 +190,7 @@ impl IndexFund {
 pub struct ApiInfo {
     pub name: String,
     pub api_url: String,
-    pub api_key: String,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

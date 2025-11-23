@@ -4,7 +4,7 @@ Bonança (pronounced boh-nahn-sah) is a Portuguese word used to describe a perio
 
 A big insipration for the name comes from a verse in a famous Brazilian funk song "Rap da Felicidade" by Cidinho and Doca:
 
-> "Sofri na tempestade, agora eu quero a bonança">
+> "Sofri na tempestade, agora eu quero a bonança"
 
 Which translates to "I suffered in the storm, now I want prosperity". I hope this CLI can help users find their own "bonança" in the volatile world of cryptocurrency investing.
 

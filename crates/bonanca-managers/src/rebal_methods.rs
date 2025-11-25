@@ -85,7 +85,7 @@ pub fn make_skim_trades(
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
 
-        if actual > asset.target {
+        if actual > asset.target + max_offset {
             let amount = (actual - asset.target) * asset.amount;
             trades.push(RebalTrade {
                 from: asset.addy.clone(),
@@ -118,7 +118,7 @@ pub fn make_buyin_trades(
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
 
-        if actual < asset.target {
+        if actual < asset.target - max_offset {
             let frac = asset.target - actual;
             let usd_amount = frac * bals.total;
             let amount = usd_amount / usd_per_from_token;

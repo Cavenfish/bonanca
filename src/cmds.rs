@@ -50,6 +50,12 @@ pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
         );
     }
 
+    println!("\nAuxiliary Assets");
+
+    for asset in &bals.aux_balances {
+        println!("{: <15} {:<10.4}", asset.name, asset.value);
+    }
+
     Ok(())
 }
 

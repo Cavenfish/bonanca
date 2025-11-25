@@ -18,5 +18,6 @@ anyhow = { workspace = true }
 bonanca-core = { path = "./crates/bonanca-core" }
 bonanca-keyvault = { path = "./crates/bonanca-keyvault" }
 bonanca-managers = { path = "./crates/bonanca-managers" }
+bonanca-lending = { path = "./crates/bonanca-lending" }
 clap = { version = "4.5.41", features = ["derive"] }
 tokio = { version = "1.48.0", features = ["full"] }

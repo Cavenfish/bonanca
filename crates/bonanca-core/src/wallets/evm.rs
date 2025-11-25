@@ -223,7 +223,7 @@ impl EvmWallet {
     }
 
     // Builds the client (RPC connection)
-    fn get_client(&self) -> impl Provider {
+    pub fn get_client(&self) -> impl Provider {
         if self.signer.is_none() {
             panic!()
         };
@@ -235,7 +235,7 @@ impl EvmWallet {
             .connect_http(self.rpc.clone())
     }
 
-    fn get_view_client(&self) -> impl Provider {
+    pub fn get_view_client(&self) -> impl Provider {
         ProviderBuilder::new().connect_http(self.rpc.clone())
     }
 

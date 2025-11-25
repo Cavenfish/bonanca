@@ -100,4 +100,50 @@ impl<P: Provider> AaveV3<P> {
 
         Self { user, pool, client }
     }
+
+    pub async fn get_pools(&self) -> Result<()> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let reserves = pool.getReservesList().call().await?;
+
+        println!("Found {} reserves:\n", reserves.len());
+
+        for reserve_address in reserves.iter() {
+            println!("Reserve Address: {}", reserve_address);
+
+            let data = pool.getReserveData(*reserve_address).call().await?;
+
+            println!("\t aToken: {}", data.aTokenAddress);
+            println!("\t Variable Debt Token: {}", data.variableDebtTokenAddress);
+            println!("\t Liquidity Index: {}", data.liquidityIndex);
+            println!(
+                "\t Current Liquidity Rate: {}",
+                (data.currentLiquidityRate as f64) / 1e27
+            );
+            println!(
+                "\t Current Variable Borrow Rate: {}",
+                (data.currentVariableBorrowRate as f64) / 1e27
+            );
+
+            println!();
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_accout_data(&self) -> Result<()> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let data = pool.getUserAccountData(self.user).call().await?;
+
+        // Base currency is USD with 8 decimals
+        println!("{}", f64::from(data.totalCollateralBase) / 1e8);
+        println!("{}", f64::from(data.totalDebtBase) / 1e8);
+        println!("{}", f64::from(data.ltv) / 1e4);
+        println!("{}", f64::from(data.healthFactor) / 1e18);
+        println!("{}", f64::from(data.currentLiquidationThreshold) / 1e4);
+        println!("{}", f64::from(data.availableBorrowsBase) / 1e8);
+
+        Ok(())
+    }
 }

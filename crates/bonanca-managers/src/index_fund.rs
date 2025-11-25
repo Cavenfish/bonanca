@@ -211,12 +211,18 @@ pub struct AuxAssetBalance {
 #[derive(Debug)]
 pub struct RebalTrade {
     pub from: String,
+    pub from_name: String,
     pub to: String,
+    pub to_name: String,
     pub amount: f64,
 }
 
 impl fmt::Display for RebalTrade {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Trade {} {} for {}", self.amount, self.from, self.to)
+        writeln!(
+            f,
+            "Trade {} {} for {}",
+            self.amount, self.from_name, self.to_name
+        )
     }
 }

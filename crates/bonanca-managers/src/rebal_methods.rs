@@ -53,7 +53,9 @@ pub fn make_rebal_trades(bals: &IndexBalances, max_offset: f64) -> Result<Vec<Re
 
             trades.push(RebalTrade {
                 from: addys[small].clone(),
+                from_name: bals.balances[small].name.clone(),
                 to: addys[big].clone(),
+                to_name: bals.balances[big].name.clone(),
                 amount,
             });
 
@@ -73,6 +75,13 @@ pub fn make_skim_trades(
 ) -> Result<Vec<RebalTrade>> {
     let mut trades: Vec<RebalTrade> = Vec::new();
 
+    let to_name = &bals
+        .aux_balances
+        .iter()
+        .find(|a| a.addy == to)
+        .unwrap()
+        .name;
+
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
 
@@ -80,7 +89,9 @@ pub fn make_skim_trades(
             let amount = (actual - asset.target) * asset.amount;
             trades.push(RebalTrade {
                 from: asset.addy.clone(),
+                from_name: asset.name.clone(),
                 to: to.to_string(),
+                to_name: to_name.to_string(),
                 amount,
             });
         }
@@ -97,6 +108,13 @@ pub fn make_buyin_trades(
 ) -> Result<Vec<RebalTrade>> {
     let mut trades: Vec<RebalTrade> = Vec::new();
 
+    let from_name = &bals
+        .aux_balances
+        .iter()
+        .find(|a| a.addy == from)
+        .unwrap()
+        .name;
+
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
 
@@ -106,8 +124,10 @@ pub fn make_buyin_trades(
             let amount = usd_amount / usd_per_from_token;
 
             trades.push(RebalTrade {
-                from: asset.addy.clone(),
+                from: from.to_string(),
+                from_name: from_name.to_string(),
                 to: asset.addy.clone(),
+                to_name: asset.name.clone(),
                 amount,
             });
         }

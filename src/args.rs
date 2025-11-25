@@ -66,7 +66,7 @@ pub struct RebalArgs {
     pub index: PathBuf,
 
     /// Method for rebalancing
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "redistribute")]
     pub method: String,
 
     /// Auxiliary token

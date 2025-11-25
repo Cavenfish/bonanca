@@ -154,9 +154,9 @@ impl IndexFund {
         aux_token: &str,
     ) -> Result<Vec<RebalTrade>> {
         let trades = match method {
-            "rebalance" => make_rebal_trades(&bals, self.max_offset)?,
-            "skim" => make_skim_trades(bals, aux_token, self.max_offset)?,
-            "buyin" => {
+            "redistribute" => make_rebal_trades(&bals, self.max_offset)?,
+            "sell" => make_skim_trades(bals, aux_token, self.max_offset)?,
+            "buy" => {
                 let from_asset = bals
                     .aux_balances
                     .iter()

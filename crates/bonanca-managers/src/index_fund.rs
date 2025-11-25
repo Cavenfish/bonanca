@@ -103,7 +103,7 @@ impl IndexFund {
                 let bal = wallet.token_balance(&asset.address).await?;
 
                 let usd = if bal != 0.0 {
-                    oracle.get_token_value(asset, bal, &chain).await?
+                    oracle.get_token_value(asset, bal, chain).await?
                 } else {
                     0.0
                 };
@@ -126,7 +126,7 @@ impl IndexFund {
             let bal = wallet.token_balance(&asset.address).await?;
 
             let usd = if bal != 0.0 {
-                oracle.get_token_value(asset, bal, &chain).await?
+                oracle.get_token_value(asset, bal, chain).await?
             } else {
                 0.0
             };
@@ -154,7 +154,7 @@ impl IndexFund {
         aux_token: &str,
     ) -> Result<Vec<RebalTrade>> {
         let trades = match method {
-            "redistribute" => make_rebal_trades(&bals, self.max_offset)?,
+            "redistribute" => make_rebal_trades(bals, self.max_offset)?,
             "sell" => make_skim_trades(bals, aux_token, self.max_offset)?,
             "buy" => {
                 let from_asset = bals

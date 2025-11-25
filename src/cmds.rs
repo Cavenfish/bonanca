@@ -82,7 +82,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
         panic!()
     }
 
-    let trades = fund.get_trades(&bals, &cmd.method, &aux_token)?;
+    let trades = fund.get_trades(&bals, &cmd.method, aux_token)?;
 
     println!("Gas Balance: {}", bals.gas);
 

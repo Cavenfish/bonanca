@@ -15,11 +15,6 @@
 - [ ] Record trades
 - [ ] Record withdraws
 
-### Index Manager
-
-- [ ] Skim index fund (take from overheld assets out of index fund)
-- [ ] Buy in (buy underheld assets from out of index fund)
-
 ### Types of Bots
 
 - [x] Index manager

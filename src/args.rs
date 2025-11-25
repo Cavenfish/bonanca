@@ -65,6 +65,14 @@ pub struct RebalArgs {
     #[arg(short)]
     pub index: PathBuf,
 
+    /// Method for rebalancing
+    #[arg(short, long)]
+    pub method: String,
+
+    /// Auxiliary token
+    #[arg(long)]
+    pub aux_token: Option<String>,
+
     /// Preview rebalance trades
     #[arg(short, long, action)]
     pub preview: bool,

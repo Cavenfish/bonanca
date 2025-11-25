@@ -13,6 +13,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::rebal_methods::{make_buyin_trades, make_rebal_trades, make_skim_trades};
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct IndexFund {
     pub name: String,
@@ -118,74 +120,53 @@ impl IndexFund {
             }
         }
 
+        let mut aux_balances: Vec<AuxAssetBalance> = Vec::new();
+
+        for asset in self.auxiliary_assets.as_ref().unwrap() {
+            let bal = wallet.token_balance(&asset.address).await?;
+
+            let usd = if bal != 0.0 {
+                oracle.get_token_value(asset, bal, &chain).await?
+            } else {
+                0.0
+            };
+
+            aux_balances.push(AuxAssetBalance {
+                name: asset.name.clone(),
+                addy: asset.address.clone(),
+                amount: bal,
+                value: usd,
+            });
+        }
+
         Ok(IndexBalances {
             gas,
             total,
             balances,
+            aux_balances,
         })
     }
 
-    pub fn get_trades(&self, bals: &IndexBalances) -> Result<Vec<RebalTrade>> {
-        let mut addys: Vec<String> = Vec::new();
-        let mut diffs: Vec<f64> = Vec::new();
-        let mut amounts: Vec<f64> = Vec::new();
-        let mut actuals: Vec<f64> = Vec::new();
-
-        for asset in &bals.balances {
-            let bal = asset.value;
-            let actual = bal / bals.total;
-            let diff = asset.target - actual;
-
-            addys.push(asset.addy.clone());
-            diffs.push(diff);
-            amounts.push(asset.amount);
-            actuals.push(actual);
-        }
-
-        let n = diffs.len();
-
-        let mut order = (0..n).collect::<Vec<_>>();
-        order.sort_by_key(|&k| (&diffs[k] * 1e6) as i64);
-
-        let mut trades: Vec<RebalTrade> = Vec::new();
-
-        for i in 0..(n - 1) {
-            let small = order[i];
-
-            let mut j = n - 1;
-            while diffs[small].abs() > self.max_offset {
-                let big = order[j];
-
-                if diffs[big] < 0.0 {
-                    println!("Two negative numbers");
-                    break;
-                }
-
-                let diff = if diffs[big].abs() > diffs[small].abs() {
-                    diffs[small].abs()
-                } else {
-                    diffs[big].abs()
-                };
-
-                if diff == 0.0 {
-                    j -= 1;
-                    continue;
-                }
-
-                let frac = diff / actuals[small];
-                let amount = frac * amounts[small];
-
-                trades.push(RebalTrade {
-                    from: addys[small].clone(),
-                    to: addys[big].clone(),
-                    amount,
-                });
-
-                diffs[small] += diff;
-                diffs[big] -= diff;
-                j -= 1;
+    pub fn get_trades(
+        &self,
+        bals: &IndexBalances,
+        method: &str,
+        aux_token: &str,
+    ) -> Result<Vec<RebalTrade>> {
+        let trades = match method {
+            "rebalance" => make_rebal_trades(&bals, self.max_offset)?,
+            "skim" => make_skim_trades(bals, aux_token, self.max_offset)?,
+            "buyin" => {
+                let from_asset = bals
+                    .aux_balances
+                    .iter()
+                    .find(|x| x.addy == aux_token)
+                    .unwrap();
+                let usd_per_from_token = from_asset.value / from_asset.amount;
+                make_buyin_trades(bals, aux_token, usd_per_from_token, self.max_offset)?
             }
-        }
+            _ => panic!(),
+        };
 
         Ok(trades)
     }
@@ -209,6 +190,7 @@ pub struct IndexBalances {
     pub gas: f64,
     pub total: f64,
     pub balances: Vec<AssetBalance>,
+    pub aux_balances: Vec<AuxAssetBalance>,
 }
 
 pub struct AssetBalance {
@@ -217,6 +199,13 @@ pub struct AssetBalance {
     pub amount: f64,
     pub value: f64,
     pub target: f64,
+}
+
+pub struct AuxAssetBalance {
+    pub name: String,
+    pub addy: String,
+    pub amount: f64,
+    pub value: f64,
 }
 
 #[derive(Debug)]

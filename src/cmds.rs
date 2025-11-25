@@ -58,7 +58,25 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 
     let dex = fund.get_exchange()?;
     let bals = fund.get_balances().await?;
-    let trades = fund.get_trades(&bals)?;
+    let aux_token_symbol = cmd.aux_token.unwrap_or("".to_string());
+
+    let aux_token = if aux_token_symbol.is_empty() {
+        ""
+    } else {
+        let aux_assets = fund.auxiliary_assets.as_ref().unwrap();
+        &aux_assets
+            .iter()
+            .find(|a| a.symbol == aux_token_symbol)
+            .unwrap()
+            .address
+            .clone()
+    };
+
+    if aux_token.is_empty() && cmd.method != "rebalance" {
+        panic!()
+    }
+
+    let trades = fund.get_trades(&bals, &cmd.method, &aux_token)?;
 
     println!("Gas Balance: {}", bals.gas);
 

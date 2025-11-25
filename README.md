@@ -17,8 +17,6 @@
 
 ### Index Manager
 
-- [ ] Display profit
-- [ ] Calculate volatility
 - [ ] Skim index fund (take from overheld assets out of index fund)
 - [ ] Buy in (buy underheld assets from out of index fund)
 

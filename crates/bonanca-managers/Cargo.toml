@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = { workspace = true }
-bonanca-core = { version = "0.1.0", path = "../bonanca-core" }
+anyhow.workspace = true
+bonanca-core.workspace = true
 bonanca-lending = { path = "../bonanca-lending" }
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true

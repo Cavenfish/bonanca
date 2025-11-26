@@ -86,7 +86,9 @@ pub fn make_skim_trades(
         let actual = asset.value / bals.total;
 
         if actual > asset.target + max_offset {
-            let amount = (actual - asset.target) * asset.amount;
+            let frac = (actual - asset.target) / actual;
+            let amount = frac * asset.amount;
+
             trades.push(RebalTrade {
                 from: asset.addy.clone(),
                 from_name: asset.name.clone(),

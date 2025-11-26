@@ -1,9 +1,9 @@
-use std::path::PathBuf;
+use clap::{Parser, Subcommand};
 
-use clap::{Args, Parser, Subcommand};
+use crate::{index::args::IndexCommand, lend::args::LendCommand, wallet::args::WalletCommand};
 
 #[derive(Debug, Parser)]
-#[command(version, about)]
+#[command(version, about, author)]
 pub struct Bonanca {
     #[clap(subcommand)]
     pub command: BonArgs,
@@ -11,84 +11,12 @@ pub struct Bonanca {
 
 #[derive(Debug, Subcommand)]
 pub enum BonArgs {
-    /// Create a new wallet
-    Create(CreateArgs),
+    /// Wallet
+    Wallet(WalletCommand),
 
-    /// Close a wallet
-    Close(CloseArgs),
+    /// Manage index fund
+    Index(IndexCommand),
 
-    /// Print the balance of an index
-    Balance(BalArgs),
-
-    /// Rebalance index
-    Rebalance(RebalArgs),
-
-    /// Withdraw from index
-    Withdraw(InOutArgs),
-
-    /// Deposit into index
-    Deposit(InOutArgs),
-}
-
-#[derive(Debug, Args)]
-pub struct CreateArgs {
-    /// Name of chain
-    #[arg(short)]
-    pub filename: PathBuf,
-
-    /// Language for mnemonic phrase
-    #[arg(long, default_value = "English")]
-    pub language: String,
-}
-
-#[derive(Debug, Args)]
-pub struct CloseArgs {
-    /// Index fund json file
-    #[arg(short)]
-    pub index: PathBuf,
-
-    /// Wallet to send funds to
-    #[arg(short)]
-    pub send_to: String,
-}
-
-#[derive(Debug, Args)]
-pub struct BalArgs {
-    /// Index fund json file
-    #[arg(short)]
-    pub index: PathBuf,
-}
-
-#[derive(Debug, Args)]
-pub struct RebalArgs {
-    /// Index fund json file
-    #[arg(short)]
-    pub index: PathBuf,
-
-    /// Method for rebalancing
-    #[arg(short, long, default_value = "redistribute")]
-    pub method: String,
-
-    /// Auxiliary token
-    #[arg(long)]
-    pub aux_token: Option<String>,
-
-    /// Preview rebalance trades
-    #[arg(short, long, action)]
-    pub preview: bool,
-}
-
-#[derive(Debug, Args)]
-pub struct InOutArgs {
-    /// Index fund json file
-    #[arg(short)]
-    pub index: PathBuf,
-
-    /// Auxiliary token
-    #[arg(short)]
-    pub token: String,
-
-    /// Amount to withdraw/deposit
-    #[arg(short)]
-    pub amount: f64,
+    /// Manage loan portfolio
+    Lend(LendCommand),
 }

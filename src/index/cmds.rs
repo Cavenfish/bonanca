@@ -1,15 +1,16 @@
 use anyhow::{Ok, Result};
-use bonanca_keyvault::new;
 use bonanca_managers::index_fund::IndexFund;
 
-use crate::args::CloseArgs;
+use super::args::{BalArgs, CloseArgs, InOutArgs, IndexCommand, IndexSubcommands, RebalArgs};
 
-use super::args::{BalArgs, CreateArgs, InOutArgs, RebalArgs};
-
-pub fn create_keyvault(cmd: CreateArgs) -> Result<()> {
-    new(&cmd.filename, &cmd.language)?;
-
-    Ok(())
+pub async fn handle_index_cmd(cmd: IndexCommand) {
+    match cmd.command {
+        IndexSubcommands::Close(cmd) => close_account(cmd).await.unwrap(),
+        IndexSubcommands::Balance(cmd) => show_index_balance(cmd).await.unwrap(),
+        IndexSubcommands::Rebalance(cmd) => rebalance_index_fund(cmd).await.unwrap(),
+        IndexSubcommands::Withdraw(cmd) => withdraw_from_index_fund(cmd).await.unwrap(),
+        IndexSubcommands::Deposit(cmd) => deposit_into_index_fund(cmd).await.unwrap(),
+    };
 }
 
 pub async fn close_account(cmd: CloseArgs) -> Result<()> {

@@ -1,4 +1,5 @@
 pub mod api_lib;
+pub mod config;
 pub mod holdings;
 pub mod wallets;
 
@@ -9,10 +10,28 @@ use api_lib::{
     traits::{Exchange, Oracle},
     zerox::ZeroX,
 };
-use std::path::Path;
+use dirs::data_dir;
+use std::{fs::create_dir_all, path::Path};
 use wallets::{evm::EvmWallet, solana::SolWallet, traits::Wallet};
 
 use crate::api_lib::defi_llama::DefiLlama;
+use crate::config::Config;
+
+pub fn init_config() {
+    let config_dir = data_dir().unwrap().join("bonanca");
+
+    if !config_dir.exists() {
+        create_dir_all(&config_dir).unwrap();
+    }
+
+    let config_file = config_dir.join("config.json");
+
+    if !config_file.exists() {
+        let config = Config::default();
+
+        config.write(&config_file);
+    }
+}
 
 pub fn get_wallet(
     chain: &str,

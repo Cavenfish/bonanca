@@ -26,3 +26,5 @@ bonanca-lending = { path = "./crates/bonanca-lending" }
 bonanca-managers = { path = "./crates/bonanca-managers" }
 clap = { version = "4.5.41", features = ["derive"] }
 tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true

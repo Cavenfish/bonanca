@@ -1,8 +1,6 @@
 use anyhow::Result;
 use bonanca_core::{
-    config::Config,
-    get_default_config, get_wallet, get_wallet_view,
-    wallets::{self, evm::EvmWallet, traits::Wallet},
+    config::Config, get_default_config, get_wallet, get_wallet_view, wallets::traits::Wallet,
 };
 use bonanca_lending::evm::aave::AaveV3;
 use serde::{Deserialize, Serialize};
@@ -71,7 +69,7 @@ impl LoanPortfolio {
 
         let aave = AaveV3::view(&self.chain, &pubkey, &rpc_url);
 
-        let _ = aave.get_user_data().await?;
+        aave.get_user_data().await?;
 
         Ok(())
     }

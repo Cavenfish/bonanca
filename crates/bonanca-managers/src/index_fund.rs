@@ -142,7 +142,7 @@ impl IndexFund {
 
         let mut aux_balances: Vec<AuxAssetBalance> = Vec::new();
 
-        if !self.auxiliary_assets.is_none() {
+        if self.auxiliary_assets.is_some() {
             for asset in self.auxiliary_assets.as_ref().unwrap() {
                 let bal = wallet.token_balance(&asset.address).await?;
 

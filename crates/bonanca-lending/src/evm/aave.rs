@@ -1,6 +1,6 @@
 use alloy::{
     primitives::{Address, U256, address},
-    providers::{DynProvider, Provider, ProviderBuilder, fillers::FillProvider},
+    providers::{DynProvider, Provider, ProviderBuilder},
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
     transports::http::reqwest::Url,

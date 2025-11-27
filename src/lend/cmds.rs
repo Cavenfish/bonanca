@@ -1,4 +1,3 @@
-use anyhow::Result;
 use bonanca_managers::loan_portfolio::LoanPortfolio;
 
 use crate::lend::args::ShowArgs;

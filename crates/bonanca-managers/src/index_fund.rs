@@ -142,21 +142,23 @@ impl IndexFund {
 
         let mut aux_balances: Vec<AuxAssetBalance> = Vec::new();
 
-        for asset in self.auxiliary_assets.as_ref().unwrap() {
-            let bal = wallet.token_balance(&asset.address).await?;
+        if !self.auxiliary_assets.is_none() {
+            for asset in self.auxiliary_assets.as_ref().unwrap() {
+                let bal = wallet.token_balance(&asset.address).await?;
 
-            let usd = if bal != 0.0 {
-                oracle.get_token_value(asset, bal, chain).await?
-            } else {
-                0.0
-            };
+                let usd = if bal != 0.0 {
+                    oracle.get_token_value(asset, bal, chain).await?
+                } else {
+                    0.0
+                };
 
-            aux_balances.push(AuxAssetBalance {
-                name: asset.name.clone(),
-                addy: asset.address.clone(),
-                amount: bal,
-                value: usd,
-            });
+                aux_balances.push(AuxAssetBalance {
+                    name: asset.name.clone(),
+                    addy: asset.address.clone(),
+                    amount: bal,
+                    value: usd,
+                });
+            }
         }
 
         Ok(IndexBalances {

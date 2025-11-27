@@ -1,13 +1,15 @@
 use alloy::{
     primitives::{Address, U256, address},
-    providers::Provider,
+    providers::{DynProvider, Provider, ProviderBuilder, fillers::FillProvider},
+    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
+    transports::http::reqwest::Url,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use std::str::FromStr;
 
-use crate::traits::Lender;
+use crate::traits::Bank;
 
 sol! {
     #[allow(missing_docs)]
@@ -16,14 +18,14 @@ sol! {
     "src/evm/ABI/aave_pool.json"
 }
 
-pub struct AaveV3<P: Provider> {
+pub struct AaveV3 {
     pub user: Address,
     pub pool: Address,
-    pub client: P,
+    pub client: DynProvider,
 }
 
 #[async_trait]
-impl<P: Provider> Lender for AaveV3<P> {
+impl Bank for AaveV3 {
     async fn supply(&self, token: &str, amount: u64) -> Result<()> {
         let poolv3 = PoolV3::new(self.pool, &self.client);
         let asset = Address::from_str(token)?;
@@ -89,14 +91,32 @@ impl<P: Provider> Lender for AaveV3<P> {
     }
 }
 
-impl<P: Provider> AaveV3<P> {
-    pub fn new(chain: &str, pubkey: &str, client: P) -> Self {
-        let user = Address::from_str(pubkey).unwrap();
-        let pool = match chain {
+impl AaveV3 {
+    pub fn new(chain: &str, rpc_url: &str, signer: LocalSigner<SigningKey>) -> Self {
+        let user = signer.address();
+        let pool = match chain.split(":").last().unwrap() {
             "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
             "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
             _ => panic!(),
         };
+        let rpc = Url::from_str(rpc_url).unwrap();
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer)
+            .connect_http(rpc)
+            .erased();
+
+        Self { user, pool, client }
+    }
+
+    pub fn view(chain: &str, pubkey: &str, rpc_url: &str) -> Self {
+        let user = Address::from_str(pubkey).unwrap();
+        let pool = match chain.split(":").last().unwrap() {
+            "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
+            "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
+            _ => panic!(),
+        };
+        let rpc = Url::from_str(rpc_url).unwrap();
+        let client: DynProvider = ProviderBuilder::new().connect_http(rpc).erased();
 
         Self { user, pool, client }
     }
@@ -131,18 +151,27 @@ impl<P: Provider> AaveV3<P> {
         Ok(())
     }
 
-    pub async fn get_accout_data(&self) -> Result<()> {
+    pub async fn get_user_data(&self) -> Result<()> {
         let pool = PoolV3::new(self.pool, &self.client);
 
         let data = pool.getUserAccountData(self.user).call().await?;
 
         // Base currency is USD with 8 decimals
-        println!("{}", f64::from(data.totalCollateralBase) / 1e8);
-        println!("{}", f64::from(data.totalDebtBase) / 1e8);
-        println!("{}", f64::from(data.ltv) / 1e4);
-        println!("{}", f64::from(data.healthFactor) / 1e18);
-        println!("{}", f64::from(data.currentLiquidationThreshold) / 1e4);
-        println!("{}", f64::from(data.availableBorrowsBase) / 1e8);
+        println!(
+            "Total Collateral: {}",
+            f64::from(data.totalCollateralBase) / 1e8
+        );
+        println!("Total Debt: {}", f64::from(data.totalDebtBase) / 1e8);
+        println!("LTV: {}", f64::from(data.ltv) / 1e4);
+        println!("Health Factor: {}", f64::from(data.healthFactor) / 1e18);
+        println!(
+            "Liquidation Threshold: {}",
+            f64::from(data.currentLiquidationThreshold) / 1e4
+        );
+        println!(
+            "Available Borrows: {}",
+            f64::from(data.availableBorrowsBase) / 1e8
+        );
 
         Ok(())
     }

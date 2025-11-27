@@ -1,11 +1,20 @@
+use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use anyhow::Result;
 use async_trait::async_trait;
+use solana_sdk::signature::Keypair;
 
 use crate::api_lib::traits::SwapTransactionData;
+
+pub enum CryptoSigners {
+    Evm(LocalSigner<SigningKey>),
+    Sol(Keypair),
+}
 
 #[async_trait]
 pub trait Wallet {
     fn get_pubkey(&self) -> Result<String>;
+
+    fn get_signer(&self) -> Result<CryptoSigners>;
 
     fn parse_native_amount(&self, amount: f64) -> Result<u64>;
 

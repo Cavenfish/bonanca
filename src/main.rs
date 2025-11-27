@@ -11,6 +11,7 @@ use crate::{
     args::{BonArgs, Bonanca},
     config::cmds::handle_config_cmd,
     index::cmds::handle_index_cmd,
+    lend::cmds::handle_lend_cmd,
     wallet::cmds::handle_wallet_cmd,
 };
 
@@ -24,6 +25,6 @@ async fn main() {
         BonArgs::Config(cmd) => handle_config_cmd(cmd).await,
         BonArgs::Wallet(cmd) => handle_wallet_cmd(cmd).await,
         BonArgs::Index(cmd) => handle_index_cmd(cmd).await,
-        BonArgs::Lend(cmd) => todo!(),
+        BonArgs::Lend(cmd) => handle_lend_cmd(cmd).await,
     }
 }

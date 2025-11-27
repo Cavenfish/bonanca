@@ -16,8 +16,8 @@ use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
 
-use crate::api_lib::traits::SwapTransactionData;
 use crate::wallets::traits::Wallet;
+use crate::{api_lib::traits::SwapTransactionData, wallets::traits::CryptoSigners};
 
 // ABI for smart contracts
 sol! {
@@ -37,6 +37,11 @@ pub struct EvmWallet {
 impl Wallet for EvmWallet {
     fn get_pubkey(&self) -> Result<String> {
         Ok(self.pubkey.to_string())
+    }
+
+    fn get_signer(&self) -> Result<CryptoSigners> {
+        let signer = self.signer.as_ref().unwrap();
+        Ok(CryptoSigners::Evm(signer.clone()))
     }
 
     fn parse_native_amount(&self, amount: f64) -> Result<u64> {
@@ -223,7 +228,7 @@ impl EvmWallet {
     }
 
     // Builds the client (RPC connection)
-    pub fn get_client(&self) -> impl Provider {
+    fn get_client(&self) -> impl Provider {
         if self.signer.is_none() {
             panic!()
         };
@@ -235,7 +240,7 @@ impl EvmWallet {
             .connect_http(self.rpc.clone())
     }
 
-    pub fn get_view_client(&self) -> impl Provider {
+    fn get_view_client(&self) -> impl Provider {
         ProviderBuilder::new().connect_http(self.rpc.clone())
     }
 

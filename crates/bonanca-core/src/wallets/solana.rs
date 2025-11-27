@@ -12,8 +12,10 @@ use solana_sdk::{
 use solana_system_interface::instruction::transfer;
 use std::path::Path;
 
-use crate::api_lib::traits::SwapTransactionData;
-use crate::wallets::traits::Wallet;
+use crate::{
+    api_lib::traits::SwapTransactionData,
+    wallets::traits::{CryptoSigners, Wallet},
+};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
@@ -29,6 +31,11 @@ pub struct SolWallet {
 impl Wallet for SolWallet {
     fn get_pubkey(&self) -> Result<String> {
         Ok(self.pubkey.to_string())
+    }
+
+    fn get_signer(&self) -> Result<CryptoSigners> {
+        let kp = self.key_pair.as_ref().unwrap();
+        Ok(CryptoSigners::Sol(kp.insecure_clone()))
     }
 
     fn parse_native_amount(&self, amount: f64) -> Result<u64> {

@@ -1,14 +1,14 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::traits::Lender;
+use crate::traits::Bank;
 
 pub struct KaminoVault {
     pub user: String,
 }
 
 #[async_trait]
-impl Lender for KaminoVault {
+impl Bank for KaminoVault {
     async fn supply(&self, token: &str, amount: u64) -> Result<()> {
         Ok(())
     }

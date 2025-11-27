@@ -1,7 +1,8 @@
 use anyhow::Result;
 use bonanca_core::{
-    get_wallet, get_wallet_view,
-    wallets::{evm::EvmWallet, traits::Wallet},
+    config::Config,
+    get_default_config, get_wallet, get_wallet_view,
+    wallets::{self, evm::EvmWallet, traits::Wallet},
 };
 use bonanca_lending::evm::aave::AaveV3;
 use serde::{Deserialize, Serialize};
@@ -15,12 +16,12 @@ use std::{
 pub struct LoanPortfolio {
     pub name: String,
     pub chain: String,
-    pub chain_id: Option<u16>,
-    pub evm_chain: Option<String>,
     pub child: u32,
-    pub rpc_url: String,
-    pub keyvault: PathBuf,
-    pub gas_address: String,
+    pub rpc_url: Option<String>,
+    pub keyvault: Option<PathBuf>,
+
+    #[serde(default = "get_default_config")]
+    pub config: Config,
 }
 
 impl LoanPortfolio {
@@ -32,28 +33,45 @@ impl LoanPortfolio {
         port
     }
 
+    fn get_rpc_and_keyvault(&self) -> (String, PathBuf) {
+        let rpc_url = if self.rpc_url.is_none() {
+            self.config.get_default_chain_rpc(&self.chain)
+        } else {
+            self.rpc_url.clone().unwrap()
+        };
+
+        let keyvault = if self.keyvault.is_none() {
+            self.config.keyvault.clone()
+        } else {
+            self.keyvault.clone().unwrap()
+        };
+
+        (rpc_url, keyvault)
+    }
+
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet(&self.chain, &self.keyvault, &self.rpc_url, self.child)
+        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        get_wallet(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
     pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet_view(&self.chain, &self.keyvault, &self.rpc_url, self.child)
+        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        get_wallet_view(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
-    pub async fn get_pools(&self) -> Result<()> {
-        let wallet = EvmWallet::view(&self.keyvault, &self.rpc_url, self.child);
+    pub async fn get_user_data(&self) -> Result<()> {
+        let wallet = self.get_wallet_view()?;
+        let pubkey = wallet.get_pubkey()?;
 
-        let client = wallet.get_view_client();
-
-        let chain = if &self.chain == "EVM" {
-            self.evm_chain.as_ref().unwrap()
+        let rpc_url = if self.rpc_url.is_none() {
+            self.config.get_default_chain_rpc(&self.chain)
         } else {
-            &self.chain
+            self.rpc_url.clone().unwrap()
         };
 
-        let aave = AaveV3::new(chain, &wallet.pubkey.to_string(), client);
+        let aave = AaveV3::view(&self.chain, &pubkey, &rpc_url);
 
-        let _ = aave.get_pools().await?;
+        let _ = aave.get_user_data().await?;
 
         Ok(())
     }

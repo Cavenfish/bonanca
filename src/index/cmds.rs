@@ -118,7 +118,7 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
     let aux_assets = fund.auxiliary_assets.unwrap();
 
     let to = if cmd.token == "gas" {
-        &fund.gas_address
+        &fund.config.get_default_wrapped_native(&fund.chain)
     } else {
         &aux_assets
             .iter()

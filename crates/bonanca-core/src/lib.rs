@@ -33,13 +33,17 @@ pub fn init_config() {
     }
 }
 
+pub fn get_default_config() -> Config {
+    Config::load()
+}
+
 pub fn get_wallet(
     chain: &str,
     keyvault: &Path,
     rpc_url: &str,
     child: u32,
 ) -> Result<Box<dyn Wallet + Send + Sync>> {
-    let wallet: Box<dyn Wallet + Send + Sync> = match chain {
+    let wallet: Box<dyn Wallet + Send + Sync> = match chain.split(":").next().unwrap() {
         "EVM" => Box::new(EvmWallet::load(keyvault, rpc_url, child)),
         "Solana" => Box::new(SolWallet::load(keyvault, rpc_url, child)),
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,
@@ -54,7 +58,7 @@ pub fn get_wallet_view(
     rpc_url: &str,
     child: u32,
 ) -> Result<Box<dyn Wallet + Send + Sync>> {
-    let wallet: Box<dyn Wallet + Send + Sync> = match chain {
+    let wallet: Box<dyn Wallet + Send + Sync> = match chain.split(":").next().unwrap() {
         "EVM" => Box::new(EvmWallet::view(keyvault, rpc_url, child)),
         "Solana" => Box::new(SolWallet::view(keyvault, rpc_url, child)),
         _ => Err(anyhow::anyhow!("Unsupported chain"))?,

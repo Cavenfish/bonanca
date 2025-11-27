@@ -1,7 +1,8 @@
 use anyhow::{Ok, Result};
 use bonanca_core::{
     api_lib::traits::{Exchange, Oracle},
-    get_exchange, get_oracle, get_wallet, get_wallet_view,
+    config::Config,
+    get_default_config, get_exchange, get_oracle, get_wallet, get_wallet_view,
     holdings::Asset,
     wallets::traits::Wallet,
 };
@@ -19,16 +20,16 @@ use crate::rebal_methods::{make_buyin_trades, make_rebal_trades, make_skim_trade
 pub struct IndexFund {
     pub name: String,
     pub chain: String,
-    pub chain_id: Option<u16>,
-    pub evm_chain: Option<String>,
+
+    #[serde(default = "get_default_config")]
+    pub config: Config,
+    pub keyvault: Option<PathBuf>,
     pub child: u32,
     pub max_offset: f64,
-    pub rpc_url: String,
-    pub keyvault: PathBuf,
+    pub rpc_url: Option<String>,
     pub aggregator: ApiInfo,
     pub oracle: ApiInfo,
     pub sectors: Vec<Sector>,
-    pub gas_address: String,
     pub auxiliary_assets: Option<Vec<Asset>>,
 }
 
@@ -45,12 +46,30 @@ impl IndexFund {
         fund
     }
 
+    fn get_rpc_and_keyvault(&self) -> (String, PathBuf) {
+        let rpc_url = if self.rpc_url.is_none() {
+            self.config.get_default_chain_rpc(&self.chain)
+        } else {
+            self.rpc_url.clone().unwrap()
+        };
+
+        let keyvault = if self.keyvault.is_none() {
+            self.config.keyvault.clone()
+        } else {
+            self.keyvault.clone().unwrap()
+        };
+
+        (rpc_url, keyvault)
+    }
+
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet(&self.chain, &self.keyvault, &self.rpc_url, self.child)
+        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        get_wallet(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
     pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        get_wallet_view(&self.chain, &self.keyvault, &self.rpc_url, self.child)
+        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        get_wallet_view(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
     pub fn get_oracle(&self) -> Result<Box<dyn Oracle>> {
@@ -62,11 +81,12 @@ impl IndexFund {
     }
 
     pub fn get_exchange(&self) -> Result<Box<dyn Exchange>> {
+        let chain_id = self.config.get_default_chain_id(&self.chain);
         get_exchange(
             &self.aggregator.name,
             &self.aggregator.api_url,
             &self.aggregator.api_key,
-            self.chain_id,
+            chain_id,
         )
     }
 
@@ -87,8 +107,8 @@ impl IndexFund {
     pub async fn get_balances(&self) -> Result<IndexBalances> {
         let wallet = self.get_wallet_view()?;
         let oracle = self.get_oracle()?;
-        let chain = if &self.chain == "EVM" {
-            self.evm_chain.as_ref().unwrap()
+        let chain = if self.chain.contains(":") {
+            self.chain.split(":").last().unwrap()
         } else {
             &self.chain
         };

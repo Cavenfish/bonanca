@@ -2,9 +2,7 @@ use std::{
     default::Default,
     fs::File,
     io::{BufReader, BufWriter},
-    iter::chain,
-    path::{Path, PathBuf},
-    process::Child,
+    path::PathBuf,
 };
 
 use dirs::data_dir;
@@ -62,6 +60,56 @@ impl Config {
         let mut new = self.clone();
         new.keyvault = keyvault;
         new.write();
+    }
+
+    pub fn get_default_chain_rpc(&self, chain: &str) -> String {
+        let config = Config::load();
+        let name = if chain.contains(":") {
+            chain.split(":").last().unwrap()
+        } else {
+            chain
+        };
+
+        config
+            .chains_info
+            .iter()
+            .find(|c| c.name == name)
+            .unwrap()
+            .rpc_url
+            .clone()
+    }
+
+    pub fn get_default_chain_id(&self, chain: &str) -> Option<u16> {
+        let config = Config::load();
+        let name = if chain.contains(":") {
+            chain.split(":").last().unwrap()
+        } else {
+            chain
+        };
+
+        config
+            .chains_info
+            .iter()
+            .find(|c| c.name == name)
+            .unwrap()
+            .chain_id
+    }
+
+    pub fn get_default_wrapped_native(&self, chain: &str) -> String {
+        let config = Config::load();
+        let name = if chain.contains(":") {
+            chain.split(":").last().unwrap()
+        } else {
+            chain
+        };
+
+        config
+            .chains_info
+            .iter()
+            .find(|c| c.name == name)
+            .unwrap()
+            .wrapped_native
+            .clone()
     }
 }
 

@@ -29,7 +29,7 @@ pub fn init_config() {
     if !config_file.exists() {
         let config = Config::default();
 
-        config.write(&config_file);
+        config.write();
     }
 }
 

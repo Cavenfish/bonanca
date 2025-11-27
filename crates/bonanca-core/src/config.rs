@@ -2,13 +2,15 @@ use std::{
     default::Default,
     fs::File,
     io::{BufReader, BufWriter},
+    iter::chain,
     path::{Path, PathBuf},
+    process::Child,
 };
 
 use dirs::data_dir;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub keyvault: PathBuf,
     pub chains_info: Vec<ChainInfo>,
@@ -24,10 +26,42 @@ impl Config {
         config
     }
 
-    pub fn write(&self, filename: &Path) {
-        let file = File::create(filename).unwrap();
+    pub fn write(&self) {
+        let fname = data_dir().unwrap().join("bonanca/config.json");
+        let file = File::create(fname).unwrap();
         let writer = BufWriter::new(file);
         serde_json::to_writer(writer, &self).unwrap();
+    }
+
+    pub fn add_chain_info(&self, chain_info: ChainInfo) {
+        let mut new = self.clone();
+        new.chains_info.push(chain_info);
+        new.write();
+    }
+
+    pub fn update_chain_info(&self, chain_info: ChainInfo) {
+        let mut new = self.clone();
+
+        if let Some(pos) = new
+            .chains_info
+            .iter()
+            .position(|c| c.name == chain_info.name)
+        {
+            new.chains_info.remove(pos);
+        } else {
+            println!("No existing chain with name \"{}\" found", chain_info.name);
+            println!("\nCheck for typos, or consider adding the new chain");
+            return;
+        }
+
+        new.chains_info.push(chain_info);
+        new.write();
+    }
+
+    pub fn update_keyvault(&self, keyvault: PathBuf) {
+        let mut new = self.clone();
+        new.keyvault = keyvault;
+        new.write();
     }
 }
 
@@ -38,7 +72,7 @@ impl Default for Config {
         let eth_info = ChainInfo {
             name: "Ethereum".to_string(),
             rpc_url: "wss://0xrpc.io/eth".to_string(),
-            gas_token: "0x0000000000000000000000000000000000000000".to_string(),
+            wrapped_native: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".to_string(),
             chain_id: Some(1),
         };
 
@@ -49,10 +83,10 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChainInfo {
     pub name: String,
     pub rpc_url: String,
-    pub gas_token: String,
+    pub wrapped_native: String,
     pub chain_id: Option<u16>,
 }

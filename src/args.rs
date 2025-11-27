@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 
-use crate::{index::args::IndexCommand, lend::args::LendCommand, wallet::args::WalletCommand};
+use crate::{
+    config::args::ConfigCommand, index::args::IndexCommand, lend::args::LendCommand,
+    wallet::args::WalletCommand,
+};
 
 #[derive(Debug, Parser)]
 #[command(version, about, author)]
@@ -11,7 +14,10 @@ pub struct Bonanca {
 
 #[derive(Debug, Subcommand)]
 pub enum BonArgs {
-    /// Wallet
+    /// Manage your config file
+    Config(ConfigCommand),
+
+    /// Interact with your wallets
     Wallet(WalletCommand),
 
     /// Manage index fund

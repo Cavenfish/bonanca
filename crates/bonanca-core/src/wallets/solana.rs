@@ -23,7 +23,7 @@ const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBv
 
 pub struct SolWallet {
     pub key_pair: Option<Keypair>,
-    pub rpc: RpcClient,
+    pub client: RpcClient,
     pub pubkey: Pubkey,
 }
 
@@ -47,7 +47,7 @@ impl Wallet for SolWallet {
     async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
-        let acct = self.rpc.get_token_account(&token_addy).await?.unwrap();
+        let acct = self.client.get_token_account(&token_addy).await?.unwrap();
 
         let deci = acct.token_amount.decimals;
 
@@ -69,7 +69,7 @@ impl Wallet for SolWallet {
     }
 
     async fn balance(&self) -> Result<f64> {
-        let balance = self.rpc.get_balance(&self.pubkey).await?;
+        let balance = self.client.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
 
         Ok(bal)
@@ -83,10 +83,14 @@ impl Wallet for SolWallet {
         let info = transfer(&self.pubkey, &to_pubkey, lamp);
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
 
-        let blockhash = self.rpc.get_latest_blockhash().await?;
+        let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+        let _ = self
+            .client
+            .send_and_confirm_transaction(&trans)
+            .await
+            .unwrap();
 
         Ok(())
     }
@@ -97,7 +101,7 @@ impl Wallet for SolWallet {
 
         let bal = match addy_result {
             Ok(addy) => {
-                let token_data = self.rpc.get_token_account_balance(&addy).await?;
+                let token_data = self.client.get_token_account_balance(&addy).await?;
                 token_data.ui_amount.unwrap_or(0.0)
             }
             Err(_) => 0.0,
@@ -117,7 +121,7 @@ impl Wallet for SolWallet {
         data.extend_from_slice(&lamp.to_le_bytes());
 
         let accounts = self
-            .rpc
+            .client
             .get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey))
             .await?;
 
@@ -136,10 +140,14 @@ impl Wallet for SolWallet {
 
         let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
 
-        let blockhash = self.rpc.get_latest_blockhash().await?;
+        let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let _ = self.rpc.send_and_confirm_transaction(&trans).await.unwrap();
+        let _ = self
+            .client
+            .send_and_confirm_transaction(&trans)
+            .await
+            .unwrap();
 
         Ok(())
     }
@@ -186,7 +194,7 @@ impl Wallet for SolWallet {
             tx.signatures[0] = signature;
         };
 
-        let _ = self.rpc.send_and_confirm_transaction(&tx).await?;
+        let _ = self.client.send_and_confirm_transaction(&tx).await?;
 
         Ok(())
     }
@@ -202,12 +210,12 @@ impl SolWallet {
             _ => panic!(),
         };
 
-        let rp = RpcClient::new(rpc.to_string());
-        let pk = kp.pubkey();
+        let client = RpcClient::new(rpc.to_string());
+        let pubkey = kp.pubkey();
         Self {
             key_pair: Some(kp),
-            rpc: rp,
-            pubkey: pk,
+            client,
+            pubkey,
         }
     }
 
@@ -219,12 +227,12 @@ impl SolWallet {
             .find(|k| k.chain == "Solana")
             .unwrap();
         let pubkey = sol_keys.public_keys.get(child as usize).unwrap();
-        let rp = RpcClient::new(rpc.to_string());
-        let pk = Pubkey::from_str_const(pubkey);
+        let client = RpcClient::new(rpc.to_string());
+        let pubkey = Pubkey::from_str_const(pubkey);
         Self {
             key_pair: None,
-            rpc: rp,
-            pubkey: pk,
+            client,
+            pubkey,
         }
     }
 
@@ -232,12 +240,12 @@ impl SolWallet {
         let kp = self.key_pair.as_ref().unwrap();
 
         // Get blockhash and sign transaction
-        let blockhash = self.rpc.get_latest_blockhash().await?;
+        let blockhash = self.client.get_latest_blockhash().await?;
         let tx =
             Transaction::new_signed_with_payer(&[instr], Some(&self.pubkey), &[&kp], blockhash);
 
         // Send and wait for confirmation
-        let _ = self.rpc.send_and_confirm_transaction(&tx).await?;
+        let _ = self.client.send_and_confirm_transaction(&tx).await?;
 
         Ok(())
     }
@@ -294,7 +302,7 @@ impl SolWallet {
     async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
         // Get token account
         let accounts = self
-            .rpc
+            .client
             .get_token_accounts_by_owner(&self.pubkey, Mint(*mint))
             .await?;
         let token = accounts.first().context("Could not find token account")?;

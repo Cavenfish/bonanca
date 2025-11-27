@@ -1,6 +1,6 @@
 use alloy::{
     network::TransactionBuilder,
-    providers::{Provider, ProviderBuilder},
+    providers::{DynProvider, Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
@@ -29,7 +29,7 @@ sol! {
 
 pub struct EvmWallet {
     pub signer: Option<LocalSigner<SigningKey>>,
-    pub rpc: Url,
+    pub client: DynProvider,
     pub pubkey: Address,
 }
 
@@ -52,10 +52,9 @@ impl Wallet for EvmWallet {
 
     async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
         let token_addy = Address::from_str(token)?;
-        let client = self.get_view_client();
 
         // Instantiate the contract instance
-        let erc20 = ERC20::new(token_addy, client);
+        let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
         let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
@@ -65,19 +64,18 @@ impl Wallet for EvmWallet {
 
     async fn close(&self, to: &str) -> Result<()> {
         let to_addy = Address::from_str(to)?;
-        let client = self.get_client();
         let bal = self.balance().await?;
 
         let wei = parse_ether(&(bal * 0.9).to_string())?;
 
-        let fees = client.estimate_eip1559_fees().await?;
+        let fees = self.client.estimate_eip1559_fees().await?;
 
         let tx = TransactionRequest::default()
             .with_from(self.pubkey)
             .with_to(to_addy)
             .with_value(wei);
 
-        let gas = client.estimate_gas(tx).await?;
+        let gas = self.client.estimate_gas(tx).await?;
 
         let total_fees_wei = (gas as u128) * fees.max_fee_per_gas;
         let total_fees: f64 = format_ether(total_fees_wei).parse()?;
@@ -89,9 +87,7 @@ impl Wallet for EvmWallet {
     }
 
     async fn balance(&self) -> Result<f64> {
-        let client = self.get_view_client();
-
-        let bal = client.get_balance(self.pubkey).await?;
+        let bal = self.client.get_balance(self.pubkey).await?;
 
         let fbal = format_ether(bal);
 
@@ -100,7 +96,6 @@ impl Wallet for EvmWallet {
 
     async fn transfer(&self, to: &str, amount: f64) -> Result<()> {
         let to_addy = Address::from_str(to)?;
-        let client = self.get_client();
 
         let wei = parse_ether(&amount.to_string())?;
 
@@ -111,17 +106,16 @@ impl Wallet for EvmWallet {
             .with_value(wei);
 
         // Send the transaction and wait for it to finish
-        let _ = client.send_transaction(tx).await?.watch().await?;
+        let _ = self.client.send_transaction(tx).await?.watch().await?;
 
         Ok(())
     }
 
     async fn token_balance(&self, token: &str) -> Result<f64> {
         let token_addy = Address::from_str(token)?;
-        let client = self.get_view_client();
 
         // Instantiate the contract instance
-        let erc20 = ERC20::new(token_addy, client);
+        let erc20 = ERC20::new(token_addy, &self.client);
 
         // Fetch the token balance and decimals
         let balance = erc20.balanceOf(self.pubkey).call().await?;
@@ -135,10 +129,9 @@ impl Wallet for EvmWallet {
     async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<()> {
         let to_addy = Address::from_str(to)?;
         let token_addy = Address::from_str(token)?;
-        let client = self.get_client();
 
         // Load token contract and get decimals
-        let erc20 = ERC20::new(token_addy, client);
+        let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
         // Format amount to send
@@ -179,13 +172,12 @@ impl Wallet for EvmWallet {
     }
 
     async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
-        let client = self.get_client();
         let tx = match swap_data {
             SwapTransactionData::Evm(trans) => trans,
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
 
-        let _ = client.send_transaction(tx).await?.watch().await?;
+        let _ = self.client.send_transaction(tx).await?.watch().await?;
 
         Ok(())
     }
@@ -203,9 +195,15 @@ impl EvmWallet {
 
         let rpc_url = Url::parse(rpc).unwrap();
         let pubkey = signer.address();
+
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer.clone())
+            .connect_http(rpc_url)
+            .erased();
+
         Self {
             signer: Some(signer),
-            rpc: rpc_url,
+            client,
             pubkey,
         }
     }
@@ -220,37 +218,21 @@ impl EvmWallet {
         let pubkey = evm_keys.public_keys.get(child as usize).unwrap();
         let rpc_url = Url::parse(rpc).unwrap();
         let addy = Address::from_str(pubkey).unwrap();
+        let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
+
         Self {
             signer: None,
-            rpc: rpc_url,
+            client,
             pubkey: addy,
         }
-    }
-
-    // Builds the client (RPC connection)
-    fn get_client(&self) -> impl Provider {
-        if self.signer.is_none() {
-            panic!()
-        };
-
-        let signer = self.signer.clone().unwrap();
-
-        ProviderBuilder::new()
-            .wallet(signer)
-            .connect_http(self.rpc.clone())
-    }
-
-    fn get_view_client(&self) -> impl Provider {
-        ProviderBuilder::new().connect_http(self.rpc.clone())
     }
 
     // Approve token for spending
     async fn approve_token_spending(&self, token: &str, spender: &str, amount: f64) -> Result<()> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
-        let client = self.get_client();
 
-        let erc20 = ERC20::new(token_addy, client);
+        let erc20 = ERC20::new(token_addy, &self.client);
 
         let decimals = erc20.decimals().call().await?;
         let value: Uint<256, 4> = parse_units(&amount.to_string(), decimals)?.into();
@@ -268,9 +250,8 @@ impl EvmWallet {
     async fn get_token_allowance(&self, token: &str, spender: &str) -> Result<f64> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
-        let client = self.get_client();
 
-        let erc20 = ERC20::new(token_addy, client);
+        let erc20 = ERC20::new(token_addy, &self.client);
 
         let value = erc20.allowance(self.pubkey, spender_addy).call().await?;
 

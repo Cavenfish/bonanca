@@ -79,7 +79,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
             .clone()
     };
 
-    if aux_token.is_empty() && cmd.method != "rebalance" {
+    if aux_token.is_empty() && cmd.method != "redistribute" {
         panic!()
     }
 

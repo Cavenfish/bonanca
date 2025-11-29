@@ -26,6 +26,61 @@ pub struct AaveV3 {
 
 #[async_trait]
 impl Bank for AaveV3 {
+    async fn get_pools(&self) -> Result<()> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let reserves = pool.getReservesList().call().await?;
+
+        println!("Found {} reserves:\n", reserves.len());
+
+        for reserve_address in reserves.iter() {
+            println!("Reserve Address: {}", reserve_address);
+
+            let data = pool.getReserveData(*reserve_address).call().await?;
+
+            println!("\t aToken: {}", data.aTokenAddress);
+            println!("\t Variable Debt Token: {}", data.variableDebtTokenAddress);
+            println!("\t Liquidity Index: {}", data.liquidityIndex);
+            println!(
+                "\t Current Liquidity Rate: {}",
+                (data.currentLiquidityRate as f64) / 1e27
+            );
+            println!(
+                "\t Current Variable Borrow Rate: {}",
+                (data.currentVariableBorrowRate as f64) / 1e27
+            );
+
+            println!();
+        }
+
+        Ok(())
+    }
+
+    async fn get_user_data(&self) -> Result<()> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let data = pool.getUserAccountData(self.user).call().await?;
+
+        // Base currency is USD with 8 decimals
+        println!(
+            "Total Collateral: {}",
+            f64::from(data.totalCollateralBase) / 1e8
+        );
+        println!("Total Debt: {}", f64::from(data.totalDebtBase) / 1e8);
+        println!("LTV: {}", f64::from(data.ltv) / 1e4);
+        println!("Health Factor: {}", f64::from(data.healthFactor) / 1e18);
+        println!(
+            "Liquidation Threshold: {}",
+            f64::from(data.currentLiquidationThreshold) / 1e4
+        );
+        println!(
+            "Available Borrows: {}",
+            f64::from(data.availableBorrowsBase) / 1e8
+        );
+
+        Ok(())
+    }
+
     async fn supply(&self, token: &str, amount: u64) -> Result<()> {
         let poolv3 = PoolV3::new(self.pool, &self.client);
         let asset = Address::from_str(token)?;
@@ -119,60 +174,5 @@ impl AaveV3 {
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc).erased();
 
         Self { user, pool, client }
-    }
-
-    pub async fn get_pools(&self) -> Result<()> {
-        let pool = PoolV3::new(self.pool, &self.client);
-
-        let reserves = pool.getReservesList().call().await?;
-
-        println!("Found {} reserves:\n", reserves.len());
-
-        for reserve_address in reserves.iter() {
-            println!("Reserve Address: {}", reserve_address);
-
-            let data = pool.getReserveData(*reserve_address).call().await?;
-
-            println!("\t aToken: {}", data.aTokenAddress);
-            println!("\t Variable Debt Token: {}", data.variableDebtTokenAddress);
-            println!("\t Liquidity Index: {}", data.liquidityIndex);
-            println!(
-                "\t Current Liquidity Rate: {}",
-                (data.currentLiquidityRate as f64) / 1e27
-            );
-            println!(
-                "\t Current Variable Borrow Rate: {}",
-                (data.currentVariableBorrowRate as f64) / 1e27
-            );
-
-            println!();
-        }
-
-        Ok(())
-    }
-
-    pub async fn get_user_data(&self) -> Result<()> {
-        let pool = PoolV3::new(self.pool, &self.client);
-
-        let data = pool.getUserAccountData(self.user).call().await?;
-
-        // Base currency is USD with 8 decimals
-        println!(
-            "Total Collateral: {}",
-            f64::from(data.totalCollateralBase) / 1e8
-        );
-        println!("Total Debt: {}", f64::from(data.totalDebtBase) / 1e8);
-        println!("LTV: {}", f64::from(data.ltv) / 1e4);
-        println!("Health Factor: {}", f64::from(data.healthFactor) / 1e18);
-        println!(
-            "Liquidation Threshold: {}",
-            f64::from(data.currentLiquidationThreshold) / 1e4
-        );
-        println!(
-            "Available Borrows: {}",
-            f64::from(data.availableBorrowsBase) / 1e8
-        );
-
-        Ok(())
     }
 }

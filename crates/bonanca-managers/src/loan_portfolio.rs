@@ -2,7 +2,7 @@ use anyhow::Result;
 use bonanca_core::{
     config::Config, get_default_config, get_wallet, get_wallet_view, wallets::traits::Wallet,
 };
-use bonanca_lending::evm::aave::AaveV3;
+use bonanca_lending::{evm::aave::AaveV3, solana::kamino::KaminoVault, traits::Bank};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -15,6 +15,7 @@ pub struct LoanPortfolio {
     pub name: String,
     pub chain: String,
     pub child: u32,
+    pub bank: String,
     pub rpc_url: Option<String>,
     pub keyvault: Option<PathBuf>,
 
@@ -57,7 +58,7 @@ impl LoanPortfolio {
         get_wallet_view(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
-    pub async fn get_user_data(&self) -> Result<()> {
+    fn get_bank(&self) -> Result<Box<dyn Bank>> {
         let wallet = self.get_wallet_view()?;
         let pubkey = wallet.get_pubkey()?;
 
@@ -67,9 +68,27 @@ impl LoanPortfolio {
             self.rpc_url.clone().unwrap()
         };
 
-        let aave = AaveV3::view(&self.chain, &pubkey, &rpc_url);
+        let bank: Box<dyn Bank> = match self.bank.as_str() {
+            "Aave" => Box::new(AaveV3::view(&self.chain, &pubkey, &rpc_url)),
+            "Kamino" => Box::new(KaminoVault::view(&pubkey)),
+            _ => panic!(),
+        };
 
-        aave.get_user_data().await?;
+        Ok(bank)
+    }
+
+    pub async fn get_pools(&self) -> Result<()> {
+        let bank = self.get_bank()?;
+
+        bank.get_pools().await?;
+
+        Ok(())
+    }
+
+    pub async fn get_user_data(&self) -> Result<()> {
+        let bank = self.get_bank()?;
+
+        bank.get_user_data().await?;
 
         Ok(())
     }

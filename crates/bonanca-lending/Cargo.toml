@@ -9,4 +9,6 @@ anchor-client = { version = "0.32.1", features = ["async"] }
 anchor-lang = "0.32.1"
 anyhow.workspace = true
 async-trait.workspace = true
+bonanca-core.workspace = true
+serde.workspace = true
 tokio.workspace = true

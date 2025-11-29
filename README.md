@@ -9,6 +9,8 @@
 
 ## Roadmap
 
+- [ ] trade protection
+
 ### Balance Sheet (SQLite)
 
 - [ ] Record deposits
@@ -27,6 +29,7 @@
 - [ ] Osmosis (Cosmos)
 - [ ] Cardano
 - [ ] Algorand
+- [ ] Starknet
 - [ ] Polkadot?
 
 ### Additional Oracles

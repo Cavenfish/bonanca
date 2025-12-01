@@ -107,6 +107,9 @@ impl Bank for KaminoVault {
             .args(args::Deposit { max_amount: amount })
             .instructions()?
             .remove(0);
+
+        let _ = program.request().instruction(supply_ix).send().await?;
+
         Ok(())
     }
 

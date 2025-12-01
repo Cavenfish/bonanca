@@ -45,7 +45,7 @@ impl KaminoApi {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct KVaultInfo {
     pub address: String,
     pub state: VaultState,
@@ -53,7 +53,7 @@ pub struct KVaultInfo {
     pub program_id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultState {
     pub vault_admin_authority: String,
@@ -90,7 +90,7 @@ pub struct VaultState {
     pub allocation_admin: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AllocationStrategy {
     pub reserve: String,

@@ -62,15 +62,11 @@ impl LoanPortfolio {
         let wallet = self.get_wallet_view()?;
         let pubkey = wallet.get_pubkey()?;
 
-        let rpc_url = if self.rpc_url.is_none() {
-            self.config.get_default_chain_rpc(&self.chain)
-        } else {
-            self.rpc_url.clone().unwrap()
-        };
+        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
 
         let bank: Box<dyn Bank> = match self.bank.as_str() {
             "Aave" => Box::new(AaveV3::view(&self.chain, &pubkey, &rpc_url)),
-            "Kamino" => Box::new(KaminoVault::view(&pubkey)),
+            "Kamino" => Box::new(KaminoVault::new(&keyvault, self.child)),
             _ => panic!(),
         };
 

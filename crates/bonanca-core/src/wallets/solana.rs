@@ -203,7 +203,7 @@ impl Wallet for SolWallet {
 impl SolWallet {
     pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
         let hd_key = decrypt_keyvault(keyvault).expect("Failed to decrypt keyvault");
-        let child_key = hd_key.get_child_key("EVM", child).unwrap();
+        let child_key = hd_key.get_child_key("Solana", child).unwrap();
 
         let kp = match child_key {
             ChildKey::Sol(kp) => kp,

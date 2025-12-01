@@ -12,6 +12,9 @@ pub enum WalletSubcommands {
     /// Create a new wallet
     Create(CreateArgs),
 
+    /// Add public key to keyvault json
+    Add(AddArgs),
+
     /// Get token balance
     Balance(BalanceArgs),
 
@@ -28,6 +31,21 @@ pub struct CreateArgs {
     /// Language for mnemonic phrase
     #[arg(long, default_value = "English")]
     pub language: String,
+}
+
+#[derive(Debug, Args)]
+pub struct AddArgs {
+    /// Keyvault file
+    #[arg(long)]
+    pub keyvault: Option<PathBuf>,
+
+    /// Chain to add pubkey
+    #[arg(short)]
+    pub chain: String,
+
+    /// Child index for pubkey
+    #[arg(short = 'i')]
+    pub child: u32,
 }
 
 #[derive(Debug, Args)]

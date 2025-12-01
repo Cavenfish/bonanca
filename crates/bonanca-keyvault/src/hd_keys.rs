@@ -118,7 +118,7 @@ impl HDkeys {
         }
     }
 
-    fn get_child_pubkey(&self, chain: &str, child: u32) -> Result<String> {
+    pub fn get_child_pubkey(&self, chain: &str, child: u32) -> Result<String> {
         let child = self.get_child_key(chain, child)?;
 
         let addy = match child {
@@ -129,7 +129,7 @@ impl HDkeys {
         Ok(addy)
     }
 
-    pub fn create_chain_keys(&self) -> Result<Vec<ChainKeys>> {
+    fn create_chain_keys(&self) -> Result<Vec<ChainKeys>> {
         let sol_addy = self.get_child_pubkey("Solana", 0)?;
         let evm_addy = self.get_child_pubkey("EVM", 0)?;
 

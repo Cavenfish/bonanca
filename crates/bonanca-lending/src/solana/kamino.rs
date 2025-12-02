@@ -7,7 +7,7 @@ use anchor_client::{
 use anchor_lang::prelude::*;
 use anyhow::Result;
 use async_trait::async_trait;
-use bonanca_core::api_lib::kamino::{KVaultInfo, KaminoApi};
+use bonanca_api_lib::defi::kamino::{KVaultInfo, KaminoApi};
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey};
 use std::{path::Path, sync::Arc};
 

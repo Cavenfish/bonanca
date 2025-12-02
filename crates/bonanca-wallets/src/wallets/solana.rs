@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use bonanca_core::traits::{CryptoSigners, SwapTransactionData, Wallet};
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
@@ -11,11 +12,6 @@ use solana_sdk::{
 };
 use solana_system_interface::instruction::transfer;
 use std::path::Path;
-
-use crate::{
-    api_lib::traits::SwapTransactionData,
-    wallets::traits::{CryptoSigners, Wallet},
-};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");

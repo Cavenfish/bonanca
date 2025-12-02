@@ -1,11 +1,12 @@
 use anyhow::{Ok, Result};
+use bonanca_api_lib::{get_exchange, get_oracle};
 use bonanca_core::{
-    api_lib::traits::{Exchange, Oracle},
     config::Config,
-    get_default_config, get_exchange, get_oracle, get_wallet, get_wallet_view,
+    get_default_config,
     holdings::Asset,
-    wallets::traits::Wallet,
+    traits::{Exchange, Oracle, Wallet},
 };
+use bonanca_wallets::{get_wallet, get_wallet_view};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,

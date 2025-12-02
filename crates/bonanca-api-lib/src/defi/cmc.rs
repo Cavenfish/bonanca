@@ -1,9 +1,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use bonanca_core::{holdings::Asset, traits::Oracle};
 use reqwest::Client;
 use serde::Deserialize;
-
-use crate::{api_lib::traits::Oracle, holdings::Asset};
 
 pub struct CoinMarketCap {
     pub base_url: String,

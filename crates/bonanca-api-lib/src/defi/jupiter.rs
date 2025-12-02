@@ -3,13 +3,14 @@ use async_trait::async_trait;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
+use bonanca_core::{
+    holdings::Asset,
+    traits::{Exchange, Oracle, SwapTransactionData, Wallet},
+};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use solana_sdk::transaction::VersionedTransaction;
 use std::collections::HashMap;
-
-use super::traits::{Exchange, Oracle, SwapTransactionData};
-use crate::{holdings::Asset, wallets::traits::Wallet};
 
 pub struct Jupiter {
     pub base_url: String,

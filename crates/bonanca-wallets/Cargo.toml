@@ -1,0 +1,15 @@
+[package]
+name = "bonanca-wallets"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+alloy.workspace = true
+alloy-primitives.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+solana-sdk.workspace = true
+bonanca-core.workspace = true
+bonanca-keyvault.workspace = true
+solana-client = "3.0.2"
+solana-system-interface = "2.0.0"

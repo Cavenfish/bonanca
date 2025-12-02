@@ -5,12 +5,10 @@ use alloy::{
 use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
 use async_trait::async_trait;
+use bonanca_core::traits::{Exchange, SwapTransactionData, Wallet};
 use reqwest::Client;
 use serde::Deserialize;
 use std::str::FromStr;
-
-use super::traits::{Exchange, SwapTransactionData};
-use crate::wallets::traits::Wallet;
 
 pub struct ZeroX {
     pub base_url: String,

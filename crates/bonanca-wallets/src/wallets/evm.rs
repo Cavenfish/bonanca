@@ -16,8 +16,7 @@ use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
 
-use crate::wallets::traits::Wallet;
-use crate::{api_lib::traits::SwapTransactionData, wallets::traits::CryptoSigners};
+use bonanca_core::traits::{CryptoSigners, SwapTransactionData, Wallet};
 
 // ABI for smart contracts
 sol! {

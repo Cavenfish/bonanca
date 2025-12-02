@@ -3,7 +3,7 @@ pub mod holdings;
 pub mod traits;
 
 use dirs::data_dir;
-use std::{fs::create_dir_all, path::Path};
+use std::fs::create_dir_all;
 
 use crate::config::Config;
 

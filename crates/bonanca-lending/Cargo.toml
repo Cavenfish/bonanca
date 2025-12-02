@@ -9,7 +9,7 @@ anchor-client = { version = "0.32.1", features = ["async"] }
 anchor-lang = "0.32.1"
 anyhow.workspace = true
 async-trait.workspace = true
-bonanca-api-lib = {path = "../bonanca-api-lib"}
+bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-keyvault.workspace = true
 serde.workspace = true
 tokio.workspace = true

@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
+bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-core.workspace = true
 bonanca-lending = { path = "../bonanca-lending" }
-bonanca-api-lib = {path = "../bonanca-api-lib"}
-bonanca-wallets = {path = "../bonanca-wallets"}
+bonanca-wallets = { path = "../bonanca-wallets" }
 serde.workspace = true
 serde_json.workspace = true

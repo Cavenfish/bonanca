@@ -1,6 +1,10 @@
 use anyhow::Result;
-use bonanca_core::{config::Config, get_default_config, traits::Wallet};
-use bonanca_lending::{evm::aave::AaveV3, solana::kamino::KaminoVault, traits::Bank};
+use bonanca_core::{
+    config::Config,
+    get_default_config,
+    traits::{Bank, Wallet},
+};
+use bonanca_lending::{evm::aave::AaveV3, solana::kamino::KaminoVault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
 use serde::{Deserialize, Serialize};
 use std::{

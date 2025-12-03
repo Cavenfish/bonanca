@@ -59,3 +59,18 @@ pub trait Exchange {
 pub trait Oracle {
     async fn get_token_value(&self, asset: &Asset, amount: f64, chain: &str) -> Result<f64>;
 }
+
+#[async_trait]
+pub trait Bank {
+    async fn get_pools(&self) -> Result<()>;
+
+    async fn get_user_data(&self) -> Result<()>;
+
+    async fn supply(&self, token: &str, amount: u64) -> Result<()>;
+
+    async fn borrow(&self, token: &str, amount: u64) -> Result<()>;
+
+    async fn repay(&self, token: &str, amount: u64) -> Result<()>;
+
+    async fn withdraw(&self, token: &str, amount: u64) -> Result<()>;
+}

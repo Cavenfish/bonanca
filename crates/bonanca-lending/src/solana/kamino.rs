@@ -8,10 +8,9 @@ use anchor_lang::prelude::*;
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::defi::kamino::{KVaultInfo, KaminoApi};
+use bonanca_core::traits::Bank;
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey};
 use std::{path::Path, sync::Arc};
-
-use crate::traits::Bank;
 
 const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");

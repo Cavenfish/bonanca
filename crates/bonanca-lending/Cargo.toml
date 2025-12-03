@@ -10,6 +10,7 @@ anchor-lang = "0.32.1"
 anyhow.workspace = true
 async-trait.workspace = true
 bonanca-api-lib = { path = "../bonanca-api-lib" }
+bonanca-core.workspace = true
 bonanca-keyvault.workspace = true
 serde.workspace = true
 tokio.workspace = true

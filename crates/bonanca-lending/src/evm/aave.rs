@@ -7,9 +7,8 @@ use alloy::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
+use bonanca_core::traits::Bank;
 use std::str::FromStr;
-
-use crate::traits::Bank;
 
 sol! {
     #[allow(missing_docs)]

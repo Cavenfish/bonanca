@@ -1,7 +1,10 @@
 use anyhow::Result;
 use bonanca_core::config::Config;
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
+use bonanca_wallets::{get_wallet, get_wallet_view};
 use std::path::PathBuf;
+
+use crate::wallet::args::TransferArgs;
 
 use super::args::{AddArgs, BalanceArgs, CreateArgs, WalletCommand, WalletSubcommands};
 
@@ -9,8 +12,8 @@ pub async fn handle_wallet_cmd(cmd: WalletCommand) {
     match cmd.command {
         WalletSubcommands::Create(cmd) => create_keyvault(cmd).unwrap(),
         WalletSubcommands::Add(cmd) => add_pubkey(cmd).unwrap(),
-        WalletSubcommands::Balance(cmd) => todo!(),
-        WalletSubcommands::Transfer(cmd) => todo!(),
+        WalletSubcommands::Balance(cmd) => balance(cmd).await,
+        WalletSubcommands::Transfer(cmd) => transfer(cmd).await,
     };
 }
 
@@ -51,5 +54,64 @@ fn add_pubkey(cmd: AddArgs) -> Result<()> {
 }
 
 async fn balance(cmd: BalanceArgs) {
-    // let wallet = get_wallet_view(chain, keyvault, rpc_url, child)?;
+    let config = Config::load();
+
+    let keyvault = match cmd.keyvault {
+        Some(fname) => fname,
+        None => config.keyvault,
+    };
+
+    let name = cmd.chain.split(":").last().unwrap();
+
+    let rpc_url = &config
+        .chains_info
+        .iter()
+        .find(|c| c.name == name)
+        .unwrap()
+        .rpc_url;
+
+    let wallet = get_wallet_view(&cmd.chain, &keyvault, rpc_url, cmd.child).unwrap();
+
+    match cmd.token {
+        Some(token) => {
+            let bal = wallet.token_balance(&token).await.unwrap();
+            println!("Token Balance: {}", bal);
+        }
+        None => {
+            let bal = wallet.balance().await.unwrap();
+            println!("Balance: {}", bal);
+        }
+    }
+}
+
+async fn transfer(cmd: TransferArgs) {
+    let config = Config::load();
+
+    let keyvault = match cmd.keyvault {
+        Some(fname) => fname,
+        None => config.keyvault,
+    };
+
+    let name = cmd.chain.split(":").last().unwrap();
+
+    let rpc_url = &config
+        .chains_info
+        .iter()
+        .find(|c| c.name == name)
+        .unwrap()
+        .rpc_url;
+
+    let wallet = get_wallet(&cmd.chain, &keyvault, rpc_url, cmd.child).unwrap();
+
+    match cmd.token {
+        Some(token) => {
+            wallet
+                .transfer_token(&token, cmd.amount, &cmd.to)
+                .await
+                .unwrap();
+        }
+        None => {
+            wallet.transfer(&cmd.to, cmd.amount).await.unwrap();
+        }
+    }
 }

@@ -51,25 +51,45 @@ pub struct AddArgs {
 #[derive(Debug, Args)]
 pub struct BalanceArgs {
     /// Keyvault file
+    #[arg(long)]
+    pub keyvault: Option<PathBuf>,
+
+    /// Chain to check balance
     #[arg(short)]
-    pub keyvault: PathBuf,
+    pub chain: String,
+
+    /// Child index
+    #[arg(short = 'i')]
+    pub child: u32,
 
     /// Token address
-    #[arg(short)]
-    pub token: String,
+    #[arg(long)]
+    pub token: Option<String>,
 }
 
 #[derive(Debug, Args)]
 pub struct TransferArgs {
     /// Keyvault file
+    #[arg(long)]
+    pub keyvault: Option<PathBuf>,
+
+    /// Chain to check balance
     #[arg(short)]
-    pub keyvault: PathBuf,
+    pub chain: String,
+
+    /// Child index
+    #[arg(short = 'i')]
+    pub child: u32,
 
     /// Token address
-    #[arg(short)]
-    pub token: String,
+    #[arg(long)]
+    pub token: Option<String>,
 
     /// Amount
     #[arg(short)]
     pub amount: f64,
+
+    /// To address
+    #[arg(short)]
+    pub to: String,
 }

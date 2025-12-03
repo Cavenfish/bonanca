@@ -62,9 +62,9 @@ pub trait Oracle {
 
 #[async_trait]
 pub trait Bank {
-    async fn get_pools(&self) -> Result<()>;
-
     async fn get_user_data(&self) -> Result<()>;
+
+    async fn get_token_pools(&self, token: &str) -> Result<()>;
 
     async fn supply(&self, token: &str, amount: u64) -> Result<()>;
 

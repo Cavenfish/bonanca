@@ -8,7 +8,10 @@ use alloy::{
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_core::traits::Bank;
+use bonanca_keyvault::new;
 use std::str::FromStr;
+
+use crate::evm::aave::DataTypes::ReserveDataLegacy;
 
 sol! {
     #[allow(missing_docs)]
@@ -25,36 +28,6 @@ pub struct AaveV3 {
 
 #[async_trait]
 impl Bank for AaveV3 {
-    async fn get_pools(&self) -> Result<()> {
-        let pool = PoolV3::new(self.pool, &self.client);
-
-        let reserves = pool.getReservesList().call().await?;
-
-        println!("Found {} reserves:\n", reserves.len());
-
-        for reserve_address in reserves.iter() {
-            println!("Reserve Address: {}", reserve_address);
-
-            let data = pool.getReserveData(*reserve_address).call().await?;
-
-            println!("\t aToken: {}", data.aTokenAddress);
-            println!("\t Variable Debt Token: {}", data.variableDebtTokenAddress);
-            println!("\t Liquidity Index: {}", data.liquidityIndex);
-            println!(
-                "\t Current Liquidity Rate: {}",
-                (data.currentLiquidityRate as f64) / 1e27
-            );
-            println!(
-                "\t Current Variable Borrow Rate: {}",
-                (data.currentVariableBorrowRate as f64) / 1e27
-            );
-
-            println!();
-        }
-
-        Ok(())
-    }
-
     async fn get_user_data(&self) -> Result<()> {
         let pool = PoolV3::new(self.pool, &self.client);
 
@@ -77,6 +50,16 @@ impl Bank for AaveV3 {
             f64::from(data.availableBorrowsBase) / 1e8
         );
 
+        Ok(())
+    }
+
+    async fn get_token_pools(&self, token: &str) -> Result<()> {
+        let pool = PoolV3::new(self.pool, &self.client);
+        let asset = Address::from_str(token)?;
+
+        let token_pool = pool.getReserveData(asset).call().await?;
+
+        println!("atoken address: {}", token_pool.aTokenAddress);
         Ok(())
     }
 
@@ -173,5 +156,21 @@ impl AaveV3 {
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc).erased();
 
         Self { user, pool, client }
+    }
+
+    async fn get_pools(&self) -> Result<Vec<ReserveDataLegacy>> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let reserves = pool.getReservesList().call().await?;
+
+        let mut reserve_data: Vec<ReserveDataLegacy> = Vec::new();
+
+        for reserve_address in reserves.iter() {
+            let data = pool.getReserveData(*reserve_address).call().await?;
+
+            reserve_data.push(data);
+        }
+
+        Ok(reserve_data)
     }
 }

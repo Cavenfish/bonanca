@@ -76,10 +76,14 @@ impl LoanPortfolio {
         Ok(bank)
     }
 
-    pub async fn get_pools(&self) -> Result<()> {
+    pub async fn get_token_pools(&self) -> Result<()> {
         let bank = self.get_bank()?;
 
-        bank.get_pools().await?;
+        //polygon
+        let usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+        //solana
+        // let usdc = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+        bank.get_token_pools(usdc).await?;
 
         Ok(())
     }

@@ -39,22 +39,6 @@ pub struct KaminoVault {
 
 #[async_trait]
 impl Bank for KaminoVault {
-    async fn get_pools(&self) -> Result<()> {
-        let kamino_api = KaminoApi::new();
-
-        let pools = kamino_api.get_all_kvaults().await?;
-
-        for pool in pools.iter() {
-            println!("Pool Address: {}", pool.address);
-            println!("Token Available: {}", pool.state.token_available);
-            println!("Min Deposit Amount: {}", pool.state.min_deposit_amount);
-            println!("Performance Fee: {} bps", pool.state.performance_fee_bps);
-            println!("Management Fee: {} bps", pool.state.management_fee_bps);
-        }
-
-        Ok(())
-    }
-
     async fn get_user_data(&self) -> Result<()> {
         let pubkey = self.user.pubkey().to_string();
         let kamino_api = KaminoApi::new();
@@ -62,6 +46,23 @@ impl Bank for KaminoVault {
         let data = kamino_api.get_user_data(&pubkey).await?;
 
         data.iter().for_each(|f| println!("{}", f));
+
+        Ok(())
+    }
+
+    async fn get_token_pools(&self, token: &str) -> Result<()> {
+        let kamino_api = KaminoApi::new();
+
+        let vaults = kamino_api.get_all_kvaults().await?;
+
+        let token_vaults: Vec<&KVaultInfo> = vaults
+            .iter()
+            .filter(|v| v.state.token_mint == token)
+            .collect();
+
+        token_vaults
+            .iter()
+            .for_each(|v| println!("Vault name: {}", v.state.name));
 
         Ok(())
     }
@@ -160,5 +161,21 @@ impl KaminoVault {
             .unwrap();
 
         Ok(vault.clone())
+    }
+
+    async fn get_pools(&self) -> Result<()> {
+        let kamino_api = KaminoApi::new();
+
+        let pools = kamino_api.get_all_kvaults().await?;
+
+        for pool in pools.iter() {
+            println!("Pool Address: {}", pool.address);
+            println!("Token Available: {}", pool.state.token_available);
+            println!("Min Deposit Amount: {}", pool.state.min_deposit_amount);
+            println!("Performance Fee: {} bps", pool.state.performance_fee_bps);
+            println!("Management Fee: {} bps", pool.state.management_fee_bps);
+        }
+
+        Ok(())
     }
 }

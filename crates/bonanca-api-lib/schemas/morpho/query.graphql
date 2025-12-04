@@ -1,0 +1,21 @@
+query VaultsV1Query($first: Int!, $chain_id: Int!, $asset: String!) {
+  vaults(
+    first: $first
+    orderBy: TotalSupply
+    where: { chainId_in: [$chain_id], assetSymbol_in: [$asset] }
+  ) {
+    items {
+      address
+      symbol
+      name
+      state {
+        apy
+      }
+      asset {
+        address
+        symbol
+        id
+      }
+    }
+  }
+}

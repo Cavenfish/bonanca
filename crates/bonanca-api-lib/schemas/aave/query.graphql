@@ -1,0 +1,20 @@
+query MarketQuery($request: MarketRequest!) {
+  market(request: $request) {
+    reserves {
+      aToken {
+        address
+        name
+      }
+      underlyingToken {
+        address
+        name
+        symbol
+      }
+      supplyInfo {
+        apy {
+          value
+        }
+      }
+    }
+  }
+}

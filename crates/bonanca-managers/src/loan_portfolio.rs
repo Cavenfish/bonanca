@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bonanca_api_lib::lending_oracle::get_lending_rates;
 use bonanca_core::{
     config::Config,
     get_default_config,
@@ -18,7 +19,7 @@ pub struct LoanPortfolio {
     pub name: String,
     pub chain: String,
     pub child: u32,
-    pub bank: String,
+    pub banks: Vec<String>,
     pub rpc_url: Option<String>,
     pub keyvault: Option<PathBuf>,
 
@@ -61,37 +62,39 @@ impl LoanPortfolio {
         get_wallet_view(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
-    fn get_bank(&self) -> Result<Box<dyn Bank>> {
-        let wallet = self.get_wallet_view()?;
-        let pubkey = wallet.get_pubkey()?;
+    // fn get_bank(&self) -> Result<Box<dyn Bank>> {
+    //     let wallet = self.get_wallet_view()?;
+    //     let pubkey = wallet.get_pubkey()?;
 
-        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+    //     let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
 
-        let bank: Box<dyn Bank> = match self.bank.as_str() {
-            "Aave" => Box::new(AaveV3::view(&self.chain, &pubkey, &rpc_url)),
-            "Kamino" => Box::new(KaminoVault::new(&keyvault, self.child)),
-            _ => panic!(),
-        };
+    //     let bank: Box<dyn Bank> = match self.bank.as_str() {
+    //         "Aave" => Box::new(AaveV3::view(&self.chain, &pubkey, &rpc_url)),
+    //         "Kamino" => Box::new(KaminoVault::new(&keyvault, self.child)),
+    //         _ => panic!(),
+    //     };
 
-        Ok(bank)
-    }
+    //     Ok(bank)
+    // }
 
     pub async fn get_token_pools(&self) -> Result<()> {
-        let bank = self.get_bank()?;
+        let rates = get_lending_rates(&self.banks, "USDC", 137).await?;
 
-        //polygon
-        let usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
-        //solana
-        // let usdc = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-        bank.get_token_pools(usdc).await?;
+        for rate in rates.iter() {
+            println!();
+            println!("Protocol: {}", rate.protocol);
+            println!("APY: {}", rate.apy);
+            println!("Name: {}", rate.vault_name);
+            println!();
+        }
 
         Ok(())
     }
 
     pub async fn get_user_data(&self) -> Result<()> {
-        let bank = self.get_bank()?;
+        // let bank = self.get_bank()?;
 
-        bank.get_user_data().await?;
+        // bank.get_user_data().await?;
 
         Ok(())
     }

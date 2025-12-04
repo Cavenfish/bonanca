@@ -3,7 +3,7 @@ use anyhow::Result;
 use graphql_client::{GraphQLQuery, Response};
 use reqwest::Client;
 
-use crate::defi::morpho::vaults_v1_query::VaultsV1QueryVaultsItems;
+use crate::lending_oracle::LendingRate;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -24,16 +24,12 @@ impl MorphoApi {
         }
     }
 
-    pub async fn query_vaults_v1(
-        &self,
-        token: &str,
-        chain_id: i64,
-    ) -> Result<Vec<VaultsV1QueryVaultsItems>> {
+    pub async fn query_vaults_v1(&self, token: &str, chain_id: u64) -> Result<Vec<LendingRate>> {
         let client = Client::new();
 
         let variables = vaults_v1_query::Variables {
             first: 5,
-            chain_id: chain_id,
+            chain_id: chain_id as i64,
             asset: token.to_string(),
         };
         let body = VaultsV1Query::build_query(variables);
@@ -42,6 +38,17 @@ impl MorphoApi {
         let response: Response<vaults_v1_query::ResponseData> = res.json().await?;
         let vaults = response.data.unwrap().vaults.items.unwrap();
 
-        Ok(vaults)
+        let mut rates: Vec<LendingRate> = Vec::new();
+
+        for vault in vaults.iter() {
+            rates.push(LendingRate {
+                apy: vault.state.as_ref().unwrap().apy,
+                protocol: "Morpho".to_string(),
+                token: token.to_string(),
+                vault_name: vault.name.clone(),
+            });
+        }
+
+        Ok(rates)
     }
 }

@@ -12,7 +12,7 @@ pub async fn handle_lend_cmd(cmd: LendCommand) {
 async fn show_pools(cmd: ShowArgs) {
     let loan_port = LoanPortfolio::load(&cmd.json_file);
 
-    let _ = loan_port.get_token_pools().await;
+    let _ = loan_port.get_token_pools().await.unwrap();
 }
 
 async fn get_user_data(cmd: BalArgs) {

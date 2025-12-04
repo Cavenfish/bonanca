@@ -1,4 +1,5 @@
 pub mod defi;
+pub mod lending_oracle;
 
 use anyhow::Result;
 use bonanca_core::traits::{Exchange, Oracle};

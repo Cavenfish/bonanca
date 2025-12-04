@@ -8,10 +8,7 @@ use alloy::{
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_core::traits::Bank;
-use bonanca_keyvault::new;
 use std::str::FromStr;
-
-use crate::evm::aave::DataTypes::ReserveDataLegacy;
 
 sol! {
     #[allow(missing_docs)]
@@ -158,12 +155,12 @@ impl AaveV3 {
         Self { user, pool, client }
     }
 
-    async fn get_pools(&self) -> Result<Vec<ReserveDataLegacy>> {
+    async fn get_pools(&self) -> Result<Vec<DataTypes::ReserveDataLegacy>> {
         let pool = PoolV3::new(self.pool, &self.client);
 
         let reserves = pool.getReservesList().call().await?;
 
-        let mut reserve_data: Vec<ReserveDataLegacy> = Vec::new();
+        let mut reserve_data: Vec<DataTypes::ReserveDataLegacy> = Vec::new();
 
         for reserve_address in reserves.iter() {
             let data = pool.getReserveData(*reserve_address).call().await?;

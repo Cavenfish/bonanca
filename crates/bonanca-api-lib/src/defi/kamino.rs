@@ -3,6 +3,8 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::fmt;
 
+use crate::lending_oracle::LendingRate;
+
 pub struct KaminoApi {
     base_url: String,
 }
@@ -27,6 +29,40 @@ impl KaminoApi {
             .await?;
 
         Ok(resp)
+    }
+
+    pub async fn get_vault_metrics(&self, vault: &str) -> Result<VaultMetrics> {
+        let client = Client::new();
+        let url = format!("{}/kvaults/vaults/{}/metrics", &self.base_url, vault);
+
+        let resp = client
+            .get(&url)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<VaultMetrics>()
+            .await?;
+
+        Ok(resp)
+    }
+
+    pub async fn get_token_rates(&self, token: &str) -> Result<Vec<LendingRate>> {
+        let mut rates: Vec<LendingRate> = Vec::new();
+
+        let vaults = self.get_all_kvaults().await?;
+
+        for vault in vaults.iter().find(|v| v.state.name.contains(token)).iter() {
+            let metrics = self.get_vault_metrics(&vault.address).await?;
+
+            rates.push(LendingRate {
+                apy: metrics.apy.parse()?,
+                protocol: "Kamino".to_string(),
+                token: token.to_string(),
+                vault_name: vault.state.name.clone(),
+            });
+        }
+
+        Ok(rates)
     }
 
     pub async fn get_user_data(&self, user: &str) -> Result<Vec<KVaultPosition>> {
@@ -119,4 +155,43 @@ impl fmt::Display for KVaultPosition {
         writeln!(f, "Unstaked Shares: {}", self.unstaked_shares)?;
         writeln!(f, "Total Shares: {}", self.total_shares)
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultMetrics {
+    pub apy_7d: String,
+    pub apy_24h: String,
+    pub apy_30d: String,
+    pub apy_90d: String,
+    pub apy_180d: String,
+    pub apy_365d: String,
+    pub token_price: String,
+    pub sol_price: String,
+    pub tokens_available: String,
+    pub tokens_available_usd: String,
+    pub tokens_invested: String,
+    pub tokens_invested_usd: String,
+    pub share_price: String,
+    pub tokens_per_share: String,
+    pub apy: String,
+    pub apy_theoretical: String,
+    pub apy_actual: String,
+    pub apy_farm_rewards: String,
+    pub apy_incentives: String,
+    pub apy_reserves_incentives: String,
+    pub number_of_holders: u64,
+    pub shares_issued: String,
+    pub cumulative_interest_earned: String,
+    pub cumulative_interest_earned_usd: String,
+    pub cumulative_interest_earned_sol: String,
+    pub interest_earned_per_second: String,
+    pub interest_earned_per_second_usd: String,
+    pub interest_earned_per_second_sol: String,
+    pub cumulative_performance_fees: String,
+    pub cumulative_performance_fees_usd: String,
+    pub cumulative_performance_fees_sol: String,
+    pub cumulative_management_fees: String,
+    pub cumulative_management_fees_usd: String,
+    pub cumulative_management_fees_sol: String,
 }

@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::defi::{aave::AaveApi, morpho::MorphoApi};
+use crate::defi::{aave::AaveApi, kamino::KaminoApi, morpho::MorphoApi};
 
 pub struct LendingRate {
     pub apy: f64,
@@ -26,6 +26,11 @@ pub async fn get_lending_rates(
             "Morpho" => {
                 let api = MorphoApi::new();
                 let mut tmp = api.query_vaults_v1(token, chain_id).await?;
+                rates.append(&mut tmp);
+            }
+            "Kamino" => {
+                let api = KaminoApi::new();
+                let mut tmp = api.get_token_rates(token).await?;
                 rates.append(&mut tmp);
             }
             _ => panic!(),

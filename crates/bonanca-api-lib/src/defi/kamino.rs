@@ -51,7 +51,7 @@ impl KaminoApi {
 
         let vaults = self.get_all_kvaults().await?;
 
-        for vault in vaults.iter().find(|v| v.state.name.contains(token)).iter() {
+        for vault in vaults.iter().filter(|v| v.state.name.contains(token)) {
             let metrics = self.get_vault_metrics(&vault.address).await?;
 
             rates.push(LendingRate {

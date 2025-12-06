@@ -63,6 +63,20 @@ impl IndexFund {
         (rpc_url, keyvault)
     }
 
+    fn get_api_key(&self, name: &str, maybe_key: Option<String>) -> String {
+        match maybe_key {
+            Some(api_key) => api_key,
+            None => self
+                .config
+                .api_keys
+                .iter()
+                .find(|a| a.name == name)
+                .unwrap()
+                .key
+                .clone(),
+        }
+    }
+
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
         let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
         get_wallet(&self.chain, &keyvault, &rpc_url, self.child)
@@ -74,21 +88,15 @@ impl IndexFund {
     }
 
     pub fn get_oracle(&self) -> Result<Box<dyn Oracle>> {
-        get_oracle(
-            &self.oracle.name,
-            &self.oracle.api_url,
-            &self.oracle.api_key,
-        )
+        let api_key = self.get_api_key(&self.oracle.name, self.oracle.api_key.clone());
+
+        get_oracle(&self.oracle.name, api_key)
     }
 
     pub fn get_exchange(&self) -> Result<Box<dyn Exchange>> {
+        let api_key = self.get_api_key(&self.aggregator.name, self.aggregator.api_key.clone());
         let chain_id = self.config.get_default_chain_id(&self.chain);
-        get_exchange(
-            &self.aggregator.name,
-            &self.aggregator.api_url,
-            &self.aggregator.api_key,
-            chain_id,
-        )
+        get_exchange(&self.aggregator.name, api_key, chain_id)
     }
 
     pub fn get_all_assets(&self) -> Result<Vec<Asset>> {
@@ -198,7 +206,6 @@ impl IndexFund {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ApiInfo {
     pub name: String,
-    pub api_url: String,
     pub api_key: Option<String>,
 }
 

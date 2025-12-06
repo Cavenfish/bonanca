@@ -18,9 +18,11 @@ pub struct Jupiter {
 }
 
 impl Jupiter {
-    pub fn new(base_url: String, key: Option<String>) -> Self {
-        let api_key = key.unwrap_or("".to_string());
-        Self { base_url, api_key }
+    pub fn new(api_key: String) -> Self {
+        Self {
+            base_url: "https://api.jup.ag".to_string(),
+            api_key,
+        }
     }
 
     pub async fn get_ultra_order(

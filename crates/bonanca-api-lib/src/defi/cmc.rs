@@ -10,9 +10,11 @@ pub struct CoinMarketCap {
 }
 
 impl CoinMarketCap {
-    pub fn new(base_url: String, key: Option<String>) -> Self {
-        let api_key = key.unwrap();
-        Self { base_url, api_key }
+    pub fn new(api_key: String) -> Self {
+        Self {
+            base_url: "https://pro-api.coinmarketcap.com".to_string(),
+            api_key,
+        }
     }
 
     pub async fn get_price_quote(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {

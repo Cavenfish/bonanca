@@ -10,8 +10,10 @@ pub struct DefiLlama {
 }
 
 impl DefiLlama {
-    pub fn new(base_url: String) -> Self {
-        Self { base_url }
+    pub fn new() -> Self {
+        Self {
+            base_url: "https://coins.llama.fi".to_string(),
+        }
     }
 
     pub async fn get_price_quote(&self, chain: &str, address: &str) -> Result<LlamaPrice> {

@@ -17,10 +17,9 @@ pub struct ZeroX {
 }
 
 impl ZeroX {
-    pub fn new(base_url: String, key: Option<String>, chain_id: u16) -> Self {
-        let api_key = key.unwrap();
+    pub fn new(api_key: String, chain_id: u16) -> Self {
         Self {
-            base_url,
+            base_url: "https://api.0x.org".to_string(),
             api_key,
             chain_id,
         }

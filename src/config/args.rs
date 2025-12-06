@@ -17,6 +17,12 @@ pub enum ConfigSubcommands {
 
     /// Update existing chain information
     UpdateChainInfo(ChainInfoArgs),
+
+    /// Add new api information
+    AddApiKey(ApiKeyArgs),
+
+    /// Update existing api information
+    UpdateApiKey(ApiKeyArgs),
 }
 
 #[derive(Debug, Args)]
@@ -38,4 +44,13 @@ pub struct ChainInfoArgs {
 
     /// Chain id (EVM only)
     pub chain_id: Option<u16>,
+}
+
+#[derive(Debug, Args)]
+pub struct ApiKeyArgs {
+    /// API name
+    pub name: String,
+
+    /// API key
+    pub key: String,
 }

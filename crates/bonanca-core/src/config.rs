@@ -6,12 +6,13 @@ use std::{
 };
 
 use dirs::data_dir;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub keyvault: PathBuf,
     pub chains_info: Vec<ChainInfo>,
+    pub api_keys: Vec<ApiKey>,
 }
 
 impl Config {
@@ -37,6 +38,12 @@ impl Config {
         new.write();
     }
 
+    pub fn add_api_key(&self, api_key: ApiKey) {
+        let mut new = self.clone();
+        new.api_keys.push(api_key);
+        new.write();
+    }
+
     pub fn update_chain_info(&self, chain_info: ChainInfo) {
         let mut new = self.clone();
 
@@ -53,6 +60,21 @@ impl Config {
         }
 
         new.chains_info.push(chain_info);
+        new.write();
+    }
+
+    pub fn update_api_key(&self, api_key: ApiKey) {
+        let mut new = self.clone();
+
+        if let Some(pos) = new.api_keys.iter().position(|c| c.name == api_key.name) {
+            new.chains_info.remove(pos);
+        } else {
+            println!("No existing API with name \"{}\" found", api_key.name);
+            println!("\nCheck for typos, or consider adding the new chain");
+            return;
+        }
+
+        new.api_keys.push(api_key);
         new.write();
     }
 
@@ -127,6 +149,7 @@ impl Default for Config {
         Self {
             keyvault,
             chains_info: vec![eth_info],
+            api_keys: vec![],
         }
     }
 }
@@ -137,4 +160,40 @@ pub struct ChainInfo {
     pub rpc_url: String,
     pub wrapped_native: String,
     pub chain_id: Option<u16>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ApiKey {
+    pub name: String,
+    #[serde(serialize_with = "ser_api_key", deserialize_with = "de_api_key")]
+    pub key: String,
+}
+
+fn de_api_key<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let obfuscated: String = Deserialize::deserialize(deserializer)?;
+
+    let n = obfuscated.char_indices().count() / 2;
+
+    let (first, second) = obfuscated.split_at(n);
+
+    let plain = second.to_string() + first;
+
+    Ok(plain)
+}
+
+fn ser_api_key<S>(plain: &str, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let c = plain.char_indices().count();
+    let n = c - (c / 2);
+
+    let (first, second) = plain.split_at(n);
+
+    let obfuscated = second.to_string() + first;
+
+    obfuscated.serialize(serializer)
 }

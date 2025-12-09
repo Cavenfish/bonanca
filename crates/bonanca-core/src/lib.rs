@@ -1,3 +1,4 @@
+pub mod cashflows;
 pub mod config;
 pub mod holdings;
 pub mod traits;

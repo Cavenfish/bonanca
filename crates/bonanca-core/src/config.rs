@@ -85,15 +85,13 @@ impl Config {
     }
 
     pub fn get_default_chain_rpc(&self, chain: &str) -> String {
-        let config = Config::load();
         let name = if chain.contains(":") {
             chain.split(":").last().unwrap()
         } else {
             chain
         };
 
-        config
-            .chains_info
+        self.chains_info
             .iter()
             .find(|c| c.name == name)
             .unwrap()
@@ -102,15 +100,13 @@ impl Config {
     }
 
     pub fn get_default_chain_id(&self, chain: &str) -> Option<u16> {
-        let config = Config::load();
         let name = if chain.contains(":") {
             chain.split(":").last().unwrap()
         } else {
             chain
         };
 
-        config
-            .chains_info
+        self.chains_info
             .iter()
             .find(|c| c.name == name)
             .unwrap()
@@ -118,19 +114,26 @@ impl Config {
     }
 
     pub fn get_default_wrapped_native(&self, chain: &str) -> String {
-        let config = Config::load();
         let name = if chain.contains(":") {
             chain.split(":").last().unwrap()
         } else {
             chain
         };
 
-        config
-            .chains_info
+        self.chains_info
             .iter()
             .find(|c| c.name == name)
             .unwrap()
             .wrapped_native
+            .clone()
+    }
+
+    pub fn get_default_api_key(&self, api_name: &str) -> String {
+        self.api_keys
+            .iter()
+            .find(|a| a.name == api_name)
+            .unwrap()
+            .key
             .clone()
     }
 }

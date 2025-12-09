@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use solana_sdk::signature::Keypair;
 use solana_sdk::transaction::VersionedTransaction;
 
+use crate::cashflows::CashFlow;
+
 use super::holdings::Asset;
 
 pub enum SwapTransactionData {
@@ -28,6 +30,8 @@ pub trait Wallet {
     async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64>;
 
     async fn close(&self, to: &str) -> Result<()>;
+
+    async fn get_history(&self) -> Result<CashFlow>;
 
     async fn balance(&self) -> Result<f64>;
 

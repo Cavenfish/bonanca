@@ -12,11 +12,15 @@ use alloy_primitives::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
+use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
+use bonanca_core::{
+    cashflows::{CashFlow, NativeFlow, TokenFlow},
+    config::Config,
+    traits::{CryptoSigners, SwapTransactionData, Wallet},
+};
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
-
-use bonanca_core::traits::{CryptoSigners, SwapTransactionData, Wallet};
 
 // ABI for smart contracts
 sol! {
@@ -83,6 +87,68 @@ impl Wallet for EvmWallet {
         let _ = self.transfer(to, bal - (total_fees * 1.02)).await?;
 
         Ok(())
+    }
+
+    async fn get_history(&self) -> Result<CashFlow> {
+        let config = Config::load();
+        let api_key = config.get_default_api_key("Etherscan");
+        let chain_id = self.client.get_chain_id().await?;
+        let pubkey = &self.pubkey.to_string();
+
+        let ethscan = EtherscanApi::new(api_key);
+        let native_history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
+
+        let mut native_flows: Vec<NativeFlow> = Vec::new();
+
+        for trans in native_history.iter().filter(|f| &f.value != "0") {
+            let value: f64 = if &trans.to == pubkey {
+                trans.value.parse()?
+            } else if &trans.from == pubkey {
+                let number: f64 = trans.value.parse()?;
+                number * -1.0
+            } else {
+                continue;
+            };
+
+            native_flows.push(NativeFlow {
+                block: trans.block_number.parse()?,
+                timestamp: trans.time_stamp.clone(),
+                value: value,
+                gas_used: trans.gas_used.parse()?,
+            });
+        }
+
+        let token_history = ethscan
+            .get_token_history(chain_id, &self.pubkey.to_string(), 1)
+            .await?;
+
+        let mut token_flows: Vec<TokenFlow> = Vec::new();
+
+        for trans in token_history.iter().filter(|f| &f.value != "0") {
+            let value: f64 = if &trans.to == pubkey {
+                trans.value.parse()?
+            } else if &trans.from == pubkey {
+                let number: f64 = trans.value.parse()?;
+                number * -1.0
+            } else {
+                continue;
+            };
+
+            token_flows.push(TokenFlow {
+                block: trans.block_number.parse()?,
+                timestamp: trans.time_stamp.clone(),
+                token: trans.token_symbol.clone(),
+                value: value,
+                gas_used: trans.gas_used.parse()?,
+            });
+        }
+
+        let flows = CashFlow {
+            native: native_flows,
+            tokens: token_flows,
+        };
+
+        Ok(flows)
     }
 
     async fn balance(&self) -> Result<f64> {

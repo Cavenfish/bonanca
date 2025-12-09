@@ -20,6 +20,9 @@ pub enum WalletSubcommands {
 
     /// Transfer token
     Transfer(TransferArgs),
+
+    /// History
+    History(BalanceArgs),
 }
 
 #[derive(Debug, Args)]

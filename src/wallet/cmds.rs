@@ -14,6 +14,7 @@ pub async fn handle_wallet_cmd(cmd: WalletCommand) {
         WalletSubcommands::Add(cmd) => add_pubkey(cmd).unwrap(),
         WalletSubcommands::Balance(cmd) => balance(cmd).await,
         WalletSubcommands::Transfer(cmd) => transfer(cmd).await,
+        WalletSubcommands::History(cmd) => history(cmd).await,
     };
 }
 
@@ -113,5 +114,31 @@ async fn transfer(cmd: TransferArgs) {
         None => {
             wallet.transfer(&cmd.to, cmd.amount).await.unwrap();
         }
+    }
+}
+
+async fn history(cmd: BalanceArgs) {
+    let config = Config::load();
+
+    let name = cmd.chain.split(":").last().unwrap();
+
+    let rpc_url = config.get_default_chain_rpc(name);
+
+    let keyvault = match cmd.keyvault {
+        Some(fname) => fname,
+        None => config.keyvault,
+    };
+
+    let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
+
+    let flows = wallet.get_history().await.unwrap();
+
+    for flow in flows.native.iter() {
+        println!("Value: {}", flow.value);
+    }
+
+    for flow in flows.tokens.iter() {
+        println!("Token: {}", flow.token);
+        println!("Value: {}", flow.value);
     }
 }

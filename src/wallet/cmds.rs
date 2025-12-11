@@ -134,11 +134,10 @@ async fn history(cmd: BalanceArgs) {
     let flows = wallet.get_history().await.unwrap();
 
     for flow in flows.native.iter() {
-        println!("Value: {}", flow.value);
+        println!("Native Transfer of {} tokens", flow.value);
     }
 
     for flow in flows.tokens.iter() {
-        println!("Token: {}", flow.token);
-        println!("Value: {}", flow.value);
+        println!("Token Transfer of {} {}", flow.value, flow.token);
     }
 }

@@ -1,6 +1,7 @@
 use core::panic;
 
 use anyhow::Result;
+use bonanca_core::cashflows::{NativeFlow, TokenFlow};
 use reqwest::Client;
 use serde::Deserialize;
 
@@ -66,6 +67,44 @@ impl EtherscanApi {
         match resp.result {
             EtherscanResult::Native(_) => panic!(),
             EtherscanResult::Token(res) => Ok(res),
+        }
+    }
+}
+
+impl From<EtherscanTransaction> for NativeFlow {
+    fn from(trans: EtherscanTransaction) -> Self {
+        let big_value: f64 = trans.value.parse().unwrap();
+        let big_gas: f64 = trans.gas_used.parse().unwrap();
+        let value = big_value / 1e18;
+        let gas_used = big_gas / 1e18;
+
+        NativeFlow {
+            block: trans.block_number.parse().unwrap(),
+            timestamp: trans.time_stamp,
+            to: trans.to,
+            from: trans.from,
+            value,
+            gas_used,
+        }
+    }
+}
+
+impl From<EtherscanTokenTransaction> for TokenFlow {
+    fn from(trans: EtherscanTokenTransaction) -> Self {
+        let big_value: f64 = trans.value.parse().unwrap();
+        let big_gas: f64 = trans.gas_used.parse().unwrap();
+        let decimal: i32 = trans.token_decimal.parse().unwrap();
+        let value = big_value / 10.0_f64.powi(decimal);
+        let gas_used = big_gas / 1e18;
+
+        TokenFlow {
+            block: trans.block_number.parse().unwrap(),
+            timestamp: trans.time_stamp,
+            token: trans.token_symbol,
+            to: trans.to,
+            from: trans.from,
+            value,
+            gas_used,
         }
     }
 }

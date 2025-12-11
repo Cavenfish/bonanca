@@ -100,23 +100,10 @@ impl Wallet for EvmWallet {
 
         let mut native_flows: Vec<NativeFlow> = Vec::new();
 
-        for trans in native_history.iter().filter(|f| &f.value != "0") {
-            let value: f64 = if &trans.to == pubkey {
-                trans.value.parse()?
-            } else if &trans.from == pubkey {
-                let number: f64 = trans.value.parse()?;
-                number * -1.0
-            } else {
-                continue;
-            };
-
-            native_flows.push(NativeFlow {
-                block: trans.block_number.parse()?,
-                timestamp: trans.time_stamp.clone(),
-                value: value,
-                gas_used: trans.gas_used.parse()?,
-            });
-        }
+        native_history
+            .into_iter()
+            .filter(|f| &f.value != "0" && f.function_name.contains("transfer"))
+            .for_each(|t| native_flows.push(NativeFlow::from(t)));
 
         let token_history = ethscan
             .get_token_history(chain_id, &self.pubkey.to_string(), 1)
@@ -124,26 +111,13 @@ impl Wallet for EvmWallet {
 
         let mut token_flows: Vec<TokenFlow> = Vec::new();
 
-        for trans in token_history.iter().filter(|f| &f.value != "0") {
-            let value: f64 = if &trans.to == pubkey {
-                trans.value.parse()?
-            } else if &trans.from == pubkey {
-                let number: f64 = trans.value.parse()?;
-                number * -1.0
-            } else {
-                continue;
-            };
-
-            token_flows.push(TokenFlow {
-                block: trans.block_number.parse()?,
-                timestamp: trans.time_stamp.clone(),
-                token: trans.token_symbol.clone(),
-                value: value,
-                gas_used: trans.gas_used.parse()?,
-            });
-        }
+        token_history
+            .into_iter()
+            .filter(|f| &f.value != "0" && f.function_name.contains("transfer"))
+            .for_each(|t| token_flows.push(TokenFlow::from(t)));
 
         let flows = CashFlow {
+            pubkey: pubkey.to_string(),
             native: native_flows,
             tokens: token_flows,
         };

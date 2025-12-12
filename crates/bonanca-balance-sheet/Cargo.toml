@@ -1,0 +1,11 @@
+[package]
+name = "bonanca-balance-sheet"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bincode.workspace = true
+bonanca-api-lib = { path = "../bonanca-api-lib" }
+bonanca-core.workspace = true
+redb = "3.1.0"

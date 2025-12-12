@@ -1,7 +1,7 @@
-pub mod cashflows;
 pub mod config;
 pub mod holdings;
 pub mod traits;
+pub mod transactions;
 
 use dirs::data_dir;
 use std::fs::create_dir_all;

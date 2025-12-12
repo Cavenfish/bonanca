@@ -4,6 +4,7 @@ mod index;
 mod lend;
 mod wallet;
 
+use bonanca_balance_sheet::init_database;
 use bonanca_core::init_config;
 use clap::Parser;
 
@@ -18,6 +19,7 @@ use crate::{
 #[tokio::main]
 async fn main() {
     init_config();
+    init_database();
 
     let args = Bonanca::parse();
 

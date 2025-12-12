@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bonanca_core::{
-    cashflows::{CashFlow, NativeFlow},
     traits::{CryptoSigners, SwapTransactionData, Wallet},
+    transactions::Txn,
 };
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -67,8 +67,8 @@ impl Wallet for SolWallet {
         Ok(())
     }
 
-    async fn get_history(&self) -> Result<CashFlow> {
-        let tmp = CashFlow::new();
+    async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
+        let tmp = Vec::new();
 
         Ok(tmp)
     }

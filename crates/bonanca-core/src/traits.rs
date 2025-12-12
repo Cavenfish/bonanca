@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use solana_sdk::signature::Keypair;
 use solana_sdk::transaction::VersionedTransaction;
 
-use crate::cashflows::CashFlow;
+use crate::transactions::Txn;
 
 use super::holdings::Asset;
 
@@ -31,7 +31,7 @@ pub trait Wallet {
 
     async fn close(&self, to: &str) -> Result<()>;
 
-    async fn get_history(&self) -> Result<CashFlow>;
+    async fn get_history(&self) -> Result<Vec<(String, Txn)>>;
 
     async fn balance(&self) -> Result<f64>;
 

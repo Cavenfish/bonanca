@@ -11,6 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub keyvault: PathBuf,
+    pub database: PathBuf,
     pub chains_info: Vec<ChainInfo>,
     pub api_keys: Vec<ApiKey>,
 }
@@ -141,6 +142,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         let keyvault = data_dir().unwrap().join("bonanca/keyvault.json");
+        let database = data_dir().unwrap().join("bonanca/balance_sheet.redb");
 
         let eth_info = ChainInfo {
             name: "Ethereum".to_string(),
@@ -151,6 +153,7 @@ impl Default for Config {
 
         Self {
             keyvault,
+            database,
             chains_info: vec![eth_info],
             api_keys: vec![],
         }

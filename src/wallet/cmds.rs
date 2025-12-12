@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bonanca_balance_sheet::db::{read_txns, write_txns};
 use bonanca_core::config::Config;
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
@@ -131,13 +132,17 @@ async fn history(cmd: BalanceArgs) {
 
     let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
 
-    let flows = wallet.get_history().await.unwrap();
+    let txns = wallet.get_history().await.unwrap();
 
-    for flow in flows.native.iter() {
-        println!("Native Transfer of {} tokens", flow.value);
-    }
+    write_txns(&config.database, &cmd.chain, txns).unwrap();
 
-    for flow in flows.tokens.iter() {
-        println!("Token Transfer of {} {}", flow.value, flow.token);
+    let new_txns = read_txns(&config.database, &cmd.chain).unwrap();
+
+    for (hash, txn) in new_txns.iter() {
+        println!("Hash: {}", hash);
+        println!("Pubkey: {}", txn.pubkey);
+        println!("Block: {}", txn.block);
+        println!("Timestamp: {}", txn.timestamp);
+        println!("Gas Used: {}", txn.gas_used);
     }
 }

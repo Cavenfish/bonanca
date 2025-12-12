@@ -1,7 +1,7 @@
 use core::panic;
 
 use anyhow::Result;
-use bonanca_core::cashflows::{NativeFlow, TokenFlow};
+use bonanca_core::transactions::{CryptoOperation, CryptoTransfer, EvmApprove, Txn};
 use reqwest::Client;
 use serde::Deserialize;
 
@@ -23,7 +23,7 @@ impl EtherscanApi {
         chain_id: u64,
         pubkey: &str,
         start_block: u64,
-    ) -> Result<Vec<EtherscanTransaction>> {
+    ) -> Result<Vec<(String, Txn)>> {
         let client = Client::new();
         let url = format!(
             "{}?apiKey={}&chainid={}&address={}&startblock={}&module=account&action=txlist",
@@ -38,10 +38,17 @@ impl EtherscanApi {
             .json::<EtherscanResponse>()
             .await?;
 
-        match resp.result {
-            EtherscanResult::Native(res) => Ok(res),
+        let results = match resp.result {
+            EtherscanResult::Native(res) => res,
             EtherscanResult::Token(_) => panic!(),
-        }
+        };
+
+        let txns = results
+            .into_iter()
+            .map(|r| (r.hash.clone(), r.make_txn(pubkey).unwrap()))
+            .collect();
+
+        Ok(txns)
     }
 
     pub async fn get_token_history(
@@ -49,7 +56,7 @@ impl EtherscanApi {
         chain_id: u64,
         pubkey: &str,
         start_block: u64,
-    ) -> Result<Vec<EtherscanTokenTransaction>> {
+    ) -> Result<Vec<(String, Txn)>> {
         let client = Client::new();
         let url = format!(
             "{}?apiKey={}&chainid={}&address={}&startblock={}&module=account&action=tokentx",
@@ -64,48 +71,17 @@ impl EtherscanApi {
             .json::<EtherscanResponse>()
             .await?;
 
-        match resp.result {
+        let results = match resp.result {
             EtherscanResult::Native(_) => panic!(),
-            EtherscanResult::Token(res) => Ok(res),
-        }
-    }
-}
+            EtherscanResult::Token(res) => res,
+        };
 
-impl From<EtherscanTransaction> for NativeFlow {
-    fn from(trans: EtherscanTransaction) -> Self {
-        let big_value: f64 = trans.value.parse().unwrap();
-        let big_gas: f64 = trans.gas_used.parse().unwrap();
-        let value = big_value / 1e18;
-        let gas_used = big_gas / 1e18;
+        let txns = results
+            .into_iter()
+            .map(|r| (r.hash.clone(), r.make_txn(pubkey).unwrap()))
+            .collect();
 
-        NativeFlow {
-            block: trans.block_number.parse().unwrap(),
-            timestamp: trans.time_stamp,
-            to: trans.to,
-            from: trans.from,
-            value,
-            gas_used,
-        }
-    }
-}
-
-impl From<EtherscanTokenTransaction> for TokenFlow {
-    fn from(trans: EtherscanTokenTransaction) -> Self {
-        let big_value: f64 = trans.value.parse().unwrap();
-        let big_gas: f64 = trans.gas_used.parse().unwrap();
-        let decimal: i32 = trans.token_decimal.parse().unwrap();
-        let value = big_value / 10.0_f64.powi(decimal);
-        let gas_used = big_gas / 1e18;
-
-        TokenFlow {
-            block: trans.block_number.parse().unwrap(),
-            timestamp: trans.time_stamp,
-            token: trans.token_symbol,
-            to: trans.to,
-            from: trans.from,
-            value,
-            gas_used,
-        }
+        Ok(txns)
     }
 }
 
@@ -149,6 +125,39 @@ pub struct EtherscanTransaction {
     pub function_name: String,
 }
 
+impl EtherscanTransaction {
+    pub fn make_txn(self, pubkey: &str) -> Result<Txn> {
+        let big_value: f64 = self.value.parse()?;
+        let big_gas: f64 = self.gas_used.parse()?;
+        let gas_price: f64 = self.gas_price.parse()?;
+        let gas_used: f64 = (big_gas * gas_price) / 1e18;
+        let amount = big_value / 1e18;
+
+        let operation: CryptoOperation = if self.method_id.as_str() == "0x" {
+            CryptoOperation::Transfer(CryptoTransfer {
+                token: "Native".to_string(),
+                amount,
+                from: self.from,
+                to: self.to,
+            })
+        } else if self.function_name.as_str() == "approve(address spender, uint256 rawAmount)" {
+            CryptoOperation::Approve(EvmApprove { token: self.to })
+        } else {
+            CryptoOperation::None
+        };
+
+        let txn = Txn {
+            pubkey: pubkey.to_string(),
+            block: self.block_number.parse()?,
+            timestamp: self.time_stamp.parse()?,
+            gas_used,
+            operation,
+        };
+
+        Ok(txn)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EtherscanTokenTransaction {
@@ -173,4 +182,38 @@ pub struct EtherscanTokenTransaction {
     pub method_id: String,
     pub function_name: String,
     pub confirmations: String,
+}
+
+impl EtherscanTokenTransaction {
+    pub fn make_txn(self, pubkey: &str) -> Result<Txn> {
+        let big_value: f64 = self.value.parse()?;
+        let big_gas: f64 = self.gas_used.parse()?;
+        let gas_price: f64 = self.gas_price.parse()?;
+        let decimal: i32 = self.token_decimal.parse()?;
+        let gas_used: f64 = (big_gas * gas_price) / 1e18;
+        let amount = big_value / 10.0_f64.powi(decimal);
+
+        // TODO
+        let operation: CryptoOperation =
+            if self.function_name.as_str() == "transfer(address dst, uint256 rawAmount)" {
+                CryptoOperation::Transfer(CryptoTransfer {
+                    token: self.token_symbol,
+                    amount,
+                    from: self.from,
+                    to: self.to,
+                })
+            } else {
+                CryptoOperation::None
+            };
+
+        let txn = Txn {
+            pubkey: pubkey.to_string(),
+            block: self.block_number.parse()?,
+            timestamp: self.time_stamp.parse()?,
+            gas_used,
+            operation,
+        };
+
+        Ok(txn)
+    }
 }

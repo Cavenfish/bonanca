@@ -14,9 +14,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
 use bonanca_core::{
-    cashflows::{CashFlow, NativeFlow, TokenFlow},
     config::Config,
     traits::{CryptoSigners, SwapTransactionData, Wallet},
+    transactions::Txn,
 };
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
@@ -89,40 +89,19 @@ impl Wallet for EvmWallet {
         Ok(())
     }
 
-    async fn get_history(&self) -> Result<CashFlow> {
+    async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
         let config = Config::load();
         let api_key = config.get_default_api_key("Etherscan");
         let chain_id = self.client.get_chain_id().await?;
         let pubkey = &self.pubkey.to_string();
 
         let ethscan = EtherscanApi::new(api_key);
-        let native_history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
+        let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
+        let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
 
-        let mut native_flows: Vec<NativeFlow> = Vec::new();
+        history.extend(token_history);
 
-        native_history
-            .into_iter()
-            .filter(|f| &f.value != "0" && f.function_name.contains("transfer"))
-            .for_each(|t| native_flows.push(NativeFlow::from(t)));
-
-        let token_history = ethscan
-            .get_token_history(chain_id, &self.pubkey.to_string(), 1)
-            .await?;
-
-        let mut token_flows: Vec<TokenFlow> = Vec::new();
-
-        token_history
-            .into_iter()
-            .filter(|f| &f.value != "0" && f.function_name.contains("transfer"))
-            .for_each(|t| token_flows.push(TokenFlow::from(t)));
-
-        let flows = CashFlow {
-            pubkey: pubkey.to_string(),
-            native: native_flows,
-            tokens: token_flows,
-        };
-
-        Ok(flows)
+        Ok(history)
     }
 
     async fn balance(&self) -> Result<f64> {

@@ -1,13 +1,15 @@
 use anyhow::Result;
 use bonanca_balance_sheet::db::{read_txns, write_txns};
-use bonanca_core::config::Config;
+use bonanca_core::{config::Config, transactions::CryptoOperation};
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
 use std::path::PathBuf;
 
 use crate::wallet::args::TransferArgs;
 
-use super::args::{AddArgs, BalanceArgs, CreateArgs, WalletCommand, WalletSubcommands};
+use super::args::{
+    AddArgs, BalanceArgs, CreateArgs, HistoryArgs, WalletCommand, WalletSubcommands,
+};
 
 pub async fn handle_wallet_cmd(cmd: WalletCommand) {
     match cmd.command {
@@ -118,31 +120,38 @@ async fn transfer(cmd: TransferArgs) {
     }
 }
 
-async fn history(cmd: BalanceArgs) {
+async fn history(cmd: HistoryArgs) {
     let config = Config::load();
 
     let name = cmd.chain.split(":").last().unwrap();
 
-    let rpc_url = config.get_default_chain_rpc(name);
+    if cmd.sync {
+        let rpc_url = config.get_default_chain_rpc(name);
 
-    let keyvault = match cmd.keyvault {
-        Some(fname) => fname,
-        None => config.keyvault,
-    };
+        let keyvault = match cmd.keyvault {
+            Some(fname) => fname,
+            None => config.keyvault,
+        };
 
-    let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
+        let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
 
-    let txns = wallet.get_history().await.unwrap();
+        let txns = wallet.get_history().await.unwrap();
 
-    write_txns(&config.database, &cmd.chain, txns).unwrap();
+        write_txns(&config.database, &cmd.chain, cmd.child, txns).unwrap();
+    }
 
-    let new_txns = read_txns(&config.database, &cmd.chain).unwrap();
+    let txns = read_txns(&config.database, &cmd.chain, cmd.child).unwrap();
 
-    for (hash, txn) in new_txns.iter() {
-        println!("Hash: {}", hash);
-        println!("Pubkey: {}", txn.pubkey);
-        println!("Block: {}", txn.block);
-        println!("Timestamp: {}", txn.timestamp);
-        println!("Gas Used: {}", txn.gas_used);
+    for (hash, txn) in txns.iter() {
+        match &txn.operation {
+            CryptoOperation::Transfer(ops) => {
+                if ops.to == txn.pubkey.to_lowercase() {
+                    println!("Inflow of {} {}", ops.amount, ops.token);
+                } else {
+                    println!("Outflow of {} {}", ops.amount, ops.token);
+                }
+            }
+            _ => {}
+        }
     }
 }

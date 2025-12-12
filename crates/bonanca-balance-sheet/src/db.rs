@@ -1,6 +1,6 @@
-use std::any::type_name;
 use std::fmt::Debug;
 use std::path::Path;
+use std::{any::type_name, process::Child};
 
 use anyhow::Result;
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
@@ -17,10 +17,11 @@ pub fn create_db(db_file: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn write_txn(db_file: &Path, chain: &str, hash: &str, txn: Txn) -> Result<()> {
+pub fn write_txn(db_file: &Path, chain: &str, child: u32, hash: &str, txn: Txn) -> Result<()> {
     let db = Database::open(db_file)?;
     let write_txn = db.begin_write()?;
-    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(chain);
+    let table_name = format!("{}_{}", chain, child);
+    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
     {
         let mut table = write_txn.open_table(chain_table)?;
@@ -33,10 +34,11 @@ pub fn write_txn(db_file: &Path, chain: &str, hash: &str, txn: Txn) -> Result<()
     Ok(())
 }
 
-pub fn write_txns(db_file: &Path, chain: &str, txns: Vec<(String, Txn)>) -> Result<()> {
+pub fn write_txns(db_file: &Path, chain: &str, child: u32, txns: Vec<(String, Txn)>) -> Result<()> {
     let db = Database::open(db_file)?;
     let write_txn = db.begin_write()?;
-    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(chain);
+    let table_name = format!("{}_{}", chain, child);
+    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
     {
         let mut table = write_txn.open_table(chain_table)?;
@@ -51,9 +53,10 @@ pub fn write_txns(db_file: &Path, chain: &str, txns: Vec<(String, Txn)>) -> Resu
     Ok(())
 }
 
-pub fn read_txns(db_file: &Path, chain: &str) -> Result<Vec<(String, Txn)>> {
+pub fn read_txns(db_file: &Path, chain: &str, child: u32) -> Result<Vec<(String, Txn)>> {
     let db = Database::open(db_file)?;
-    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(chain);
+    let table_name = format!("{}_{}", chain, child);
+    let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
     let read_txn = db.begin_read()?;
     let table = read_txn.open_table(chain_table)?;

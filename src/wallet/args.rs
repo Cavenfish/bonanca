@@ -21,8 +21,8 @@ pub enum WalletSubcommands {
     /// Transfer token
     Transfer(TransferArgs),
 
-    /// History
-    History(BalanceArgs),
+    /// Get transaction history
+    History(HistoryArgs),
 }
 
 #[derive(Debug, Args)]
@@ -95,4 +95,23 @@ pub struct TransferArgs {
     /// To address
     #[arg(short)]
     pub to: String,
+}
+
+#[derive(Debug, Args)]
+pub struct HistoryArgs {
+    /// Keyvault file
+    #[arg(long)]
+    pub keyvault: Option<PathBuf>,
+
+    /// Chain to check balance
+    #[arg(short)]
+    pub chain: String,
+
+    /// Child index
+    #[arg(short = 'i')]
+    pub child: u32,
+
+    /// Sync first
+    #[arg(long, action)]
+    pub sync: bool,
 }

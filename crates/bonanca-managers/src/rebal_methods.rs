@@ -11,7 +11,7 @@ pub fn make_rebal_trades(bals: &IndexBalances, max_offset: f64) -> Result<Vec<Re
     for asset in &bals.balances {
         let bal = asset.value;
         let actual = bal / bals.total;
-        let diff = asset.target - actual;
+        let diff = actual - asset.target;
 
         addys.push(asset.addy.clone());
         diffs.push(diff);
@@ -48,14 +48,14 @@ pub fn make_rebal_trades(bals: &IndexBalances, max_offset: f64) -> Result<Vec<Re
                 continue;
             }
 
-            let frac = diff / actuals[small];
-            let amount = frac * amounts[small];
+            let frac = diff / actuals[big];
+            let amount = frac * amounts[big];
 
             trades.push(RebalTrade {
-                from: addys[small].clone(),
-                from_name: bals.balances[small].name.clone(),
-                to: addys[big].clone(),
-                to_name: bals.balances[big].name.clone(),
+                from: addys[big].clone(),
+                from_name: bals.balances[big].name.clone(),
+                to: addys[small].clone(),
+                to_name: bals.balances[small].name.clone(),
                 amount,
             });
 

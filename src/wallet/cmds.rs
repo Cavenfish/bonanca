@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bonanca_balance_sheet::db::{read_txns, write_txns};
+use bonanca_balance_sheet::db::{read_txns, write_txn, write_txns};
 use bonanca_core::{config::Config, transactions::CryptoOperation};
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
@@ -107,17 +107,15 @@ async fn transfer(cmd: TransferArgs) {
 
     let wallet = get_wallet(&cmd.chain, &keyvault, rpc_url, cmd.child).unwrap();
 
-    match cmd.token {
-        Some(token) => {
-            wallet
-                .transfer_token(&token, cmd.amount, &cmd.to)
-                .await
-                .unwrap();
-        }
-        None => {
-            wallet.transfer(&cmd.to, cmd.amount).await.unwrap();
-        }
-    }
+    let (hash, txn) = match cmd.token {
+        Some(token) => wallet
+            .transfer_token(&token, cmd.amount, &cmd.to)
+            .await
+            .unwrap(),
+        None => wallet.transfer(&cmd.to, cmd.amount).await.unwrap(),
+    };
+
+    write_txn(&config.database, &cmd.chain, cmd.child, &hash, txn).unwrap();
 }
 
 async fn history(cmd: HistoryArgs) {

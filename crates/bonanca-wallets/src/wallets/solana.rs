@@ -2,19 +2,20 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bonanca_core::{
     traits::{CryptoSigners, SwapTransactionData, Wallet},
-    transactions::Txn,
+    transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
-use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
+use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::UiTransactionEncoding};
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
+    signature::Signature,
     signer::{Signer, keypair::Keypair},
     transaction::Transaction,
 };
 use solana_system_interface::instruction::transfer;
-use std::path::Path;
+use std::{hash::Hash, path::Path};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
@@ -80,7 +81,7 @@ impl Wallet for SolWallet {
         Ok(bal)
     }
 
-    async fn transfer(&self, to: &str, amount: f64) -> Result<()> {
+    async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let lamp = self.parse_native_amount(amount)?;
@@ -91,13 +92,24 @@ impl Wallet for SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let _ = self
+        let sig = self
             .client
             .send_and_confirm_transaction(&trans)
             .await
             .unwrap();
 
-        Ok(())
+        let hash = sig.to_string();
+
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "SOL".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
     }
 
     async fn token_balance(&self, mint: &str) -> Result<f64> {
@@ -115,7 +127,7 @@ impl Wallet for SolWallet {
         Ok(bal)
     }
 
-    async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<()> {
+    async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<(String, Txn)> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
@@ -148,13 +160,24 @@ impl Wallet for SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let _ = self
+        let sig = self
             .client
             .send_and_confirm_transaction(&trans)
             .await
             .unwrap();
 
-        Ok(())
+        let hash = sig.to_string();
+
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "Native".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
     }
 
     async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<()> {
@@ -316,5 +339,24 @@ impl SolWallet {
         let addy = Pubkey::from_str_const(&token.pubkey);
 
         Ok(addy)
+    }
+
+    async fn make_txn_receipt(&self, operation: CryptoOperation, sig: Signature) -> Result<Txn> {
+        let data = self
+            .client
+            .get_transaction(&sig, UiTransactionEncoding::Json)
+            .await?;
+
+        let gas_used = (data.transaction.meta.unwrap().fee as f64) / 1e9;
+
+        let txn = Txn {
+            pubkey: self.pubkey.to_string(),
+            block: data.slot,
+            timestamp: data.block_time.unwrap().try_into()?,
+            gas_used,
+            operation,
+        };
+
+        Ok(txn)
     }
 }

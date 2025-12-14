@@ -35,11 +35,11 @@ pub trait Wallet {
 
     async fn balance(&self) -> Result<f64>;
 
-    async fn transfer(&self, to: &str, amount: f64) -> Result<()>;
+    async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)>;
 
     async fn token_balance(&self, token: &str) -> Result<f64>;
 
-    async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<()>;
+    async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<(String, Txn)>;
 
     async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()>;
 

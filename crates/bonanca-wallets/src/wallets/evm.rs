@@ -1,7 +1,7 @@
 use alloy::{
     network::TransactionBuilder,
     providers::{DynProvider, Provider, ProviderBuilder},
-    rpc::types::TransactionRequest,
+    rpc::types::{TransactionReceipt, TransactionRequest},
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
     transports::http::reqwest::Url,
@@ -16,7 +16,7 @@ use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
 use bonanca_core::{
     config::Config,
     traits::{CryptoSigners, SwapTransactionData, Wallet},
-    transactions::Txn,
+    transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
@@ -112,21 +112,33 @@ impl Wallet for EvmWallet {
         Ok(fbal.parse()?)
     }
 
-    async fn transfer(&self, to: &str, amount: f64) -> Result<()> {
+    async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
         let to_addy = Address::from_str(to)?;
-
         let wei = parse_ether(&amount.to_string())?;
 
-        // Build transaction
         let tx = TransactionRequest::default()
             .with_from(self.pubkey)
             .with_to(to_addy)
             .with_value(wei);
 
-        // Send the transaction and wait for it to finish
-        let _ = self.client.send_transaction(tx).await?.watch().await?;
+        let sig = self
+            .client
+            .send_transaction(tx)
+            .await?
+            .get_receipt()
+            .await?;
+        let hash = sig.transaction_hash.to_string();
 
-        Ok(())
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "Native".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
     }
 
     async fn token_balance(&self, token: &str) -> Result<f64> {
@@ -144,21 +156,34 @@ impl Wallet for EvmWallet {
         Ok(bal.parse()?)
     }
 
-    async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<()> {
+    async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<(String, Txn)> {
         let to_addy = Address::from_str(to)?;
         let token_addy = Address::from_str(token)?;
 
-        // Load token contract and get decimals
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
-        // Format amount to send
         let amnt: Uint<256, 4> = parse_units(&amount.to_string(), deci)?.into();
 
-        // Send transaction
-        let _ = erc20.transfer(to_addy, amnt).send().await?.watch().await?;
+        let sig = erc20
+            .transfer(to_addy, amnt)
+            .send()
+            .await?
+            .get_receipt()
+            .await?;
 
-        Ok(())
+        let hash = sig.transaction_hash.to_string();
+
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "Token".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
     }
 
     async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
@@ -277,5 +302,34 @@ impl EvmWallet {
         let allow = format_units(value, deci)?;
 
         Ok(allow.parse()?)
+    }
+
+    async fn make_txn_receipt(
+        &self,
+        operation: CryptoOperation,
+        sig: TransactionReceipt,
+    ) -> Result<Txn> {
+        let block = self
+            .client
+            .get_block_by_number(alloy::eips::BlockNumberOrTag::Number(
+                sig.block_number.unwrap(),
+            ))
+            .await?
+            .unwrap();
+        let timestamp = block.header.timestamp;
+
+        let used = sig.gas_used as f64;
+        let price = sig.blob_gas_price.unwrap() as f64;
+        let gas_used = (used * price) / 1e18;
+
+        let txn = Txn {
+            pubkey: self.pubkey.to_string(),
+            block: sig.block_number.unwrap(),
+            timestamp,
+            gas_used,
+            operation,
+        };
+
+        Ok(txn)
     }
 }

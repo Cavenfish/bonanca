@@ -1,4 +1,5 @@
-use bonanca_core::config::{ApiKey, ChainInfo, Config};
+use bonanca_core::config::Config;
+use bonanca_db::{BonancaDB, ChainInfo};
 
 use super::args::{ApiKeyArgs, ChainInfoArgs, ConfigCommand, ConfigSubcommands, KeyVaultArgs};
 
@@ -6,10 +7,19 @@ pub async fn handle_config_cmd(cmd: ConfigCommand) {
     match cmd.command {
         ConfigSubcommands::UpdateKeyvault(cmd) => update_keyvault(cmd),
         ConfigSubcommands::AddChainInfo(cmd) => add_chain_info(cmd),
-        ConfigSubcommands::UpdateChainInfo(cmd) => update_chain_info(cmd),
         ConfigSubcommands::AddApiKey(cmd) => add_api_key(cmd),
-        ConfigSubcommands::UpdateApiKey(cmd) => update_api_key(cmd),
+        ConfigSubcommands::Show => print_config(),
     }
+}
+
+fn print_config() {
+    let config = Config::load();
+    println!("Keyvault: {}", config.keyvault.to_str().unwrap());
+
+    // config
+    //     .api_keys
+    //     .iter()
+    //     .for_each(|k| println!("{}: {}", k.name, k.key));
 }
 
 fn update_keyvault(cmd: KeyVaultArgs) {
@@ -19,6 +29,9 @@ fn update_keyvault(cmd: KeyVaultArgs) {
 
 fn add_chain_info(cmd: ChainInfoArgs) {
     let config = Config::load();
+    let db = BonancaDB::new(&config.database);
+    let chain = cmd.name.clone();
+
     let chain_info = ChainInfo {
         name: cmd.name,
         rpc_url: cmd.rpc_url,
@@ -26,37 +39,12 @@ fn add_chain_info(cmd: ChainInfoArgs) {
         chain_id: cmd.chain_id,
     };
 
-    config.add_chain_info(chain_info);
-}
-
-fn update_chain_info(cmd: ChainInfoArgs) {
-    let config = Config::load();
-    let chain_info = ChainInfo {
-        name: cmd.name,
-        rpc_url: cmd.rpc_url,
-        wrapped_native: cmd.wrapped_native,
-        chain_id: cmd.chain_id,
-    };
-
-    config.update_chain_info(chain_info);
+    db.write_chain_info(&chain, chain_info).unwrap();
 }
 
 fn add_api_key(cmd: ApiKeyArgs) {
     let config = Config::load();
-    let api_key = ApiKey {
-        name: cmd.name,
-        key: cmd.key,
-    };
+    let db = BonancaDB::new(&config.database);
 
-    config.add_api_key(api_key);
-}
-
-fn update_api_key(cmd: ApiKeyArgs) {
-    let config = Config::load();
-    let api_key = ApiKey {
-        name: cmd.name,
-        key: cmd.key,
-    };
-
-    config.update_api_key(api_key);
+    db.add_api_key(&cmd.name, &cmd.key);
 }

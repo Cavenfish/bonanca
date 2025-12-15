@@ -1,4 +1,5 @@
 use anyhow::{Ok, Result};
+use bonanca_db::BonancaDB;
 use bonanca_managers::index_fund::IndexFund;
 
 use super::args::{BalArgs, CloseArgs, InOutArgs, IndexCommand, IndexSubcommands, RebalArgs};
@@ -107,6 +108,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 
 pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
+    let db = BonancaDB::load();
 
     let dex = fund.get_exchange()?;
     let wallet = fund.get_wallet()?;
@@ -118,7 +120,7 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
     let aux_assets = fund.auxiliary_assets.unwrap();
 
     let to = if cmd.token == "gas" {
-        &fund.config.get_default_wrapped_native(&fund.chain)
+        &db.read_chain_info(&fund.chain)?.wrapped_native
     } else {
         &aux_assets
             .iter()

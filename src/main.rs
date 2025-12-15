@@ -4,8 +4,8 @@ mod index;
 mod lend;
 mod wallet;
 
-use bonanca_balance_sheet::init_database;
 use bonanca_core::init_config;
+use bonanca_db::init_database;
 use clap::Parser;
 
 use crate::{

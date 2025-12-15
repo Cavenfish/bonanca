@@ -1,6 +1,6 @@
 use anyhow::Result;
-use bonanca_balance_sheet::db::{read_txns, write_txn, write_txns};
 use bonanca_core::{config::Config, transactions::CryptoOperation};
+use bonanca_db::BonancaDB;
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
 use std::path::PathBuf;
@@ -59,20 +59,14 @@ fn add_pubkey(cmd: AddArgs) -> Result<()> {
 
 async fn balance(cmd: BalanceArgs) {
     let config = Config::load();
+    let db = BonancaDB::new(&config.database);
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,
         None => config.keyvault,
     };
 
-    let name = cmd.chain.split(":").last().unwrap();
-
-    let rpc_url = &config
-        .chains_info
-        .iter()
-        .find(|c| c.name == name)
-        .unwrap()
-        .rpc_url;
+    let rpc_url = &db.read_chain_info(&cmd.chain).unwrap().rpc_url;
 
     let wallet = get_wallet_view(&cmd.chain, &keyvault, rpc_url, cmd.child).unwrap();
 
@@ -90,6 +84,7 @@ async fn balance(cmd: BalanceArgs) {
 
 async fn transfer(cmd: TransferArgs) {
     let config = Config::load();
+    let db = BonancaDB::new(&config.database);
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,
@@ -98,12 +93,7 @@ async fn transfer(cmd: TransferArgs) {
 
     let name = cmd.chain.split(":").last().unwrap();
 
-    let rpc_url = &config
-        .chains_info
-        .iter()
-        .find(|c| c.name == name)
-        .unwrap()
-        .rpc_url;
+    let rpc_url = &db.read_chain_info(&cmd.chain).unwrap().rpc_url;
 
     let wallet = get_wallet(&cmd.chain, &keyvault, rpc_url, cmd.child).unwrap();
 
@@ -115,16 +105,17 @@ async fn transfer(cmd: TransferArgs) {
         None => wallet.transfer(&cmd.to, cmd.amount).await.unwrap(),
     };
 
-    write_txn(&config.database, &cmd.chain, cmd.child, &hash, txn).unwrap();
+    db.write_txn(&cmd.chain, cmd.child, &hash, txn).unwrap();
 }
 
 async fn history(cmd: HistoryArgs) {
     let config = Config::load();
+    let db = BonancaDB::new(&config.database);
 
     let name = cmd.chain.split(":").last().unwrap();
 
     if cmd.sync {
-        let rpc_url = config.get_default_chain_rpc(name);
+        let rpc_url = &db.read_chain_info(&cmd.chain).unwrap().rpc_url;
 
         let keyvault = match cmd.keyvault {
             Some(fname) => fname,
@@ -135,10 +126,10 @@ async fn history(cmd: HistoryArgs) {
 
         let txns = wallet.get_history().await.unwrap();
 
-        write_txns(&config.database, &cmd.chain, cmd.child, txns).unwrap();
+        db.write_txns(&cmd.chain, cmd.child, txns).unwrap();
     }
 
-    let txns = read_txns(&config.database, &cmd.chain, cmd.child).unwrap();
+    let txns = db.read_txns(&cmd.chain, cmd.child).unwrap();
 
     for (hash, txn) in txns.iter() {
         match &txn.operation {

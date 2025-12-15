@@ -9,5 +9,6 @@ bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-core.workspace = true
 bonanca-lending = { path = "../bonanca-lending" }
 bonanca-wallets = { path = "../bonanca-wallets" }
+bonanca-db = { path = "../bonanca-db" }
 serde.workspace = true
 serde_json.workspace = true

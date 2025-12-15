@@ -1,3 +1,9 @@
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+};
+
 use anyhow::Result;
 use bonanca_api_lib::lending_oracle::get_lending_rates;
 use bonanca_core::{
@@ -5,14 +11,10 @@ use bonanca_core::{
     get_default_config,
     traits::{Bank, Wallet},
 };
+use bonanca_db::BonancaDB;
 use bonanca_lending::{evm::aave::AaveV3, solana::kamino::KaminoVault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
 use serde::{Deserialize, Serialize};
-use std::{
-    fs::File,
-    io::BufReader,
-    path::{Path, PathBuf},
-};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LoanPortfolio {
@@ -36,29 +38,51 @@ impl LoanPortfolio {
         port
     }
 
-    fn get_rpc_and_keyvault(&self) -> (String, PathBuf) {
-        let rpc_url = if self.rpc_url.is_none() {
-            self.config.get_default_chain_rpc(&self.chain)
-        } else {
-            self.rpc_url.clone().unwrap()
+    fn get_keyvault(&self) -> Result<&PathBuf> {
+        let keyvault = match &self.keyvault {
+            Some(file) => file,
+            None => &self.config.keyvault,
         };
 
-        let keyvault = if self.keyvault.is_none() {
-            self.config.keyvault.clone()
-        } else {
-            self.keyvault.clone().unwrap()
-        };
+        Ok(keyvault)
+    }
 
-        (rpc_url, keyvault)
+    fn get_rpc_url(&self) -> Result<String> {
+        match &self.rpc_url {
+            Some(url) => Ok(url.clone()),
+            None => {
+                let db = BonancaDB::new(&self.config.database);
+                let info = db.read_chain_info(&self.chain)?;
+                Ok(info.rpc_url)
+            }
+        }
+    }
+
+    fn get_chain_id(&self) -> Result<Option<u16>> {
+        let db = BonancaDB::new(&self.config.database);
+        let info = db.read_chain_info(&self.chain)?;
+        Ok(info.chain_id)
+    }
+
+    fn get_api_key(&self, name: &str, maybe_key: Option<String>) -> Result<String> {
+        match maybe_key {
+            Some(api_key) => Ok(api_key),
+            None => {
+                let db = BonancaDB::new(&self.config.database);
+                db.get_api_key(name)
+            }
+        }
     }
 
     pub fn get_wallet(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        let keyvault = self.get_keyvault()?;
+        let rpc_url = self.get_rpc_url()?;
         get_wallet(&self.chain, &keyvault, &rpc_url, self.child)
     }
 
     pub fn get_wallet_view(&self) -> Result<Box<dyn Wallet + Send + Sync>> {
-        let (rpc_url, keyvault) = self.get_rpc_and_keyvault();
+        let keyvault = self.get_keyvault()?;
+        let rpc_url = self.get_rpc_url()?;
         get_wallet_view(&self.chain, &keyvault, &rpc_url, self.child)
     }
 

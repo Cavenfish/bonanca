@@ -28,7 +28,7 @@ bonanca-keyvault.workspace = true
 bonanca-lending = { path = "./crates/bonanca-lending" }
 bonanca-managers = { path = "./crates/bonanca-managers" }
 bonanca-wallets = { path = "./crates/bonanca-wallets" }
-bonanca-balance-sheet = { path = "./crates/bonanca-balance-sheet" }
+bonanca-db = { path = "./crates/bonanca-db" }
 clap = { version = "4.5.41", features = ["derive"] }
 serde.workspace = true
 serde_json.workspace = true

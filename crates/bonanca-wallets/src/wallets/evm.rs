@@ -18,6 +18,7 @@ use bonanca_core::{
     traits::{CryptoSigners, SwapTransactionData, Wallet},
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
+use bonanca_db::BonancaDB;
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
@@ -90,8 +91,8 @@ impl Wallet for EvmWallet {
     }
 
     async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-        let config = Config::load();
-        let api_key = config.get_default_api_key("Etherscan");
+        let db = BonancaDB::load();
+        let api_key = db.get_api_key("Etherscan")?;
         let chain_id = self.client.get_chain_id().await?;
         let pubkey = &self.pubkey.to_string();
 

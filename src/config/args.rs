@@ -12,17 +12,14 @@ pub enum ConfigSubcommands {
     /// Update default keyvault filename
     UpdateKeyvault(KeyVaultArgs),
 
-    /// Add new chain information
+    /// Add or update chain information
     AddChainInfo(ChainInfoArgs),
 
-    /// Update existing chain information
-    UpdateChainInfo(ChainInfoArgs),
-
-    /// Add new api information
+    /// Add or update api information
     AddApiKey(ApiKeyArgs),
 
-    /// Update existing api information
-    UpdateApiKey(ApiKeyArgs),
+    /// Show
+    Show,
 }
 
 #[derive(Debug, Args)]

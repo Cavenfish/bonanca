@@ -1,6 +1,6 @@
 mod utils;
 
-use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use bincode::{Decode, Encode};
@@ -24,27 +24,27 @@ pub struct ChainInfo {
 }
 
 pub struct BonancaDB {
-    pub db: Database,
+    pub filename: PathBuf,
 }
 
 impl BonancaDB {
     pub fn load() -> Self {
         let config = Config::load();
-        let db = Database::open(config.database).unwrap();
 
-        Self { db }
+        Self {
+            filename: config.database,
+        }
     }
 
-    pub fn new(filename: &Path) -> Self {
-        let db = Database::open(filename).expect("Couldn't open database file");
-
-        Self { db }
+    fn open(&self) -> Database {
+        Database::open(&self.filename).unwrap()
     }
 
     pub fn get_api_key(&self, name: &str) -> Result<String> {
+        let db = self.open();
         let api_table: TableDefinition<&str, &str> = TableDefinition::new("API Keys");
 
-        let read_txn = self.db.begin_read()?;
+        let read_txn = db.begin_read()?;
         let table = read_txn.open_table(api_table)?;
 
         let key = table.get(name)?.unwrap().value().to_string();
@@ -53,7 +53,8 @@ impl BonancaDB {
     }
 
     pub fn add_api_key(&self, name: &str, key: &str) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
+        let db = self.open();
+        let write_txn = db.begin_write()?;
         let api_table: TableDefinition<&str, &str> = TableDefinition::new("API Keys");
 
         {
@@ -68,7 +69,8 @@ impl BonancaDB {
     }
 
     pub fn write_chain_info(&self, chain: &str, info: ChainInfo) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
+        let db = self.open();
+        let write_txn = db.begin_write()?;
         let chain_info_table: TableDefinition<&str, Bincode<ChainInfo>> =
             TableDefinition::new("Chain Info");
 
@@ -84,10 +86,11 @@ impl BonancaDB {
     }
 
     pub fn read_chain_info(&self, chain: &str) -> Result<ChainInfo> {
+        let db = self.open();
         let chain_info_table: TableDefinition<&str, Bincode<ChainInfo>> =
             TableDefinition::new("Chain Info");
 
-        let read_txn = self.db.begin_read()?;
+        let read_txn = db.begin_read()?;
         let table = read_txn.open_table(chain_info_table)?;
 
         let info = table.get(chain)?.unwrap().value();
@@ -96,7 +99,8 @@ impl BonancaDB {
     }
 
     pub fn write_txn(&self, chain: &str, child: u32, hash: &str, txn: Txn) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
+        let db = self.open();
+        let write_txn = db.begin_write()?;
         let table_name = format!("{}_{}", chain, child);
         let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
@@ -112,7 +116,8 @@ impl BonancaDB {
     }
 
     pub fn write_txns(&self, chain: &str, child: u32, txns: Vec<(String, Txn)>) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
+        let db = self.open();
+        let write_txn = db.begin_write()?;
         let table_name = format!("{}_{}", chain, child);
         let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
@@ -130,10 +135,11 @@ impl BonancaDB {
     }
 
     pub fn read_txns(&self, chain: &str, child: u32) -> Result<Vec<(String, Txn)>> {
+        let db = self.open();
         let table_name = format!("{}_{}", chain, child);
         let chain_table: TableDefinition<&str, Bincode<Txn>> = TableDefinition::new(&table_name);
 
-        let read_txn = self.db.begin_read()?;
+        let read_txn = db.begin_read()?;
         let table = read_txn.open_table(chain_table)?;
 
         let tmp: Vec<(String, Txn)> = table

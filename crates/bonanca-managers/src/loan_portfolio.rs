@@ -51,7 +51,7 @@ impl LoanPortfolio {
         match &self.rpc_url {
             Some(url) => Ok(url.clone()),
             None => {
-                let db = BonancaDB::new(&self.config.database);
+                let db = BonancaDB::load();
                 let info = db.read_chain_info(&self.chain)?;
                 Ok(info.rpc_url)
             }
@@ -59,7 +59,7 @@ impl LoanPortfolio {
     }
 
     fn get_chain_id(&self) -> Result<Option<u16>> {
-        let db = BonancaDB::new(&self.config.database);
+        let db = BonancaDB::load();
         let info = db.read_chain_info(&self.chain)?;
         Ok(info.chain_id)
     }
@@ -68,7 +68,7 @@ impl LoanPortfolio {
         match maybe_key {
             Some(api_key) => Ok(api_key),
             None => {
-                let db = BonancaDB::new(&self.config.database);
+                let db = BonancaDB::load();
                 db.get_api_key(name)
             }
         }

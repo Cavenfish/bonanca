@@ -59,7 +59,7 @@ fn add_pubkey(cmd: AddArgs) -> Result<()> {
 
 async fn balance(cmd: BalanceArgs) {
     let config = Config::load();
-    let db = BonancaDB::new(&config.database);
+    let db = BonancaDB::load();
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,
@@ -84,7 +84,7 @@ async fn balance(cmd: BalanceArgs) {
 
 async fn transfer(cmd: TransferArgs) {
     let config = Config::load();
-    let db = BonancaDB::new(&config.database);
+    let db = BonancaDB::load();
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,
@@ -110,7 +110,7 @@ async fn transfer(cmd: TransferArgs) {
 
 async fn history(cmd: HistoryArgs) {
     let config = Config::load();
-    let db = BonancaDB::new(&config.database);
+    let db = BonancaDB::load();
 
     let name = cmd.chain.split(":").last().unwrap();
 

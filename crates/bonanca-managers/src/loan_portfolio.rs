@@ -112,6 +112,13 @@ impl LoanPortfolio {
             println!();
         }
 
+        let best = rates.iter().max_by(|a, b| a.apy.total_cmp(&b.apy)).unwrap();
+
+        println!("Best Rate:");
+        println!("Protocol: {}", best.protocol);
+        println!("APY: {}", best.apy);
+        println!("Name: {}", best.vault_name);
+
         Ok(())
     }
 

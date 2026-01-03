@@ -8,9 +8,9 @@ alloy.workspace = true
 alloy-primitives.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
+base64 = "0.22.1"
+bincode = "1.3.3"
 bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-core.workspace = true
 bonanca-wallets = { path = "../bonanca-wallets" }
-base64 = "0.22.1"
-bincode = "1.3.3"
 solana-sdk.workspace = true

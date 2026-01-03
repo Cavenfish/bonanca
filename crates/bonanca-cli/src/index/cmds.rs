@@ -1,8 +1,8 @@
 use anyhow::{Ok, Result};
 use bonanca_db::BonancaDB;
-use bonanca_managers::index_fund::IndexFund;
 
 use super::args::{BalArgs, CloseArgs, InOutArgs, IndexCommand, IndexSubcommands, RebalArgs};
+use super::index_fund::IndexFund;
 
 pub async fn handle_index_cmd(cmd: IndexCommand) {
     match cmd.command {
@@ -108,7 +108,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 
 pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
-    let db = BonancaDB::load();
+    let db = BonancaDB::new(fund.config.database.clone());
 
     let dex = fund.get_exchange()?;
     let wallet = fund.get_wallet()?;

@@ -1,0 +1,18 @@
+[package]
+name = "bonanca-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bonanca-api-lib = { path = "../bonanca-api-lib" }
+bonanca-core.workspace = true
+bonanca-keyvault.workspace = true
+bonanca-lend = { path = "../bonanca-lend" }
+bonanca-wallets = { path = "../bonanca-wallets" }
+bonanca-db = { path = "../bonanca-db" }
+bonanca-swap = { path = "../bonanca-swap" }
+clap = { version = "4.5.41", features = ["derive"] }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

@@ -29,7 +29,7 @@ fn update_keyvault(cmd: KeyVaultArgs) {
 
 fn add_chain_info(cmd: ChainInfoArgs) {
     let config = Config::load();
-    let db = BonancaDB::load();
+    let db = BonancaDB::new(config.database);
     let chain = cmd.name.clone();
 
     let chain_info = ChainInfo {
@@ -44,7 +44,7 @@ fn add_chain_info(cmd: ChainInfoArgs) {
 
 fn add_api_key(cmd: ApiKeyArgs) {
     let config = Config::load();
-    let db = BonancaDB::load();
+    let db = BonancaDB::new(config.database);
 
     db.add_api_key(&cmd.name, &cmd.key);
 }

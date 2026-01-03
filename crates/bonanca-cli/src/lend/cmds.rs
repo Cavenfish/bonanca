@@ -1,6 +1,5 @@
-use bonanca_managers::loan_portfolio::LoanPortfolio;
-
 use super::args::{BalArgs, LendCommand, LendSubcommands, ShowArgs};
+use super::loan_portfolio::LoanPortfolio;
 
 pub async fn handle_lend_cmd(cmd: LendCommand) {
     match cmd.command {

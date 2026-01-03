@@ -4,8 +4,8 @@ mod index;
 mod lend;
 mod wallet;
 
-use bonanca_core::init_config;
-use bonanca_db::init_database;
+use bonanca_core::{config::Config, init_config};
+use bonanca_db::create_db;
 use clap::Parser;
 
 use crate::{
@@ -19,7 +19,8 @@ use crate::{
 #[tokio::main]
 async fn main() {
     init_config();
-    init_database();
+    let cfg = Config::load();
+    create_db(&cfg.database);
 
     let args = Bonanca::parse();
 

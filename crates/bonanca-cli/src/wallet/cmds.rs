@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bonanca_core::{config::Config, transactions::CryptoOperation};
+use bonanca_core::config::Config;
 use bonanca_db::BonancaDB;
 use bonanca_keyvault::{decrypt_keyvault, new, read_keyvault};
 use bonanca_wallets::{get_wallet, get_wallet_view};
@@ -59,7 +59,7 @@ fn add_pubkey(cmd: AddArgs) -> Result<()> {
 
 async fn balance(cmd: BalanceArgs) {
     let config = Config::load();
-    let db = BonancaDB::load();
+    let db = BonancaDB::new(config.database);
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,
@@ -84,7 +84,7 @@ async fn balance(cmd: BalanceArgs) {
 
 async fn transfer(cmd: TransferArgs) {
     let config = Config::load();
-    let db = BonancaDB::load();
+    let db = BonancaDB::new(config.database);
 
     let keyvault = match cmd.keyvault {
         Some(fname) => fname,

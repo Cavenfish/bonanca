@@ -2,7 +2,6 @@
 name = "bonanca"
 version = "0.1.0"
 edition = "2024"
-description = "A CLI for managing crypto index funds"
 
 [workspace]
 resolver = "3"
@@ -22,13 +21,9 @@ solana-sdk = "3.0.0"
 tokio = { version = "1.48.0", features = ["full"] }
 
 [dependencies]
-anyhow.workspace = true
 bonanca-core.workspace = true
 bonanca-keyvault.workspace = true
 bonanca-lend = { path = "./crates/bonanca-lend" }
 bonanca-wallets = { path = "./crates/bonanca-wallets" }
 bonanca-db = { path = "./crates/bonanca-db" }
-clap = { version = "4.5.41", features = ["derive"] }
-serde.workspace = true
-serde_json.workspace = true
-tokio.workspace = true
+

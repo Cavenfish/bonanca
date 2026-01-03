@@ -109,38 +109,40 @@ async fn transfer(cmd: TransferArgs) {
 }
 
 async fn history(cmd: HistoryArgs) {
-    let config = Config::load();
-    let db = BonancaDB::load();
+    // let config = Config::load();
+    // let db = BonancaDB::load();
 
-    let name = cmd.chain.split(":").last().unwrap();
+    // let name = cmd.chain.split(":").last().unwrap();
 
-    if cmd.sync {
-        let rpc_url = &db.read_chain_info(&cmd.chain).unwrap().rpc_url;
+    println!("TODO");
 
-        let keyvault = match cmd.keyvault {
-            Some(fname) => fname,
-            None => config.keyvault,
-        };
+    // if cmd.sync {
+    //     let rpc_url = &db.read_chain_info(&cmd.chain).unwrap().rpc_url;
 
-        let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
+    //     let keyvault = match cmd.keyvault {
+    //         Some(fname) => fname,
+    //         None => config.keyvault,
+    //     };
 
-        let txns = wallet.get_history().await.unwrap();
+    //     let wallet = get_wallet_view(&cmd.chain, &keyvault, &rpc_url, cmd.child).unwrap();
 
-        db.write_txns(&cmd.chain, cmd.child, txns).unwrap();
-    }
+    //     let txns = wallet.get_history().await.unwrap();
 
-    let txns = db.read_txns(&cmd.chain, cmd.child).unwrap();
+    //     db.write_txns(&cmd.chain, cmd.child, txns).unwrap();
+    // }
 
-    for (hash, txn) in txns.iter() {
-        match &txn.operation {
-            CryptoOperation::Transfer(ops) => {
-                if ops.to == txn.pubkey.to_lowercase() {
-                    println!("Inflow of {} {}", ops.amount, ops.token);
-                } else {
-                    println!("Outflow of {} {}", ops.amount, ops.token);
-                }
-            }
-            _ => {}
-        }
-    }
+    // let txns = db.read_txns(&cmd.chain, cmd.child).unwrap();
+
+    // for (hash, txn) in txns.iter() {
+    //     match &txn.operation {
+    //         CryptoOperation::Transfer(ops) => {
+    //             if ops.to == txn.pubkey.to_lowercase() {
+    //                 println!("Inflow of {} {}", ops.amount, ops.token);
+    //             } else {
+    //                 println!("Outflow of {} {}", ops.amount, ops.token);
+    //             }
+    //         }
+    //         _ => {}
+    //     }
+    // }
 }

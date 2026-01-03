@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use bonanca_core::{
-    traits::{CryptoSigners, SwapTransactionData, Wallet},
+use bonanca_db::{
+    BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
@@ -16,6 +16,8 @@ use solana_sdk::{
 };
 use solana_system_interface::instruction::transfer;
 use std::{hash::Hash, path::Path};
+
+use crate::{CryptoSigners, TransactionData, Wallet};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
@@ -68,11 +70,11 @@ impl Wallet for SolWallet {
         Ok(())
     }
 
-    async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-        let tmp = Vec::new();
+    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
+    //     let tmp = Vec::new();
 
-        Ok(tmp)
-    }
+    //     Ok(tmp)
+    // }
 
     async fn balance(&self) -> Result<f64> {
         let balance = self.client.get_balance(&self.pubkey).await?;
@@ -193,21 +195,11 @@ impl Wallet for SolWallet {
         Ok(())
     }
 
-    async fn check_swap(&self, token: &str, amount: f64, _spender: Option<&str>) -> Result<bool> {
-        let bal = self.token_balance(token).await?;
-
-        if bal < amount {
-            return Ok(false);
-        };
-
-        Ok(true)
-    }
-
-    async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
+    async fn sign_and_send(&self, txn: TransactionData) -> Result<()> {
         let kp = self.key_pair.as_ref().unwrap();
 
-        let mut tx = match swap_data {
-            SwapTransactionData::Sol(trans) => trans,
+        let mut tx = match txn {
+            TransactionData::Sol(trans) => trans,
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
 

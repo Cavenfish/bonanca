@@ -1,14 +1,16 @@
 [package]
-name = "bonanca-managers"
+name = "bonanca-swap"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+alloy.workspace = true
+alloy-primitives.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
 bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-core.workspace = true
-bonanca-lending = { path = "../bonanca-lending" }
 bonanca-wallets = { path = "../bonanca-wallets" }
-bonanca-db = { path = "../bonanca-db" }
-serde.workspace = true
-serde_json.workspace = true
+base64 = "0.22.1"
+bincode = "1.3.3"
+solana-sdk.workspace = true

@@ -1,18 +1,21 @@
+pub mod transactions;
 mod utils;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use bonanca_core::{config::Config, transactions::Txn};
 use redb::{Database, ReadableDatabase, TableDefinition};
 
-use crate::utils::{Bincode, create_db};
+use crate::transactions::Txn;
+use crate::utils::Bincode;
 
-pub fn init_database() {
-    let config = Config::load();
+pub fn create_db(db_file: &Path) -> Result<()> {
+    if !db_file.is_file() {
+        let _ = Database::create(&db_file)?;
+    }
 
-    create_db(&config.database).unwrap();
+    Ok(())
 }
 
 #[derive(Clone, Debug, Encode, Decode)]
@@ -28,12 +31,8 @@ pub struct BonancaDB {
 }
 
 impl BonancaDB {
-    pub fn load() -> Self {
-        let config = Config::load();
-
-        Self {
-            filename: config.database,
-        }
+    pub fn new(filename: PathBuf) -> Self {
+        Self { filename }
     }
 
     fn open(&self) -> Database {

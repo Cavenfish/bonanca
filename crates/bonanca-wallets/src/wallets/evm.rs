@@ -13,15 +13,16 @@ use alloy_primitives::{
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
-use bonanca_core::{
-    config::Config,
-    traits::{CryptoSigners, SwapTransactionData, Wallet},
+use bonanca_core::config::Config;
+use bonanca_db::{
+    BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
-use bonanca_db::BonancaDB;
 use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
+
+use crate::{CryptoSigners, TransactionData, Wallet};
 
 // ABI for smart contracts
 sol! {
@@ -90,20 +91,20 @@ impl Wallet for EvmWallet {
         Ok(())
     }
 
-    async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-        let db = BonancaDB::load();
-        let api_key = db.get_api_key("Etherscan")?;
-        let chain_id = self.client.get_chain_id().await?;
-        let pubkey = &self.pubkey.to_string();
+    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
+    //     let db = BonancaDB::load();
+    //     let api_key = db.get_api_key("Etherscan")?;
+    //     let chain_id = self.client.get_chain_id().await?;
+    //     let pubkey = &self.pubkey.to_string();
 
-        let ethscan = EtherscanApi::new(api_key);
-        let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
-        let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
+    //     let ethscan = EtherscanApi::new(api_key);
+    //     let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
+    //     let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
 
-        history.extend(token_history);
+    //     history.extend(token_history);
 
-        Ok(history)
-    }
+    //     Ok(history)
+    // }
 
     async fn balance(&self) -> Result<f64> {
         let bal = self.client.get_balance(self.pubkey).await?;
@@ -197,27 +198,9 @@ impl Wallet for EvmWallet {
         Ok(())
     }
 
-    async fn check_swap(&self, token: &str, amount: f64, spender: Option<&str>) -> Result<bool> {
-        let bal = self.token_balance(token).await?;
-        if bal < amount {
-            return Ok(false);
-        };
-
-        let allow = self.get_token_allowance(token, spender.unwrap()).await?;
-        if allow < amount {
-            let to_add = amount - allow;
-
-            let _ = self
-                .approve_token_spending(token, spender.unwrap(), to_add)
-                .await?;
-        };
-
-        Ok(true)
-    }
-
-    async fn swap(&self, swap_data: SwapTransactionData) -> Result<()> {
-        let tx = match swap_data {
-            SwapTransactionData::Evm(trans) => trans,
+    async fn sign_and_send(&self, txn: TransactionData) -> Result<()> {
+        let tx = match txn {
+            TransactionData::Evm(trans) => trans,
             _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
         };
 

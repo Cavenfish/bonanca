@@ -1,18 +1,9 @@
 use std::any::type_name;
 use std::fmt::Debug;
-use std::path::Path;
 
 use anyhow::Result;
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
 use redb::{Database, Value};
-
-pub fn create_db(db_file: &Path) -> Result<()> {
-    if !db_file.is_file() {
-        let _ = Database::create(&db_file)?;
-    }
-
-    Ok(())
-}
 
 #[derive(Debug)]
 pub struct Bincode<T>(pub T);

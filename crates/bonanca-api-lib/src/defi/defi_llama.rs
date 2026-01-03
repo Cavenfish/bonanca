@@ -1,9 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use bonanca_core::{holdings::Asset, traits::Oracle};
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
+
+use crate::{Asset, Oracle};
 
 pub struct DefiLlama {
     pub base_url: String,

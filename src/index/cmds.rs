@@ -100,7 +100,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
             .get_swap_data(&wallet, &trade.from, &trade.to, trade.amount)
             .await?;
 
-        wallet.swap(swap_data).await?;
+        wallet.sign_and_send(swap_data).await?;
     }
 
     Ok(())
@@ -134,7 +134,7 @@ pub async fn withdraw_from_index_fund(cmd: InOutArgs) -> Result<()> {
 
         let swap_data = dex.get_swap_data(&wallet, &asset.addy, to, amount).await?;
 
-        wallet.swap(swap_data).await?;
+        wallet.sign_and_send(swap_data).await?;
     }
 
     Ok(())
@@ -159,7 +159,7 @@ pub async fn deposit_into_index_fund(cmd: InOutArgs) -> Result<()> {
                 .get_swap_data(&wallet, &from.address, &asset.address, amount)
                 .await?;
 
-            wallet.swap(swap_data).await?;
+            wallet.sign_and_send(swap_data).await?;
         }
     }
 

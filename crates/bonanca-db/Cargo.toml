@@ -6,5 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow.workspace = true
 bincode.workspace = true
-bonanca-core.workspace = true
 redb = "3.1.0"

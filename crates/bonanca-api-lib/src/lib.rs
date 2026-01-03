@@ -3,8 +3,21 @@ pub mod defi;
 pub mod lending_oracle;
 
 use anyhow::Result;
-use bonanca_core::traits::{Exchange, Oracle};
-use defi::{cmc::CoinMarketCap, defi_llama::DefiLlama, jupiter::Jupiter, zerox::ZeroX};
+use async_trait::async_trait;
+use defi::{cmc::CoinMarketCap, defi_llama::DefiLlama, jupiter::Jupiter};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Asset {
+    pub name: String,
+    pub symbol: String,
+    pub address: String,
+}
+
+#[async_trait]
+pub trait Oracle {
+    async fn get_token_value(&self, asset: &Asset, amount: f64, chain: &str) -> Result<f64>;
+}
 
 pub fn get_oracle(name: &str, api_key: String) -> Result<Box<dyn Oracle>> {
     let oracle: Box<dyn Oracle> = match name {
@@ -15,18 +28,4 @@ pub fn get_oracle(name: &str, api_key: String) -> Result<Box<dyn Oracle>> {
     };
 
     Ok(oracle)
-}
-
-pub fn get_exchange(
-    name: &str,
-    api_key: String,
-    chain_id: Option<u16>,
-) -> Result<Box<dyn Exchange>> {
-    let exchange: Box<dyn Exchange> = match name {
-        "0x" => Box::new(ZeroX::new(api_key, chain_id.unwrap())),
-        "Jupiter" => Box::new(Jupiter::new(api_key)),
-        _ => Err(anyhow::anyhow!("Unsupported aggregator"))?,
-    };
-
-    Ok(exchange)
 }

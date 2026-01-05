@@ -26,4 +26,5 @@ bonanca-db = { path = "./crates/bonanca-db" }
 bonanca-keyvault.workspace = true
 bonanca-lend = { path = "./crates/bonanca-lend" }
 bonanca-wallets = { path = "./crates/bonanca-wallets" }
+tokio.workspace = true
 

@@ -22,8 +22,6 @@ use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
 use core::panic;
 use std::{path::Path, str::FromStr};
 
-use crate::{CryptoSigners, TransactionData, Wallet};
-
 // ABI for smart contracts
 sol! {
     #[allow(missing_docs)]
@@ -36,178 +34,6 @@ pub struct EvmWallet {
     pub signer: Option<LocalSigner<SigningKey>>,
     pub client: DynProvider,
     pub pubkey: Address,
-}
-
-#[async_trait]
-impl Wallet for EvmWallet {
-    fn get_pubkey(&self) -> Result<String> {
-        Ok(self.pubkey.to_string())
-    }
-
-    fn get_signer(&self) -> Result<CryptoSigners> {
-        let signer = self.signer.as_ref().unwrap();
-        Ok(CryptoSigners::Evm(signer.clone()))
-    }
-
-    fn parse_native_amount(&self, amount: f64) -> Result<u64> {
-        let amt = (amount * 1e18) as u64;
-
-        Ok(amt)
-    }
-
-    async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
-        let token_addy = Address::from_str(token)?;
-
-        // Instantiate the contract instance
-        let erc20 = ERC20::new(token_addy, &self.client);
-        let deci = erc20.decimals().call().await?;
-
-        let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
-
-        Ok(amt)
-    }
-
-    async fn close(&self, to: &str) -> Result<()> {
-        let to_addy = Address::from_str(to)?;
-        let bal = self.balance().await?;
-
-        let wei = parse_ether(&(bal * 0.9).to_string())?;
-
-        let fees = self.client.estimate_eip1559_fees().await?;
-
-        let tx = TransactionRequest::default()
-            .with_from(self.pubkey)
-            .with_to(to_addy)
-            .with_value(wei);
-
-        let gas = self.client.estimate_gas(tx).await?;
-
-        let total_fees_wei = (gas as u128) * fees.max_fee_per_gas;
-        let total_fees: f64 = format_ether(total_fees_wei).parse()?;
-
-        // 2 percent higher fee buffer
-        let _ = self.transfer(to, bal - (total_fees * 1.02)).await?;
-
-        Ok(())
-    }
-
-    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-    //     let db = BonancaDB::load();
-    //     let api_key = db.get_api_key("Etherscan")?;
-    //     let chain_id = self.client.get_chain_id().await?;
-    //     let pubkey = &self.pubkey.to_string();
-
-    //     let ethscan = EtherscanApi::new(api_key);
-    //     let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
-    //     let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
-
-    //     history.extend(token_history);
-
-    //     Ok(history)
-    // }
-
-    async fn balance(&self) -> Result<f64> {
-        let bal = self.client.get_balance(self.pubkey).await?;
-
-        let fbal = format_ether(bal);
-
-        Ok(fbal.parse()?)
-    }
-
-    async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
-        let to_addy = Address::from_str(to)?;
-        let wei = parse_ether(&amount.to_string())?;
-
-        let tx = TransactionRequest::default()
-            .with_from(self.pubkey)
-            .with_to(to_addy)
-            .with_value(wei);
-
-        let sig = self
-            .client
-            .send_transaction(tx)
-            .await?
-            .get_receipt()
-            .await?;
-        let hash = sig.transaction_hash.to_string();
-
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "Native".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
-    }
-
-    async fn token_balance(&self, token: &str) -> Result<f64> {
-        let token_addy = Address::from_str(token)?;
-
-        // Instantiate the contract instance
-        let erc20 = ERC20::new(token_addy, &self.client);
-
-        // Fetch the token balance and decimals
-        let balance = erc20.balanceOf(self.pubkey).call().await?;
-        let deci = erc20.decimals().call().await?;
-
-        let bal = format_units(balance, deci)?;
-
-        Ok(bal.parse()?)
-    }
-
-    async fn transfer_token(&self, token: &str, amount: f64, to: &str) -> Result<(String, Txn)> {
-        let to_addy = Address::from_str(to)?;
-        let token_addy = Address::from_str(token)?;
-
-        let erc20 = ERC20::new(token_addy, &self.client);
-        let deci = erc20.decimals().call().await?;
-
-        let amnt: Uint<256, 4> = parse_units(&amount.to_string(), deci)?.into();
-
-        let sig = erc20
-            .transfer(to_addy, amnt)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
-
-        let hash = sig.transaction_hash.to_string();
-
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "Token".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
-    }
-
-    async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
-        let amount = self.token_balance(token).await?;
-
-        if amount != 0.0 {
-            let _ = self.transfer_token(token, amount, to).await?;
-        }
-
-        Ok(())
-    }
-
-    async fn sign_and_send(&self, txn: TransactionData) -> Result<()> {
-        let tx = match txn {
-            TransactionData::Evm(trans) => trans,
-            _ => Err(anyhow::anyhow!("Swap API does not work on this chain"))?,
-        };
-
-        let _ = self.client.send_transaction(tx).await?.watch().await?;
-
-        Ok(())
-    }
 }
 
 impl EvmWallet {
@@ -254,8 +80,12 @@ impl EvmWallet {
         }
     }
 
-    // Approve token for spending
-    async fn approve_token_spending(&self, token: &str, spender: &str, amount: f64) -> Result<()> {
+    pub async fn approve_token_spending(
+        &self,
+        token: &str,
+        spender: &str,
+        amount: f64,
+    ) -> Result<()> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
 
@@ -274,7 +104,7 @@ impl EvmWallet {
         Ok(())
     }
 
-    async fn get_token_allowance(&self, token: &str, spender: &str) -> Result<f64> {
+    pub async fn get_token_allowance(&self, token: &str, spender: &str) -> Result<f64> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
 
@@ -315,5 +145,174 @@ impl EvmWallet {
         };
 
         Ok(txn)
+    }
+
+    pub fn get_pubkey(&self) -> Result<String> {
+        Ok(self.pubkey.to_string())
+    }
+
+    // fn get_signer(&self) -> Result<CryptoSigners> {
+    //     let signer = self.signer.as_ref().unwrap();
+    //     Ok(CryptoSigners::Evm(signer.clone()))
+    // }
+
+    pub fn parse_native_amount(&self, amount: f64) -> Result<u64> {
+        let amt = (amount * 1e18) as u64;
+
+        Ok(amt)
+    }
+
+    pub async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
+        let token_addy = Address::from_str(token)?;
+
+        // Instantiate the contract instance
+        let erc20 = ERC20::new(token_addy, &self.client);
+        let deci = erc20.decimals().call().await?;
+
+        let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
+
+        Ok(amt)
+    }
+
+    pub async fn close(&self, to: &str) -> Result<()> {
+        let to_addy = Address::from_str(to)?;
+        let bal = self.balance().await?;
+
+        let wei = parse_ether(&(bal * 0.9).to_string())?;
+
+        let fees = self.client.estimate_eip1559_fees().await?;
+
+        let tx = TransactionRequest::default()
+            .with_from(self.pubkey)
+            .with_to(to_addy)
+            .with_value(wei);
+
+        let gas = self.client.estimate_gas(tx).await?;
+
+        let total_fees_wei = (gas as u128) * fees.max_fee_per_gas;
+        let total_fees: f64 = format_ether(total_fees_wei).parse()?;
+
+        // 2 percent higher fee buffer
+        let _ = self.transfer(to, bal - (total_fees * 1.02)).await?;
+
+        Ok(())
+    }
+
+    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
+    //     let db = BonancaDB::load();
+    //     let api_key = db.get_api_key("Etherscan")?;
+    //     let chain_id = self.client.get_chain_id().await?;
+    //     let pubkey = &self.pubkey.to_string();
+
+    //     let ethscan = EtherscanApi::new(api_key);
+    //     let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
+    //     let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
+
+    //     history.extend(token_history);
+
+    //     Ok(history)
+    // }
+
+    pub async fn balance(&self) -> Result<f64> {
+        let bal = self.client.get_balance(self.pubkey).await?;
+
+        let fbal = format_ether(bal);
+
+        Ok(fbal.parse()?)
+    }
+
+    pub async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
+        let to_addy = Address::from_str(to)?;
+        let wei = parse_ether(&amount.to_string())?;
+
+        let tx = TransactionRequest::default()
+            .with_from(self.pubkey)
+            .with_to(to_addy)
+            .with_value(wei);
+
+        let sig = self
+            .client
+            .send_transaction(tx)
+            .await?
+            .get_receipt()
+            .await?;
+        let hash = sig.transaction_hash.to_string();
+
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "Native".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
+    }
+
+    pub async fn token_balance(&self, token: &str) -> Result<f64> {
+        let token_addy = Address::from_str(token)?;
+
+        // Instantiate the contract instance
+        let erc20 = ERC20::new(token_addy, &self.client);
+
+        // Fetch the token balance and decimals
+        let balance = erc20.balanceOf(self.pubkey).call().await?;
+        let deci = erc20.decimals().call().await?;
+
+        let bal = format_units(balance, deci)?;
+
+        Ok(bal.parse()?)
+    }
+
+    pub async fn transfer_token(
+        &self,
+        token: &str,
+        amount: f64,
+        to: &str,
+    ) -> Result<(String, Txn)> {
+        let to_addy = Address::from_str(to)?;
+        let token_addy = Address::from_str(token)?;
+
+        let erc20 = ERC20::new(token_addy, &self.client);
+        let deci = erc20.decimals().call().await?;
+
+        let amnt: Uint<256, 4> = parse_units(&amount.to_string(), deci)?.into();
+
+        let sig = erc20
+            .transfer(to_addy, amnt)
+            .send()
+            .await?
+            .get_receipt()
+            .await?;
+
+        let hash = sig.transaction_hash.to_string();
+
+        let operation = CryptoOperation::Transfer(CryptoTransfer {
+            token: "Token".to_string(),
+            amount,
+            from: self.pubkey.to_string(),
+            to: to.to_string(),
+        });
+
+        let txn = self.make_txn_receipt(operation, sig).await?;
+
+        Ok((hash, txn))
+    }
+
+    pub async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
+        let amount = self.token_balance(token).await?;
+
+        if amount != 0.0 {
+            let _ = self.transfer_token(token, amount, to).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn sign_and_send(&self, txn: TransactionRequest) -> Result<()> {
+        let _ = self.client.send_transaction(txn).await?.watch().await?;
+
+        Ok(())
     }
 }

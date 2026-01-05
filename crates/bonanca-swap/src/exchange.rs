@@ -1,13 +1,13 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::defi::{jupiter::Jupiter, zerox::ZeroX};
-use bonanca_wallets::{TransactionData, Wallet};
+use bonanca_wallets::{CryptoWallets, TransactionData};
 
 #[async_trait]
 pub trait Exchange {
     async fn get_swap_data(
         &self,
-        wallet: &Box<dyn Wallet + Send + Sync>,
+        wallet_enum: &CryptoWallets,
         sell: &str,
         buy: &str,
         amount: f64,

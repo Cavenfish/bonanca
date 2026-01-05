@@ -6,7 +6,7 @@ use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::defi::zerox::ZeroX;
-use bonanca_wallets::{TransactionData, Wallet};
+use bonanca_wallets::{CryptoWallets, TransactionData};
 use std::str::FromStr;
 
 use crate::exchange::Exchange;
@@ -15,11 +15,17 @@ use crate::exchange::Exchange;
 impl Exchange for ZeroX {
     async fn get_swap_data(
         &self,
-        wallet: &Box<dyn Wallet + Send + Sync>,
+        wallet_enum: &CryptoWallets,
         sell: &str,
         buy: &str,
         amount: f64,
     ) -> Result<TransactionData> {
+        let wallet = match wallet_enum {
+            CryptoWallets::Evm(wallet) => wallet,
+            _ => Err(anyhow::anyhow!(
+                "0x swap does not work for this wallet type"
+            ))?,
+        };
         let taker = wallet.get_pubkey()?;
 
         let big_amount = wallet.parse_token_amount(amount, sell).await?;

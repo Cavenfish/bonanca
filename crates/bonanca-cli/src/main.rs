@@ -1,20 +1,20 @@
-mod args;
-mod config;
-mod index;
-mod lend;
-mod wallet;
+// mod args;
+// mod config;
+// mod index;
+// mod lend;
+// mod wallet;
 
 use bonanca_core::{config::Config, init_config};
 use bonanca_db::create_db;
 use clap::Parser;
 
-use crate::{
-    args::{BonArgs, Bonanca},
-    config::cmds::handle_config_cmd,
-    index::cmds::handle_index_cmd,
-    lend::cmds::handle_lend_cmd,
-    wallet::cmds::handle_wallet_cmd,
-};
+// use crate::{
+//     args::{BonArgs, Bonanca},
+//     config::cmds::handle_config_cmd,
+//     index::cmds::handle_index_cmd,
+//     lend::cmds::handle_lend_cmd,
+//     wallet::cmds::handle_wallet_cmd,
+// };
 
 #[tokio::main]
 async fn main() {
@@ -22,12 +22,12 @@ async fn main() {
     let cfg = Config::load();
     create_db(&cfg.database);
 
-    let args = Bonanca::parse();
+    // let args = Bonanca::parse();
 
-    match args.command {
-        BonArgs::Config(cmd) => handle_config_cmd(cmd).await,
-        BonArgs::Wallet(cmd) => handle_wallet_cmd(cmd).await,
-        BonArgs::Index(cmd) => handle_index_cmd(cmd).await,
-        BonArgs::Lend(cmd) => handle_lend_cmd(cmd).await,
-    }
+    // match args.command {
+    //     BonArgs::Config(cmd) => handle_config_cmd(cmd).await,
+    //     BonArgs::Wallet(cmd) => handle_wallet_cmd(cmd).await,
+    //     BonArgs::Index(cmd) => handle_index_cmd(cmd).await,
+    //     BonArgs::Lend(cmd) => handle_lend_cmd(cmd).await,
+    // }
 }

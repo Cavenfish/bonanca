@@ -4,7 +4,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
 use bonanca_api_lib::defi::jupiter::Jupiter;
-use bonanca_wallets::{TransactionData, Wallet};
+use bonanca_wallets::{CryptoWallets, TransactionData};
 use solana_sdk::transaction::VersionedTransaction;
 
 use crate::exchange::Exchange;
@@ -13,11 +13,17 @@ use crate::exchange::Exchange;
 impl Exchange for Jupiter {
     async fn get_swap_data(
         &self,
-        wallet: &Box<dyn Wallet + Send + Sync>,
+        wallet_enum: &CryptoWallets,
         sell: &str,
         buy: &str,
         amount: f64,
     ) -> Result<TransactionData> {
+        let wallet = match wallet_enum {
+            CryptoWallets::Sol(wallet) => wallet,
+            _ => Err(anyhow::anyhow!(
+                "Jupiter swap does not work for this wallet type"
+            ))?,
+        };
         let taker = wallet.get_pubkey()?;
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
         let swap_quote = self.get_swap_quote(sell, buy, big_amount).await?;

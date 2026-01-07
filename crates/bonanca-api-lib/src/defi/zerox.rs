@@ -2,13 +2,13 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 
-pub struct ZeroX {
+pub struct ZeroXApi {
     pub base_url: String,
     pub api_key: String,
     pub chain_id: u16,
 }
 
-impl ZeroX {
+impl ZeroXApi {
     pub fn new(api_key: String, chain_id: u16) -> Self {
         Self {
             base_url: "https://api.0x.org".to_string(),

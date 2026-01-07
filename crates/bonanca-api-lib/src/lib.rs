@@ -4,7 +4,7 @@ pub mod lending_oracle;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use defi::{cmc::CoinMarketCap, defi_llama::DefiLlama, jupiter::Jupiter};
+use defi::{cmc::CoinMarketCapApi, defi_llama::DefiLlamaApi, jupiter::JupiterApi};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -21,9 +21,9 @@ pub trait Oracle {
 
 pub fn get_oracle(name: &str, api_key: String) -> Result<Box<dyn Oracle>> {
     let oracle: Box<dyn Oracle> = match name {
-        "CoinMarketCap" => Box::new(CoinMarketCap::new(api_key)),
-        "Jupiter" => Box::new(Jupiter::new(api_key)),
-        "DefiLlama" => Box::new(DefiLlama::new()),
+        "CoinMarketCap" => Box::new(CoinMarketCapApi::new(api_key)),
+        "Jupiter" => Box::new(JupiterApi::new(api_key)),
+        "DefiLlama" => Box::new(DefiLlamaApi::new()),
         _ => Err(anyhow::anyhow!("Unsupported oracle"))?,
     };
 

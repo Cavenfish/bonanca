@@ -6,12 +6,12 @@ use std::collections::HashMap;
 
 use crate::{Asset, Oracle};
 
-pub struct Jupiter {
+pub struct JupiterApi {
     pub base_url: String,
     pub api_key: String,
 }
 
-impl Jupiter {
+impl JupiterApi {
     pub fn new(api_key: String) -> Self {
         Self {
             base_url: "https://api.jup.ag".to_string(),
@@ -157,7 +157,7 @@ impl Jupiter {
 }
 
 #[async_trait]
-impl Oracle for Jupiter {
+impl Oracle for JupiterApi {
     async fn get_token_value(&self, asset: &Asset, amount: f64, _: &str) -> Result<f64> {
         let quote_map = self.get_price_quote(&asset.address).await?;
         let quote = quote_map.get(&asset.address).unwrap();

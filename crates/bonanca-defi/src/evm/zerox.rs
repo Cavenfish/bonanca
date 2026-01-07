@@ -4,33 +4,35 @@ use alloy::{
 };
 use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
-use async_trait::async_trait;
-use bonanca_api_lib::defi::zerox::ZeroX;
-use bonanca_wallets::{CryptoWallets, TransactionData};
+use bonanca_api_lib::defi::zerox::ZeroXApi;
+use bonanca_wallets::wallets::evm::EvmWallet;
 use std::str::FromStr;
 
-use crate::exchange::Exchange;
+pub struct ZeroX {
+    api: ZeroXApi,
+}
 
-#[async_trait]
-impl Exchange for ZeroX {
+impl ZeroX {
+    pub fn new(api_key: String, chain_id: u16) -> Self {
+        let api = ZeroXApi::new(api_key, chain_id);
+        Self { api }
+    }
+
     async fn get_swap_data(
         &self,
-        wallet_enum: &CryptoWallets,
+        wallet: &EvmWallet,
         sell: &str,
         buy: &str,
         amount: f64,
-    ) -> Result<TransactionData> {
-        let wallet = match wallet_enum {
-            CryptoWallets::Evm(wallet) => wallet,
-            _ => Err(anyhow::anyhow!(
-                "0x swap does not work for this wallet type"
-            ))?,
-        };
+    ) -> Result<TransactionRequest> {
         let taker = wallet.get_pubkey()?;
 
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
 
-        let quote = self.get_swap_quote(sell, buy, big_amount, &taker).await?;
+        let quote = self
+            .api
+            .get_swap_quote(sell, buy, big_amount, &taker)
+            .await?;
 
         // if let Some(issues) = quote.issues.allowance {
         //     let tmp = wallet
@@ -52,7 +54,7 @@ impl Exchange for ZeroX {
 
         let input = TransactionInput::new(data);
 
-        let tx = TransactionRequest::default()
+        let txn = TransactionRequest::default()
             .input(input)
             .with_input_and_data()
             .with_from(taker_addy)
@@ -61,6 +63,6 @@ impl Exchange for ZeroX {
             .with_gas_limit(gas_limit)
             .with_max_fee_per_gas(gas_price);
 
-        Ok(TransactionData::Evm(tx))
+        Ok(txn)
     }
 }

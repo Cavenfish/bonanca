@@ -6,11 +6,11 @@ use std::collections::HashMap;
 
 use crate::{Asset, Oracle};
 
-pub struct DefiLlama {
+pub struct DefiLlamaApi {
     pub base_url: String,
 }
 
-impl DefiLlama {
+impl DefiLlamaApi {
     pub fn new() -> Self {
         Self {
             base_url: "https://coins.llama.fi".to_string(),
@@ -34,7 +34,7 @@ impl DefiLlama {
 }
 
 #[async_trait]
-impl Oracle for DefiLlama {
+impl Oracle for DefiLlamaApi {
     async fn get_token_value(&self, asset: &Asset, amount: f64, chain: &str) -> Result<f64> {
         let quote = self.get_price_quote(chain, &asset.address).await?;
         let price = quote.coins.values().next().unwrap().price;

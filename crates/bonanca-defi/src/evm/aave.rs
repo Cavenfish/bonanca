@@ -6,8 +6,6 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use anyhow::Result;
-use async_trait::async_trait;
-use bonanca_core::traits::Bank;
 use std::str::FromStr;
 
 sol! {
@@ -23,8 +21,39 @@ pub struct AaveV3 {
     pub client: DynProvider,
 }
 
-#[async_trait]
-impl Bank for AaveV3 {
+impl AaveV3 {
+    pub fn new(chain: &str, rpc_url: &str, signer: LocalSigner<SigningKey>) -> Self {
+        let user = signer.address();
+        let pool = match chain.split(":").last().unwrap() {
+            "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
+            "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
+            _ => panic!(),
+        };
+        let rpc = Url::from_str(rpc_url).unwrap();
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer)
+            .connect_http(rpc)
+            .erased();
+
+        Self { user, pool, client }
+    }
+
+    async fn get_pools(&self) -> Result<Vec<DataTypes::ReserveDataLegacy>> {
+        let pool = PoolV3::new(self.pool, &self.client);
+
+        let reserves = pool.getReservesList().call().await?;
+
+        let mut reserve_data: Vec<DataTypes::ReserveDataLegacy> = Vec::new();
+
+        for reserve_address in reserves.iter() {
+            let data = pool.getReserveData(*reserve_address).call().await?;
+
+            reserve_data.push(data);
+        }
+
+        Ok(reserve_data)
+    }
+
     async fn get_user_data(&self) -> Result<()> {
         let pool = PoolV3::new(self.pool, &self.client);
 
@@ -122,52 +151,5 @@ impl Bank for AaveV3 {
             .await?;
 
         Ok(())
-    }
-}
-
-impl AaveV3 {
-    pub fn new(chain: &str, rpc_url: &str, signer: LocalSigner<SigningKey>) -> Self {
-        let user = signer.address();
-        let pool = match chain.split(":").last().unwrap() {
-            "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
-            "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
-            _ => panic!(),
-        };
-        let rpc = Url::from_str(rpc_url).unwrap();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer)
-            .connect_http(rpc)
-            .erased();
-
-        Self { user, pool, client }
-    }
-
-    pub fn view(chain: &str, pubkey: &str, rpc_url: &str) -> Self {
-        let user = Address::from_str(pubkey).unwrap();
-        let pool = match chain.split(":").last().unwrap() {
-            "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
-            "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
-            _ => panic!(),
-        };
-        let rpc = Url::from_str(rpc_url).unwrap();
-        let client: DynProvider = ProviderBuilder::new().connect_http(rpc).erased();
-
-        Self { user, pool, client }
-    }
-
-    async fn get_pools(&self) -> Result<Vec<DataTypes::ReserveDataLegacy>> {
-        let pool = PoolV3::new(self.pool, &self.client);
-
-        let reserves = pool.getReservesList().call().await?;
-
-        let mut reserve_data: Vec<DataTypes::ReserveDataLegacy> = Vec::new();
-
-        for reserve_address in reserves.iter() {
-            let data = pool.getReserveData(*reserve_address).call().await?;
-
-            reserve_data.push(data);
-        }
-
-        Ok(reserve_data)
     }
 }

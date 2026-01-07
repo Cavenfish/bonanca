@@ -5,12 +5,12 @@ use serde::Deserialize;
 
 use crate::{Asset, Oracle};
 
-pub struct CoinMarketCap {
+pub struct CoinMarketCapApi {
     pub base_url: String,
     pub api_key: String,
 }
 
-impl CoinMarketCap {
+impl CoinMarketCapApi {
     pub fn new(api_key: String) -> Self {
         Self {
             base_url: "https://pro-api.coinmarketcap.com".to_string(),
@@ -39,7 +39,7 @@ impl CoinMarketCap {
 }
 
 #[async_trait]
-impl Oracle for CoinMarketCap {
+impl Oracle for CoinMarketCapApi {
     async fn get_token_value(&self, asset: &Asset, amount: f64, _: &str) -> Result<f64> {
         let quote = self.get_price_quote(&asset.symbol, amount).await?;
 

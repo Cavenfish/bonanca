@@ -16,13 +16,7 @@ impl Jupiter {
         Self { api }
     }
 
-    pub async fn get_swap_data(
-        &self,
-        wallet: &SolWallet,
-        sell: &str,
-        buy: &str,
-        amount: f64,
-    ) -> Result<VersionedTransaction> {
+    pub async fn swap(&self, wallet: &SolWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {
         let taker = wallet.get_pubkey()?;
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
         let swap_quote = self.api.get_swap_quote(sell, buy, big_amount).await?;
@@ -35,6 +29,8 @@ impl Jupiter {
 
         let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
 
-        Ok(txn)
+        let _ = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(())
     }
 }

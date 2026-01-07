@@ -18,13 +18,7 @@ impl ZeroX {
         Self { api }
     }
 
-    async fn get_swap_data(
-        &self,
-        wallet: &EvmWallet,
-        sell: &str,
-        buy: &str,
-        amount: f64,
-    ) -> Result<TransactionRequest> {
+    pub async fn swap(&self, wallet: &EvmWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {
         let taker = wallet.get_pubkey()?;
 
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
@@ -34,15 +28,13 @@ impl ZeroX {
             .get_swap_quote(sell, buy, big_amount, &taker)
             .await?;
 
-        // if let Some(issues) = quote.issues.allowance {
-        //     let tmp = wallet
-        //         .check_swap(sell, amount, Some(&issues.spender))
-        //         .await?;
+        if let Some(issues) = quote.issues.allowance {
+            panic!("Allowance issues: {:?}", issues);
+        };
 
-        //     if !tmp {
-        //         std::process::exit(1)
-        //     };
-        // };
+        if let Some(issues) = quote.issues.balance {
+            panic!("Balance issues: {:?}", issues);
+        };
 
         let taker_addy = Address::from_str(&taker)?;
         let to_addy = Address::from_str(&quote.transaction.to)?;
@@ -63,6 +55,8 @@ impl ZeroX {
             .with_gas_limit(gas_limit)
             .with_max_fee_per_gas(gas_price);
 
-        Ok(txn)
+        let _ = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(())
     }
 }

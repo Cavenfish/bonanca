@@ -15,7 +15,7 @@ use solana_sdk::{
     transaction::{Transaction, VersionedTransaction},
 };
 use solana_system_interface::instruction::transfer;
-use std::{hash::Hash, path::Path};
+use std::{hash::Hash, path::Path, str::FromStr};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
@@ -77,8 +77,9 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn create_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
-        // Get associated token account address
+    pub async fn create_token_account(&self, mint_str: &str) -> Result<Pubkey> {
+        let mint = Pubkey::from_str(mint_str)?;
+
         let (token_account, _) = Pubkey::find_program_address(
             &[
                 &self.pubkey.to_bytes(),
@@ -88,14 +89,13 @@ impl SolWallet {
             &ATOKEN_ID,
         );
 
-        // Build create instructions
         let instr = Instruction {
             program_id: ATOKEN_ID,
             accounts: vec![
                 AccountMeta::new(self.pubkey, true),
                 AccountMeta::new(token_account, false),
                 AccountMeta::new_readonly(self.pubkey, false),
-                AccountMeta::new_readonly(*mint, false),
+                AccountMeta::new_readonly(mint, false),
                 AccountMeta::new_readonly(SYSTEM_ID, false),
                 AccountMeta::new_readonly(TOKEN_ID, false),
             ],
@@ -107,8 +107,9 @@ impl SolWallet {
         Ok(token_account)
     }
 
-    pub async fn close_token_account(&self, mint: &Pubkey) -> Result<()> {
-        let token_account = self.get_token_account(mint).await?;
+    pub async fn close_token_account(&self, mint_str: &str) -> Result<()> {
+        let mint = Pubkey::from_str(mint_str)?;
+        let token_account = self.get_token_account(&mint).await?;
 
         // Build close instructions
         let instr = Instruction {
@@ -317,8 +318,7 @@ impl SolWallet {
             let _ = self.transfer_token(mint, amount, to).await?;
         }
 
-        let mint_pubkey = Pubkey::from_str_const(mint);
-        let _ = self.close_token_account(&mint_pubkey).await?;
+        let _ = self.close_token_account(&mint).await?;
 
         Ok(())
     }

@@ -9,8 +9,6 @@ bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-core.workspace = true
 bonanca-db = { path = "../bonanca-db" }
 bonanca-keyvault.workspace = true
-bonanca-lend = { path = "../bonanca-lend" }
-bonanca-swap = { path = "../bonanca-swap" }
 bonanca-wallets = { path = "../bonanca-wallets" }
 clap = { version = "4.5.41", features = ["derive"] }
 serde.workspace = true

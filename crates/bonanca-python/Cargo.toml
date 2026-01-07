@@ -8,6 +8,6 @@ name = "bonanca"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.27.0", features = ["experimental-async"] }
 bonanca-wallets = { path = "../bonanca-wallets" }
+pyo3 = { version = "0.27.0", features = ["experimental-async"] }
 tokio.workspace = true

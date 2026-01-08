@@ -4,7 +4,7 @@ use alloy::{
 };
 use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
-use bonanca_api_lib::defi::zerox::ZeroXApi;
+use bonanca_api_lib::defi::zerox::{Issues, ZeroXApi};
 use bonanca_wallets::wallets::evm::EvmWallet;
 use std::str::FromStr;
 
@@ -16,6 +16,25 @@ impl ZeroX {
     pub fn new(api_key: String, chain_id: u16) -> Self {
         let api = ZeroXApi::new(api_key, chain_id);
         Self { api }
+    }
+
+    pub async fn check_swap(
+        &self,
+        wallet: &EvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> Result<Issues> {
+        let taker = wallet.get_pubkey()?;
+
+        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+
+        let quote = self
+            .api
+            .get_swap_quote(sell, buy, big_amount, &taker)
+            .await?;
+
+        Ok(quote.issues)
     }
 
     pub async fn swap(&self, wallet: &EvmWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {

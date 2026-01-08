@@ -1,11 +1,11 @@
 use alloy::{
-    primitives::{Address, U256, address},
-    providers::{DynProvider, Provider, ProviderBuilder},
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
+    primitives::{Address, U256},
+    providers::DynProvider,
     sol,
-    transports::http::reqwest::Url,
 };
 use anyhow::Result;
+use bonanca_api_lib::defi::aave::{AaveV3Api, AaveV3ReserveData};
+use bonanca_wallets::wallets::evm::EvmWallet;
 use std::str::FromStr;
 
 sol! {
@@ -16,30 +16,29 @@ sol! {
 }
 
 pub struct AaveV3 {
-    pub user: Address,
+    api: AaveV3Api,
     pub pool: Address,
-    pub client: DynProvider,
 }
 
 impl AaveV3 {
-    pub fn new(chain: &str, rpc_url: &str, signer: LocalSigner<SigningKey>) -> Self {
-        let user = signer.address();
-        let pool = match chain.split(":").last().unwrap() {
-            "Ethereum" => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
-            "Polygon" => address!("0x794a61358D6845594F94dc1DB02A252b5b4814aD"),
-            _ => panic!(),
-        };
-        let rpc = Url::from_str(rpc_url).unwrap();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer)
-            .connect_http(rpc)
-            .erased();
+    pub fn new(chain_id: u64) -> Self {
+        let api = AaveV3Api::new();
+        let pool = api.get_pool_address(chain_id).unwrap();
 
-        Self { user, pool, client }
+        Self { api, pool }
     }
 
-    async fn get_pools(&self) -> Result<Vec<DataTypes::ReserveDataLegacy>> {
-        let pool = PoolV3::new(self.pool, &self.client);
+    pub async fn get_pools_api(&self, chain_id: u64) -> Result<Vec<AaveV3ReserveData>> {
+        let data = self.api.query_market(chain_id).await.unwrap();
+
+        Ok(data)
+    }
+
+    pub async fn get_pools(
+        &self,
+        client: &DynProvider,
+    ) -> Result<Vec<DataTypes::ReserveDataLegacy>> {
+        let pool = PoolV3::new(self.pool, client);
 
         let reserves = pool.getReservesList().call().await?;
 
@@ -54,47 +53,38 @@ impl AaveV3 {
         Ok(reserve_data)
     }
 
-    async fn get_user_data(&self) -> Result<()> {
-        let pool = PoolV3::new(self.pool, &self.client);
+    pub async fn get_user_data(
+        &self,
+        user: Address,
+        client: &DynProvider,
+    ) -> Result<AaveV3UserData> {
+        let pool = PoolV3::new(self.pool, client);
 
-        let data = pool.getUserAccountData(self.user).call().await?;
+        let data = pool.getUserAccountData(user).call().await?;
 
-        // Base currency is USD with 8 decimals
-        println!(
-            "Total Collateral: {}",
-            f64::from(data.totalCollateralBase) / 1e8
-        );
-        println!("Total Debt: {}", f64::from(data.totalDebtBase) / 1e8);
-        println!("LTV: {}", f64::from(data.ltv) / 1e4);
-        println!("Health Factor: {}", f64::from(data.healthFactor) / 1e18);
-        println!(
-            "Liquidation Threshold: {}",
-            f64::from(data.currentLiquidationThreshold) / 1e4
-        );
-        println!(
-            "Available Borrows: {}",
-            f64::from(data.availableBorrowsBase) / 1e8
-        );
-
-        Ok(())
+        Ok(AaveV3UserData::new(data))
     }
 
-    async fn get_token_pools(&self, token: &str) -> Result<()> {
-        let pool = PoolV3::new(self.pool, &self.client);
+    pub async fn get_reserve_data(
+        &self,
+        token: &str,
+        client: &DynProvider,
+    ) -> Result<DataTypes::ReserveDataLegacy> {
+        let pool = PoolV3::new(self.pool, client);
         let asset = Address::from_str(token)?;
 
         let token_pool = pool.getReserveData(asset).call().await?;
 
-        println!("atoken address: {}", token_pool.aTokenAddress);
-        Ok(())
+        Ok(token_pool)
     }
 
-    async fn supply(&self, token: &str, amount: u64) -> Result<()> {
-        let poolv3 = PoolV3::new(self.pool, &self.client);
+    pub async fn supply(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+        let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
+        let amnt = wallet.parse_token_amount(amount, token).await?;
 
         poolv3
-            .supply(asset, U256::from(amount), self.user, 0)
+            .supply(asset, U256::from(amnt), wallet.pubkey, 0)
             .send()
             .await?
             .watch()
@@ -103,18 +93,19 @@ impl AaveV3 {
         Ok(())
     }
 
-    async fn borrow(&self, token: &str, amount: u64) -> Result<()> {
-        let poolv3 = PoolV3::new(self.pool, &self.client);
+    pub async fn borrow(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+        let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
+        let amnt = wallet.parse_token_amount(amount, token).await?;
 
         poolv3
             .borrow(
                 asset,
-                U256::from(amount),
+                U256::from(amnt),
                 variable_interest_rate,
                 0,
-                self.user,
+                wallet.pubkey,
             )
             .send()
             .await?
@@ -124,13 +115,19 @@ impl AaveV3 {
         Ok(())
     }
 
-    async fn repay(&self, token: &str, amount: u64) -> Result<()> {
-        let poolv3 = PoolV3::new(self.pool, &self.client);
+    pub async fn repay(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+        let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
+        let amnt = wallet.parse_token_amount(amount, token).await?;
 
         poolv3
-            .repay(asset, U256::from(amount), variable_interest_rate, self.user)
+            .repay(
+                asset,
+                U256::from(amnt),
+                variable_interest_rate,
+                wallet.pubkey,
+            )
             .send()
             .await?
             .watch()
@@ -139,17 +136,41 @@ impl AaveV3 {
         Ok(())
     }
 
-    async fn withdraw(&self, token: &str, amount: u64) -> Result<()> {
-        let poolv3 = PoolV3::new(self.pool, &self.client);
+    pub async fn withdraw(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+        let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
+        let amnt = wallet.parse_token_amount(amount, token).await?;
 
         poolv3
-            .withdraw(asset, U256::from(amount), self.user)
+            .withdraw(asset, U256::from(amnt), wallet.pubkey)
             .send()
             .await?
             .watch()
             .await?;
 
         Ok(())
+    }
+}
+
+pub struct AaveV3UserData {
+    pub total_collateral: f64,
+    pub total_debt: f64,
+    pub ltv: f64,
+    pub health_factor: f64,
+    pub liquidation_threshold: f64,
+    pub available_borrows: f64,
+}
+
+impl AaveV3UserData {
+    fn new(data: PoolV3::getUserAccountDataReturn) -> Self {
+        // Base currency is USD with 8 decimals
+        Self {
+            total_collateral: f64::from(data.totalCollateralBase) / 1e8,
+            total_debt: f64::from(data.totalDebtBase) / 1e8,
+            ltv: f64::from(data.ltv) / 1e4,
+            health_factor: f64::from(data.healthFactor) / 1e18,
+            liquidation_threshold: f64::from(data.currentLiquidationThreshold) / 1e4,
+            available_borrows: f64::from(data.availableBorrowsBase) / 1e8,
+        }
     }
 }

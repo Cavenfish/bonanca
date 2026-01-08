@@ -1,9 +1,8 @@
 use alloy_primitives::{Address, ChainId, address};
 use anyhow::Result;
+use bincode::de;
 use graphql_client::{GraphQLQuery, Response};
 use reqwest::Client;
-
-use crate::lending_oracle::LendingRate;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -13,20 +12,27 @@ use crate::lending_oracle::LendingRate;
 )]
 pub struct MarketQuery;
 
-pub struct AaveApi {
-    pub base_url: String,
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "schemas/aave/schema.graphql",
+    query_path = "schemas/aave/query.graphql",
+    response_derives = "Debug, Clone"
+)]
+pub struct MarketsQuery;
+
+pub struct AaveV3Api {
+    base_url: String,
 }
 
-impl AaveApi {
+impl AaveV3Api {
     pub fn new() -> Self {
         Self {
             base_url: "https://api.v3.aave.com/graphql".to_string(),
         }
     }
 
-    pub async fn query_market_v3(&self, token: &str, chain_id: u64) -> Result<Vec<LendingRate>> {
-        let client = Client::new();
-        let address = match chain_id {
+    pub fn get_pool_address(&self, chain_id: u64) -> Result<Address> {
+        let addy = match chain_id {
             // Ethereum
             1 => address!("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"),
             // Optimism
@@ -62,6 +68,13 @@ impl AaveApi {
             _ => Err(anyhow::anyhow!("Unsupported chain ID"))?,
         };
 
+        Ok(addy)
+    }
+
+    pub async fn query_market(&self, chain_id: u64) -> Result<Vec<AaveV3ReserveData>> {
+        let client = Client::new();
+        let address = self.get_pool_address(chain_id)?;
+
         let market_vars = market_query::MarketRequest {
             address,
             chain_id,
@@ -76,26 +89,118 @@ impl AaveApi {
 
         let res = client.post(&self.base_url).json(&body).send().await?;
         let response: Response<market_query::ResponseData> = res.json().await?;
-        let apy = response
+        let data = response
             .data
             .unwrap()
             .market
             .unwrap()
             .reserves
             .iter()
-            .find(|r| &r.underlying_token.symbol == token)
-            .unwrap()
-            .supply_info
-            .apy
-            .clone();
+            .map(|r| AaveV3ReserveData::new(r))
+            .collect();
 
-        let rate = LendingRate {
-            apy: apy.value.parse()?,
-            protocol: "Aave".to_string(),
-            token: token.to_string(),
-            vault_name: "Aave V3 Pool".to_string(),
+        Ok(data)
+    }
+
+    pub async fn query_markets(&self, chain_ids: Vec<u64>) -> Result<markets_query::ResponseData> {
+        let client = Client::new();
+
+        let markets_vars = markets_query::MarketsRequest {
+            chain_ids,
+            user: None,
         };
 
-        Ok(vec![rate])
+        let variables = markets_query::Variables {
+            request: markets_vars,
+        };
+
+        let body = MarketsQuery::build_query(variables);
+
+        let res = client.post(&self.base_url).json(&body).send().await?;
+        let response: Response<markets_query::ResponseData> = res.json().await?;
+        let data = response.data.unwrap();
+
+        Ok(data)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AaveV3ReserveData {
+    pub is_frozen: bool,
+    pub is_paused: bool,
+    pub a_token: Token,
+    pub underlying_token: Token,
+    pub supply_info: SupplyInfo,
+    pub borrow_info: Option<BorrowInfo>,
+}
+
+impl AaveV3ReserveData {
+    fn new(reserve: &market_query::MarketQueryMarketReserves) -> Self {
+        let a_token = Token {
+            address: reserve.a_token.address.to_string(),
+            name: reserve.a_token.name.clone(),
+            symbol: reserve.a_token.symbol.clone(),
+        };
+
+        let underlying_token = Token {
+            address: reserve.underlying_token.address.to_string(),
+            name: reserve.underlying_token.name.clone(),
+            symbol: reserve.underlying_token.symbol.clone(),
+        };
+
+        let supply_info = SupplyInfo {
+            can_be_collateral: reserve.supply_info.can_be_collateral,
+            supply_cap_reached: reserve.supply_info.supply_cap_reached,
+            supply_apy: reserve.supply_info.apy.value.parse().unwrap(),
+            max_ltv: reserve.supply_info.max_ltv.value.parse().unwrap(),
+            supply_cap: reserve.supply_info.supply_cap.amount.value.parse().unwrap(),
+        };
+
+        let borrow_info = match &reserve.borrow_info {
+            Some(info) => Some(BorrowInfo::new(&info)),
+            None => None,
+        };
+
+        Self {
+            is_frozen: reserve.is_frozen,
+            is_paused: reserve.is_paused,
+            a_token,
+            underlying_token,
+            supply_info,
+            borrow_info,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub address: String,
+    pub name: String,
+    pub symbol: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct SupplyInfo {
+    pub can_be_collateral: bool,
+    pub supply_cap_reached: bool,
+    pub supply_apy: f64,
+    pub max_ltv: f64,
+    pub supply_cap: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct BorrowInfo {
+    pub borrow_cap_reached: bool,
+    pub borrow_apy: f64,
+    pub borrow_cap: f64,
+}
+
+impl BorrowInfo {
+    fn new(info: &market_query::MarketQueryMarketReservesBorrowInfo) -> Self {
+        Self {
+            borrow_cap_reached: info.borrow_cap_reached,
+            borrow_apy: info.apy.value.parse().unwrap(),
+            borrow_cap: info.borrow_cap.amount.value.parse().unwrap(),
+        }
     }
 }

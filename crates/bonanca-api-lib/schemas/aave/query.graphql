@@ -1,9 +1,12 @@
 query MarketQuery($request: MarketRequest!) {
   market(request: $request) {
     reserves {
+      isFrozen
+      isPaused
       aToken {
         address
         name
+        symbol
       }
       underlyingToken {
         address
@@ -11,8 +14,79 @@ query MarketQuery($request: MarketRequest!) {
         symbol
       }
       supplyInfo {
+        canBeCollateral
+        supplyCapReached
         apy {
           value
+        }
+        maxLTV {
+          formatted
+          value
+        }
+        supplyCap {
+          amount {
+            value
+          }
+        }
+      }
+      borrowInfo {
+        borrowCapReached
+        apy {
+          value
+        }
+        borrowCap {
+          amount {
+            value
+          }
+        }
+      }
+    }
+  }
+}
+
+query MarketsQuery($request: MarketsRequest!) {
+  market(request: $request) {
+    chain {
+      name
+    }
+    reserves {
+      isFrozen
+      isPaused
+      aToken {
+        address
+        name
+        symbol
+      }
+      underlyingToken {
+        address
+        name
+        symbol
+      }
+      supplyInfo {
+        canBeCollateral
+        supplyCapReached
+        apy {
+          value
+        }
+        maxLTV {
+          formatted
+          value
+        }
+        supplyCap {
+          amount {
+            value
+          }
+        }
+      }
+      borrowInfo {
+        borrowCapReached
+        apy {
+          value
+        }
+        borrowCap {
+          amount {
+            value
+          }
         }
       }
     }

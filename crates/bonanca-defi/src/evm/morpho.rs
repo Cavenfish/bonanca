@@ -1,11 +1,6 @@
-use alloy::{
-    primitives::{Address, U256, address},
-    providers::{DynProvider, Provider, ProviderBuilder},
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
-    sol,
-    transports::http::reqwest::Url,
-};
+use alloy::{primitives::Address, providers::DynProvider, sol};
 use anyhow::Result;
+use bonanca_api_lib::defi::morpho::MorphoApi;
 use std::str::FromStr;
 
 sol! {
@@ -16,27 +11,14 @@ sol! {
 }
 
 pub struct MorphoVaultV1 {
-    pub user: Address,
-    pub vault: Address,
-    pub client: DynProvider,
+    api: MorphoApi,
 }
 
 impl MorphoVaultV1 {
-    pub fn new(vault_str: &str, rpc_url: &str, signer: LocalSigner<SigningKey>) -> Self {
-        let user = signer.address();
-        let vault = Address::from_str(vault_str).unwrap();
+    pub fn new() -> Self {
+        let api = MorphoApi::new();
 
-        let rpc = Url::from_str(rpc_url).unwrap();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer)
-            .connect_http(rpc)
-            .erased();
-
-        Self {
-            user,
-            vault,
-            client,
-        }
+        Self { api }
     }
 
     async fn get_user_data(&self) -> Result<()> {

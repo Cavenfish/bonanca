@@ -5,7 +5,7 @@ edition = "2024"
 
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "examples/crates/*"]
 
 [workspace.dependencies]
 alloy = "1.1.2"

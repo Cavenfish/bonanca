@@ -18,7 +18,7 @@ use super::rebal_methods::{make_buyin_trades, make_rebal_trades, make_skim_trade
 pub struct IndexFund {
     pub name: String,
     pub chain: String,
-    pub chain_id: Option<u32>,
+    pub chain_id: Option<u16>,
     pub rpc_url: String,
     pub keyvault: PathBuf,
     pub child: u32,
@@ -40,20 +40,6 @@ impl IndexFund {
         assert_eq!(weights.iter().sum::<f64>(), 1.0);
 
         fund
-    }
-
-    fn get_all_assets(&self) -> Result<Vec<Asset>> {
-        let mut assets: Vec<Asset> = Vec::new();
-
-        self.sectors
-            .iter()
-            .for_each(|s| s.assets.iter().for_each(|a| assets.push(a.clone())));
-
-        if let Some(aux_assets) = &self.auxiliary_assets {
-            assets.extend(aux_assets.clone())
-        };
-
-        Ok(assets)
     }
 
     async fn get_gas_balance(&self) -> Result<f64> {
@@ -173,29 +159,29 @@ impl IndexFund {
         })
     }
 
-    // pub fn get_trades(
-    //     &self,
-    //     bals: &IndexBalances,
-    //     method: &str,
-    //     aux_token: &str,
-    // ) -> Result<Vec<RebalTrade>> {
-    //     let trades = match method {
-    //         "redistribute" => make_rebal_trades(bals, self.max_offset)?,
-    //         "sell" => make_skim_trades(bals, aux_token, self.max_offset)?,
-    //         "buy" => {
-    //             let from_asset = bals
-    //                 .aux_balances
-    //                 .iter()
-    //                 .find(|x| x.addy == aux_token)
-    //                 .unwrap();
-    //             let usd_per_from_token = from_asset.value / from_asset.amount;
-    //             make_buyin_trades(bals, aux_token, usd_per_from_token, self.max_offset)?
-    //         }
-    //         _ => panic!(),
-    //     };
+    pub fn get_trades(
+        &self,
+        bals: &IndexBalances,
+        method: &str,
+        aux_token: &str,
+    ) -> Result<Vec<RebalTrade>> {
+        let trades = match method {
+            "redistribute" => make_rebal_trades(bals, self.max_offset)?,
+            "sell" => make_skim_trades(bals, aux_token, self.max_offset)?,
+            "buy" => {
+                let from_asset = bals
+                    .aux_balances
+                    .iter()
+                    .find(|x| x.addy == aux_token)
+                    .unwrap();
+                let usd_per_from_token = from_asset.value / from_asset.amount;
+                make_buyin_trades(bals, aux_token, usd_per_from_token, self.max_offset)?
+            }
+            _ => panic!(),
+        };
 
-    //     Ok(trades)
-    // }
+        Ok(trades)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

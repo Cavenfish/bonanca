@@ -5,17 +5,17 @@ mod rebal_methods;
 
 use clap::Parser;
 
-use crate::args::{Index, IndexArgs};
+use args::{Index, IndexArgs};
+use cmds::show_index_balance;
+
+use crate::cmds::rebalance_index_fund;
 
 #[tokio::main]
 async fn main() {
     let args = Index::parse();
 
     match args.command {
-        IndexArgs::Balance(cmd) => todo!(),
-        IndexArgs::Close(cmd) => todo!(),
-        IndexArgs::Deposit(cmd) => todo!(),
-        IndexArgs::Rebalance(cmd) => todo!(),
-        IndexArgs::Withdraw(cmd) => todo!(),
+        IndexArgs::Balance(cmd) => show_index_balance(cmd).await.unwrap(),
+        IndexArgs::Rebalance(cmd) => rebalance_index_fund(cmd).await.unwrap(),
     }
 }

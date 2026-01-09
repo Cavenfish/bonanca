@@ -13,7 +13,6 @@ use alloy_primitives::{
 use anyhow::Result;
 use async_trait::async_trait;
 use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
-use bonanca_core::config::Config;
 use bonanca_db::{
     BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},

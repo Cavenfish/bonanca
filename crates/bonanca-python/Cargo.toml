@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bonanca-defi = { path = "../bonanca-defi" }
+bonanca-oracle = { path = "../bonanca-oracle" }
 bonanca-wallets = { path = "../bonanca-wallets" }
 pyo3 = { version = "0.27.0" }
 tokio.workspace = true

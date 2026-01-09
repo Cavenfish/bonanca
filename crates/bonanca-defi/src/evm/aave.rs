@@ -53,14 +53,11 @@ impl AaveV3 {
         Ok(reserve_data)
     }
 
-    pub async fn get_user_data(
-        &self,
-        user: Address,
-        client: &DynProvider,
-    ) -> Result<AaveV3UserData> {
+    pub async fn get_user_data(&self, user: &str, client: &DynProvider) -> Result<AaveV3UserData> {
         let pool = PoolV3::new(self.pool, client);
+        let addy = Address::from_str(user)?;
 
-        let data = pool.getUserAccountData(user).call().await?;
+        let data = pool.getUserAccountData(addy).call().await?;
 
         Ok(AaveV3UserData::new(data))
     }

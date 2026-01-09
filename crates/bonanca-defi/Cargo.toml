@@ -11,6 +11,6 @@ anchor-lang = "0.32.1"
 anyhow.workspace = true
 base64 = "0.22.1"
 bincode = "1.3.3"
-bonanca-api-lib = { path = "../bonanca-api-lib" }
+bonanca-api-lib.workspace = true
 bonanca-wallets = { path = "../bonanca-wallets" }
 solana-sdk.workspace = true

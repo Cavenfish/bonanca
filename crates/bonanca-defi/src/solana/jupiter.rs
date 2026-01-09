@@ -16,6 +16,14 @@ impl Jupiter {
         Self { api }
     }
 
+    pub async fn get_token_price(&self, token: &str, amount: f64) -> Result<f64> {
+        let quote_map = self.api.get_price_quote(token).await?;
+        let quote = quote_map.get(token).unwrap();
+        let value = amount * quote.usd_price;
+
+        Ok(value)
+    }
+
     pub async fn swap(&self, wallet: &SolWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {
         let taker = wallet.get_pubkey()?;
         let big_amount = wallet.parse_token_amount(amount, sell).await?;

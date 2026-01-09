@@ -1,10 +1,7 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use crate::{Asset, Oracle};
 
 pub struct JupiterApi {
     pub base_url: String,
@@ -153,17 +150,6 @@ impl JupiterApi {
         };
 
         Ok(order)
-    }
-}
-
-#[async_trait]
-impl Oracle for JupiterApi {
-    async fn get_token_value(&self, asset: &Asset, amount: f64, _: &str) -> Result<f64> {
-        let quote_map = self.get_price_quote(&asset.address).await?;
-        let quote = quote_map.get(&asset.address).unwrap();
-        let value = amount * quote.usd_price;
-
-        Ok(value)
     }
 }
 

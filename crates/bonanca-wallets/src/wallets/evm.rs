@@ -11,7 +11,6 @@ use alloy_primitives::{
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
-use async_trait::async_trait;
 use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
 use bonanca_db::{
     BonancaDB,

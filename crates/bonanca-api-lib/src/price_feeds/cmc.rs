@@ -1,9 +1,6 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
-
-use crate::{Asset, Oracle};
 
 pub struct CoinMarketCapApi {
     pub base_url: String,
@@ -35,19 +32,6 @@ impl CoinMarketCapApi {
             .await?;
 
         Ok(resp)
-    }
-}
-
-#[async_trait]
-impl Oracle for CoinMarketCapApi {
-    async fn get_token_value(&self, asset: &Asset, amount: f64, _: &str) -> Result<f64> {
-        let quote = self.get_price_quote(&asset.symbol, amount).await?;
-
-        let data = quote.data.first().unwrap();
-
-        let value = data.quote.usd.price.unwrap();
-
-        Ok(value)
     }
 }
 

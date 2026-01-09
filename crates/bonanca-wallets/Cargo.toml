@@ -7,8 +7,7 @@ edition = "2024"
 alloy.workspace = true
 alloy-primitives.workspace = true
 anyhow.workspace = true
-async-trait.workspace = true
-bonanca-api-lib = { path = "../bonanca-api-lib" }
+bonanca-api-lib.workspace = true
 bonanca-db = { path = "../bonanca-db" }
 bonanca-keyvault.workspace = true
 solana-client = "3.0.2"

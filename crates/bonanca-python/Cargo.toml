@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bonanca-defi = { path = "../bonanca-defi" }
+bonanca-keyvault = { path = "../bonanca-keyvault" }
 bonanca-oracle = { path = "../bonanca-oracle" }
 bonanca-wallets = { path = "../bonanca-wallets" }
 pyo3 = { version = "0.27.0" }

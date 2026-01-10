@@ -1,4 +1,5 @@
 mod defi;
+mod keyvault;
 mod oracle;
 mod wallets;
 
@@ -6,6 +7,9 @@ use pyo3::prelude::*;
 
 #[pymodule]
 mod bonanca {
+    #[pymodule_export]
+    use super::keyvault::PyKeyVault;
+
     #[pymodule_export]
     use super::pywallets;
 

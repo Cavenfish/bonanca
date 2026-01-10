@@ -3,7 +3,7 @@ use bonanca_db::{
     BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
-use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
+use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
 use solana_client::rpc_request::TokenAccountsFilter::Mint;
 use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::UiTransactionEncoding};
 use solana_sdk::{
@@ -28,8 +28,8 @@ pub struct SolWallet {
 
 impl SolWallet {
     pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let hd_key = decrypt_keyvault(keyvault).expect("Failed to decrypt keyvault");
-        let child_key = hd_key.get_child_key("Solana", child).unwrap();
+        let key_vault = KeyVault::load(keyvault);
+        let child_key = key_vault.get_child_key("Solana", child).unwrap();
 
         let kp = match child_key {
             ChildKey::Sol(kp) => kp,
@@ -46,13 +46,9 @@ impl SolWallet {
     }
 
     pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let key_vault = read_keyvault(keyvault).unwrap();
-        let sol_keys = key_vault
-            .chain_keys
-            .iter()
-            .find(|k| k.chain == "Solana")
-            .unwrap();
-        let pubkey = sol_keys.public_keys.get(child as usize).unwrap();
+        let key_vault = KeyVault::load(keyvault);
+        let sol_keys = key_vault.chain_keys.get("Solana").unwrap();
+        let pubkey = sol_keys.get(child as usize).unwrap();
         let client = RpcClient::new(rpc.to_string());
         let pubkey = Pubkey::from_str_const(pubkey);
         Self {

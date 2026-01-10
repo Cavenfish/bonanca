@@ -1,3 +1,7 @@
+pub mod keyvault {
+    pub use bonanca_keyvault::keyvault::KeyVault;
+}
+
 pub mod wallets {
     pub use bonanca_wallets::wallets::{evm::EvmWallet, solana::SolWallet};
 }

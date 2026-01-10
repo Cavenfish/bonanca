@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use alloy::signers::local::PrivateKeySigner;
@@ -9,8 +10,9 @@ use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
 use hdwallet::{ExtendedPrivKey, KeyIndex};
 use rpassword::prompt_password;
 use solana_sdk::signer::{Signer, keypair::Keypair};
+use zeroize::ZeroizeOnDrop;
 
-use crate::keyvault::{ChainKeys, CipherParams, KdfParams, KeyVault, Vault};
+use crate::keyvault::{CipherParams, KdfParams, KeyVault, Vault};
 use crate::utils::{encrypt_seed, hash_password};
 
 pub enum ChildKey {
@@ -18,6 +20,7 @@ pub enum ChildKey {
     Evm(PrivateKeySigner),
 }
 
+#[derive(ZeroizeOnDrop)]
 pub struct HDkeys {
     pub seed: [u8; 64],
 }
@@ -47,17 +50,7 @@ impl HDkeys {
         Self { seed }
     }
 
-    pub fn get_keyvault(
-        &self,
-        salt: &SaltString,
-        nonce: &str,
-        pass: Option<&str>,
-    ) -> Result<KeyVault> {
-        let password = match pass {
-            Some(txt) => txt.to_string(),
-            None => prompt_password("\nKeyvault Password: ")?,
-        };
-
+    pub fn get_keyvault(&self, salt: &SaltString, nonce: &str, password: &str) -> Result<KeyVault> {
         let mac = hash_password(&password, salt)?;
 
         let kdf_params = KdfParams {
@@ -129,21 +122,14 @@ impl HDkeys {
         Ok(addy)
     }
 
-    fn create_chain_keys(&self) -> Result<Vec<ChainKeys>> {
+    fn create_chain_keys(&self) -> Result<HashMap<String, Vec<String>>> {
         let sol_addy = self.get_child_pubkey("Solana", 0)?;
         let evm_addy = self.get_child_pubkey("EVM", 0)?;
 
-        let sol_keys = ChainKeys {
-            chain: "Solana".to_string(),
-            public_keys: vec![sol_addy],
-        };
+        let mut chain_keys: HashMap<String, Vec<String>> = HashMap::new();
 
-        let evm_keys = ChainKeys {
-            chain: "EVM".to_string(),
-            public_keys: vec![evm_addy],
-        };
-
-        let chain_keys = vec![sol_keys, evm_keys];
+        chain_keys.insert("Solana".to_string(), vec![sol_addy]);
+        chain_keys.insert("EVM".to_string(), vec![evm_addy]);
 
         Ok(chain_keys)
     }

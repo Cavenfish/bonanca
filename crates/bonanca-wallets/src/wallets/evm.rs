@@ -16,7 +16,7 @@ use bonanca_db::{
     BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
-use bonanca_keyvault::{decrypt_keyvault, hd_keys::ChildKey, read_keyvault};
+use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
 use core::panic;
 use std::{path::Path, str::FromStr};
 
@@ -36,8 +36,8 @@ pub struct EvmWallet {
 
 impl EvmWallet {
     pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let hd_key = decrypt_keyvault(keyvault).expect("Failed to decrypt keyvault");
-        let child_key = hd_key.get_child_key("EVM", child).unwrap();
+        let key_vault = KeyVault::load(keyvault);
+        let child_key = key_vault.get_child_key("EVM", child).unwrap();
 
         let signer = match child_key {
             ChildKey::Evm(sig) => sig,
@@ -60,13 +60,9 @@ impl EvmWallet {
     }
 
     pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let key_vault = read_keyvault(keyvault).unwrap();
-        let evm_keys = key_vault
-            .chain_keys
-            .iter()
-            .find(|k| k.chain == "EVM")
-            .unwrap();
-        let pubkey = evm_keys.public_keys.get(child as usize).unwrap();
+        let key_vault = KeyVault::load(keyvault);
+        let evm_keys = key_vault.chain_keys.get("EVM").unwrap();
+        let pubkey = evm_keys.get(child as usize).unwrap();
         let rpc_url = Url::parse(rpc).unwrap();
         let addy = Address::from_str(pubkey).unwrap();
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();

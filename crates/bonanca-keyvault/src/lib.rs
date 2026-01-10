@@ -2,84 +2,12 @@ pub mod hd_keys;
 pub mod keyvault;
 mod utils;
 
-use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
-use anyhow::{Result, anyhow};
-use argon2::password_hash::SaltString;
-use bip39::Language;
-use rpassword::prompt_password;
-use std::fs::File;
-use std::io::{BufReader, Write};
-use std::path::Path;
-
-use crate::hd_keys::HDkeys;
-use crate::keyvault::KeyVault;
-use crate::utils::{decrypt_seed, verify_password};
-
-pub fn new(filename: &Path, lang: &str) -> Result<()> {
-    let language = match lang {
-        "English" => Ok(Language::English),
-        "Simplified Chinese" => Ok(Language::SimplifiedChinese),
-        "Traditional Chinese" => Ok(Language::TraditionalChinese),
-        "French" => Ok(Language::French),
-        "Italian" => Ok(Language::Italian),
-        "Japanese" => Ok(Language::Japanese),
-        "Korean" => Ok(Language::Korean),
-        "Spanish" => Ok(Language::Spanish),
-        _ => Err(anyhow!("Language not supported")),
-    }?;
-
-    let word_count: usize = 24;
-    let salt = SaltString::generate(&mut OsRng);
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    let nonce = hex::encode(nonce);
-
-    let hd_key = HDkeys::new(language, word_count);
-
-    let key_vault = hd_key.get_keyvault(&salt, &nonce, None)?;
-
-    let contents = serde_json::to_string(&key_vault)?;
-
-    let mut file = File::create(filename)?;
-    file.write_all(contents.as_bytes())?;
-
-    Ok(())
-}
-
-pub fn decrypt_keyvault(file: &Path) -> Result<HDkeys> {
-    let f = File::open(file)?;
-    let rdr = BufReader::new(f);
-
-    let keyvault: KeyVault = serde_json::from_reader(rdr)?;
-
-    let password = prompt_password("Keyvault Password: ")?;
-
-    if !verify_password(&keyvault.vault.mac, &password) {
-        println!("Wrong Password");
-        panic!();
-    };
-
-    let seed = decrypt_seed(
-        &keyvault.vault.cipher_text,
-        &password,
-        &keyvault.vault.cipher_params.nonce,
-        &keyvault.vault.kdf_params,
-    )?;
-
-    Ok(HDkeys { seed })
-}
-
-pub fn read_keyvault(file: &Path) -> Result<KeyVault> {
-    let f = File::open(file)?;
-    let rdr = BufReader::new(f);
-
-    let keyvault: KeyVault = serde_json::from_reader(rdr)?;
-
-    Ok(keyvault)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::hd_keys::HDkeys;
+    use super::keyvault::KeyVault;
+    use super::utils::{decrypt_seed, verify_password};
+    use argon2::password_hash::SaltString;
 
     #[test]
     fn test_encrypt_and_decrypt() {
@@ -100,7 +28,7 @@ mod tests {
         let salt = SaltString::from_b64("M6lWvNAGuZBSp9fBGAUEqw").unwrap();
         let nonce = "287189f34a1433d2de201d08";
 
-        let keyvault = hd_keys.get_keyvault(&salt, nonce, Some(password)).unwrap();
+        let keyvault = hd_keys.get_keyvault(&salt, nonce, password).unwrap();
 
         assert!(verify_password(&keyvault.vault.mac, password));
 

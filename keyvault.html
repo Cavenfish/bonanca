@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Manage Index Fund - Bonança Documentation</title>
+        <title>KeyVault - Bonança Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -175,116 +175,68 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="manage-index-fund"><a class="header" href="#manage-index-fund">Manage Index Fund</a></h1>
-<p>To manage an index fund using Bonança, you will need to make a <code>json</code> file
-that describes the index fund configuration. An example configuration file is as follows:</p>
+                        <h1 id="keyvault"><a class="header" href="#keyvault">KeyVault</a></h1>
+<p>Bonança stores the seed to your HD wallet in what is called a <code>KeyVault</code>,
+which can be serialized into a <code>json</code> file. This takes inspiration from
+<code>keystore</code> files, if you are unfamiliar with them consider reading
+<a href="https://julien-maffre.medium.com/what-is-an-ethereum-keystore-file-86c8c5917b97">this post</a>.</p>
+<p>When serialized, your HD wallet seed is encrypted using a password you
+define. An example key vault <code>json</code> file structure is as follows:</p>
 <pre><code class="language-json">{
-  "name": "Basic Index Fund",
-  "chain": "Solana",
-  "child": 0,
-  "keyvault": "path/to/keyvault.json",
-  "rpc_url": "https://api.mainnet-beta.solana.com",
-  "max_offset": 0.01,
-  "gas_address": "So11111111111111111111111111111111111111112",
-
-  "aggregator": {
-    "name": "Jupiter",
-    "api_url": "https://lite-api.jup.ag",
-    "api_key": "N/A"
-  },
-
-  "oracle": {
-    "name": "Jupiter",
-    "api_url": "https://lite-api.jup.ag",
-    "api_key": "N/A"
-  },
-
-  "sectors": [
-    {
-      "name": "Layer 1",
-      "weight": 0.5,
-      "assets": [
-        {
-          "name": "Bitcoin",
-          "symbol": "BTC",
-          "address": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh"
-        },
-        {
-          "name": "Ethereum",
-          "symbol": "ETH",
-          "address": "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs"
-        }
-      ]
+  "vault": {
+    "cipher": "aes256-gcm",
+    "cipher_params": { "nonce": "287189f34a1433d2de201d08" },
+    "cipher_text": "7a34170003c0a7b3ccb75bac28757801a7d9b5e1ff062afa4af5f3c03e7d8982eb1f36ccce87436e42b44ffea6bcf39eba8c15d4e79ee0bf012811fca81ae1e112c0f8ae5d8e43ac8cad1ae961b11207",
+    "kdf": "pbkdf2",
+    "kdf_params": {
+      "key_length": 32,
+      "n": 600000,
+      "salt": "M6lWvNAGuZBSp9fBGAUEqw"
     },
-    {
-      "name": "DEX",
-      "weight": 0.5,
-      "assets": [
-        {
-          "name": "Raydium",
-          "symbol": "RAY",
-          "address": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
-        },
-        {
-          "name": "Jupiter",
-          "symbol": "JUP",
-          "address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"
-        }
-      ]
-    }
-  ]
+    "mac": "$argon2id$v=19$m=19456,t=2,p=1$M6lWvNAGuZBSp9fBGAUEqw$/U5VYPmg3+BQj0ttOyPnOUjH7bP23V9/tgvBpovna/8",
+    "salt": "M6lWvNAGuZBSp9fBGAUEqw"
+  },
+  "chain_keys": {
+    "Solana": ["AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG"],
+    "EVM": ["0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"]
+  }
 }
 </code></pre>
-<p>Lets break down the fields in this configuration file:</p>
+<p>Breaking down the components:</p>
 <ul>
-<li><code>name</code>: The name of the index fund.</li>
-<li><code>chain</code>: The blockchain where the index fund operates (e.g., "Solana").</li>
-<li><code>child</code>: The child index for hierarchical deterministic wallets.</li>
-<li><code>keyvault</code>: The path to the key vault file that contains the wallet keys.</li>
-<li><code>rpc_url</code>: The RPC URL for connecting to the blockchain network.</li>
-<li><code>max_offset</code>: The maximum allowable offset from the target asset allocation.</li>
-<li><code>gas_address</code>: The address of the native token used for transaction fees.</li>
-<li><code>aggregator</code>: Configuration for the exchange aggregator used for trading assets.
+<li><code>cipher</code> is the encryption algorithm used to encrypt your HD wallet
+seed</li>
+<li>Within <code>cipher_params</code> you find <code>nonce</code> which is an initialization
+vector for the AES-256-GCM algorithm</li>
+<li><code>cipher_text</code> is your encrypted seed</li>
+<li><code>kdf</code> is the key derivation function used (PBKDF2)</li>
+<li><code>kdf_params</code> are the parameters used in the key derivation function
 <ul>
-<li><code>name</code>: The name of the aggregator (e.g., "Jupiter").</li>
-<li><code>api_url</code>: The API URL for the aggregator.</li>
-<li><code>api_key</code>: The API key for accessing the aggregator (if required).</li>
+<li><code>key_length</code> is the length in bytes of the key</li>
+<li><code>n</code> is the number of cycles in the algorithm, where 600,000
+is used to make encrypting/decrypting time consuming to
+prevent brute force attacks</li>
+<li><code>salt</code> is the password salt</li>
 </ul>
 </li>
-<li><code>oracle</code>: Configuration for the price oracle used to fetch asset prices.
-<ul>
-<li><code>name</code>: The name of the oracle (e.g., "Jupiter").</li>
-<li><code>api_url</code>: The API URL for the oracle.</li>
-<li><code>api_key</code>: The API key for accessing the oracle (if required).</li>
+<li><code>mac</code> is your hashed and salted password using Argon2 (its parameters
+are included in the mac string)</li>
+<li><code>salt</code> again the password salt</li>
+<li><code>chain_keys</code> these are your public keys for various blockchains</li>
 </ul>
-</li>
-<li><code>sectors</code>: An array of sectors that group assets together. Each sector has the following fields:
-<ul>
-<li><code>name</code>: The name of the sector (e.g., "Layer 1").</li>
-<li><code>weight</code>: The target weight of the sector in the index fund (e.g., 0.5 for 50%).</li>
-<li><code>assets</code>: An array of assets within the sector. Each asset has the following fields:
-<ul>
-<li><code>name</code>: The name of the asset (e.g., "Bitcoin").</li>
-<li><code>symbol</code>: The symbol of the asset (e.g., "BTC").</li>
-<li><code>address</code>: The blockchain address of the asset.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p>Once you have created the configuration file, you can use Bonança to manage your index fund by executing commands such as balancing the fund, depositing assets, and withdrawing funds. Make sure to provide the path to your configuration file when running these commands.</p>
-<pre><code class="language-bash">bonanca balance -i path/to/index_fund_config.json
-</code></pre>
-<p>This command will print the balance of the index fund and the allocations of each asset. The allocations are shown as <code>actual / target</code>, where <code>actual</code> is the current allocation and <code>target</code> is the desired allocation based on the weights defined in the configuration file.</p>
-<pre><code class="language-bash">bonanca rebalance -i path/to/index_fund_config.json
-</code></pre>
-<p>This command will rebalance the index fund by buying and selling assets to match the target allocations defined in the configuration file. To see what trades would be executed without actually performing them, you can use the <code>--preview</code> flag (also <code>-p</code> for short):</p>
-<pre><code class="language-bash">bonanca rebalance -i path/to/index_fund_config.json --preview
-</code></pre>
-<p>This command will show the proposed trades needed to rebalance the index fund without executing them.</p>
-<pre><code class="language-bash">bonanca close -i path/to/index_fund_config.json -s RECEIVER_ADDRESS
-</code></pre>
-<p>This command will close the index fund by transfering all assets and to the specified receiver address. Make sure to replace <code>RECEIVER_ADDRESS</code> with the actual address where you want to send the assets.</p>
+<p>Changes to any of these fields can result in failure to decrypt the seed,
+and possibly permanent loss of all funds.</p>
+<p>The only point of weakness within the <code>KeyVault</code> encryption is your choice
+of password. If a malicious actor were to get a hold of your <code>json</code> file,
+they could try to decrypt it by either guessing the password or the seed.
+Guessing the seed is extremely difficult and unlikely, whereas guessing
+a password is more doable. This means picking a good password is crucial.</p>
+<p><code>KeyVault</code> includes your public keys within the <code>chain_keys</code> field, which
+allows you to view your accounts without having to decrypt your <code>KeyVault</code>.
+There are positives and negatives to this approach, with the main benefit
+being that you can check wallet balances without supplying your password.
+The main drawback is that if a malicious actor were to get this file, they
+would know how valuable breaking the encryption is.</p>
 
                     </main>
 

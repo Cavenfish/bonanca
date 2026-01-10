@@ -83,6 +83,19 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
             let dex = ZeroX::new(fund.aggregator.api_key.clone(), fund.chain_id.unwrap());
 
             for trade in trades.iter() {
+                let issues = dex
+                    .check_swap(&wallet, &trade.from, &trade.to, trade.amount)
+                    .await
+                    .unwrap();
+
+                if let Some(allowance) = issues.allowance {
+                    let amount = trade.amount - allowance.actual.parse::<f64>().unwrap();
+                    wallet
+                        .approve_token_spending(&trade.from, &allowance.spender, amount)
+                        .await
+                        .unwrap();
+                }
+
                 let _ = dex
                     .swap(&wallet, &trade.from, &trade.to, trade.amount)
                     .await

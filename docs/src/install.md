@@ -1,5 +1,5 @@
 # Installation
 
 ```bash
-cargo install bonanca
+cargo add bonanca
 ```

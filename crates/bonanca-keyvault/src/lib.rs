@@ -61,16 +61,10 @@ mod tests {
                     "mac": "$argon2id$v=19$m=19456,t=2,p=1$M6lWvNAGuZBSp9fBGAUEqw$/U5VYPmg3+BQj0ttOyPnOUjH7bP23V9/tgvBpovna/8",
                     "salt": "M6lWvNAGuZBSp9fBGAUEqw"
                 },
-                "chain_keys": [
-                    {
-                    "chain": "Solana",
-                    "public_keys": ["AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG"]
-                    },
-                    {
-                    "chain": "EVM",
-                    "public_keys": ["0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"]
-                    }
-                ]
+                "chain_keys": {
+                    "Solana": ["AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG"],
+                    "EVM": ["0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"]
+                }
             }
             "#,
         ).unwrap();

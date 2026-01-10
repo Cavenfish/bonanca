@@ -10,7 +10,7 @@ HD wallets are stored as `KeyVault` files in Bonança, which is explained
 in more depth [here](keyvault.md). You can create a `KeyVault` using Rust
 or Python.
 
-```rust
+```rust,ignore
 use bonanca::keyvault::KeyVault;
 
 fn main() {

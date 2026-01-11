@@ -19,3 +19,29 @@ query VaultsV1Query($first: Int!, $chain_id: Int!, $asset: String!) {
     }
   }
 }
+
+query UserDataQuery($address: String!, $chain_id: Int!) {
+  userByAddress(address: $address, chain_id: $chain_id) {
+    vaultPositions {
+      state {
+        roeUsd
+        pnlUsd
+        assetsUsd
+      }
+    }
+    vaultV2Positions {
+      roeUsd
+      pnlUsd
+      assetsUsd
+    }
+    marketPositions {
+      healthFactor
+      state {
+        supplyAssetsUsd
+        borrowAssetsUsd
+        roeUsd
+        pnlUsd
+      }
+    }
+  }
+}

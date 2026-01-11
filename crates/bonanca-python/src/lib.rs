@@ -32,7 +32,10 @@ mod pywallets {
 #[pymodule(name = "defi", submodule)]
 mod pydefi {
     #[pymodule_export]
-    use crate::defi::{evm::zerox::PyZeroX, solana::jupiter::PyJupiter};
+    use crate::defi::{
+        evm::{morpho::PyMorphoVaultV1, zerox::PyZeroX},
+        solana::jupiter::PyJupiter,
+    };
 }
 
 #[pymodule(name = "oracle", submodule)]

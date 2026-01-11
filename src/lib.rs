@@ -8,7 +8,7 @@ pub mod wallets {
 
 pub mod defi {
     pub use bonanca_defi::{
-        evm::{aave::AaveV3, zerox::ZeroX},
+        evm::{aave::AaveV3, morpho::MorphoVaultV1, zerox::ZeroX},
         solana::jupiter::Jupiter,
     };
 }

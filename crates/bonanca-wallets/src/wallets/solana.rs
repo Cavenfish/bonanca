@@ -11,16 +11,15 @@ use solana_client::{
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    signature::{SIGNATURE_BYTES, Signature},
+    signature::Signature,
     signer::{Signer, keypair::Keypair},
     transaction::{Transaction, VersionedTransaction},
 };
 use solana_system_interface::instruction::transfer;
-use std::{hash::Hash, path::Path, str::FromStr};
+use std::{path::Path, str::FromStr};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
-const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 
 pub struct SolWallet {
     pub key_pair: Option<Keypair>,
@@ -76,13 +75,10 @@ impl SolWallet {
 
     pub async fn create_token_account(&self, mint_str: &str) -> Result<Pubkey> {
         let mint = Pubkey::from_str(mint_str)?;
+        let owner = self.client.get_account(&mint).await?.owner;
 
         let (token_account, _) = Pubkey::find_program_address(
-            &[
-                &self.pubkey.to_bytes(),
-                &TOKEN_ID.to_bytes(),
-                &mint.to_bytes(),
-            ],
+            &[&self.pubkey.to_bytes(), &owner.to_bytes(), &mint.to_bytes()],
             &ATOKEN_ID,
         );
 
@@ -94,7 +90,7 @@ impl SolWallet {
                 AccountMeta::new_readonly(self.pubkey, false),
                 AccountMeta::new_readonly(mint, false),
                 AccountMeta::new_readonly(SYSTEM_ID, false),
-                AccountMeta::new_readonly(TOKEN_ID, false),
+                AccountMeta::new_readonly(owner, false),
             ],
             data: vec![0],
         };
@@ -106,11 +102,12 @@ impl SolWallet {
 
     pub async fn close_token_account(&self, mint_str: &str) -> Result<()> {
         let mint = Pubkey::from_str(mint_str)?;
+        let owner = self.client.get_account(&mint).await?.owner;
         let token_account = self.get_token_account(&mint).await?;
 
         // Build close instructions
         let instr = Instruction {
-            program_id: TOKEN_ID,
+            program_id: owner,
             accounts: vec![
                 AccountMeta::new(token_account, false),
                 AccountMeta::new(self.pubkey, true),
@@ -218,6 +215,7 @@ impl SolWallet {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
+        let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
         let lamp = self.parse_token_amount(amount, mint).await?;
 
@@ -233,7 +231,7 @@ impl SolWallet {
         let destination = Pubkey::from_str_const(&token.pubkey);
 
         let instruction = Instruction {
-            program_id: TOKEN_ID,
+            program_id: owner,
             accounts: vec![
                 AccountMeta::new(source, false),
                 AccountMeta::new(destination, false),

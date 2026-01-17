@@ -1,9 +1,4 @@
-use alloy::rpc::client;
 use anyhow::{Context, Result};
-use bonanca_db::{
-    BonancaDB,
-    transactions::{CryptoOperation, CryptoTransfer, Txn},
-};
 use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
 use solana_client::{
     nonblocking::rpc_client::RpcClient,
@@ -141,25 +136,6 @@ impl SolWallet {
         let addy = Pubkey::from_str_const(&token.pubkey);
 
         Ok(addy)
-    }
-
-    async fn make_txn_receipt(&self, operation: CryptoOperation, sig: Signature) -> Result<Txn> {
-        let data = self
-            .client
-            .get_transaction(&sig, UiTransactionEncoding::Json)
-            .await?;
-
-        let gas_used = (data.transaction.meta.unwrap().fee as f64) / 1e9;
-
-        let txn = Txn {
-            pubkey: self.pubkey.to_string(),
-            block: data.slot,
-            timestamp: data.block_time.unwrap().try_into()?,
-            gas_used,
-            operation,
-        };
-
-        Ok(txn)
     }
 
     pub fn get_pubkey(&self) -> Result<String> {

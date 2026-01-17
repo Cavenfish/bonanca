@@ -3,6 +3,9 @@ name = "bonanca"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+database = ["dep:bonanca-db"]
+
 [workspace]
 resolver = "3"
 members = ["crates/*", "examples/crates/*"]
@@ -20,7 +23,7 @@ solana-sdk = "3.0.0"
 tokio = { version = "1.48.0", features = ["full"] }
 
 [dependencies]
-bonanca-db = { path = "./crates/bonanca-db" }
+bonanca-db = { path = "./crates/bonanca-db", optional = true }
 bonanca-defi = { path = "./crates/bonanca-defi" }
 bonanca-keyvault.workspace = true
 bonanca-oracle = { path = "./crates/bonanca-oracle" }

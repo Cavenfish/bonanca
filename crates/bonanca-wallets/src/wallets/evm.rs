@@ -11,11 +11,6 @@ use alloy_primitives::{
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
-use bonanca_api_lib::block_explorer::etherscan::EtherscanApi;
-use bonanca_db::{
-    BonancaDB,
-    transactions::{CryptoOperation, CryptoTransfer, Txn},
-};
 use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
 use core::panic;
 use std::{path::Path, str::FromStr};
@@ -110,35 +105,6 @@ impl EvmWallet {
         let allow = format_units(value, deci)?;
 
         Ok(allow.parse()?)
-    }
-
-    async fn make_txn_receipt(
-        &self,
-        operation: CryptoOperation,
-        sig: TransactionReceipt,
-    ) -> Result<Txn> {
-        let block = self
-            .client
-            .get_block_by_number(alloy::eips::BlockNumberOrTag::Number(
-                sig.block_number.unwrap(),
-            ))
-            .await?
-            .unwrap();
-        let timestamp = block.header.timestamp;
-
-        let used = sig.gas_used as f64;
-        let price = sig.blob_gas_price.unwrap() as f64;
-        let gas_used = (used * price) / 1e18;
-
-        let txn = Txn {
-            pubkey: self.pubkey.to_string(),
-            block: sig.block_number.unwrap(),
-            timestamp,
-            gas_used,
-            operation,
-        };
-
-        Ok(txn)
     }
 
     pub fn get_pubkey(&self) -> Result<String> {

@@ -18,9 +18,11 @@ impl PyJupiter {
     }
 
     fn swap(&self, wallet: &PySolWallet, sell: &str, buy: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.swap(&wallet.inner, sell, buy, amount))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 }

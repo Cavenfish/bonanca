@@ -40,16 +40,20 @@ impl PyMorphoVaultV1 {
     }
 
     fn supply(&self, wallet: &PyEvmWallet, vault_address: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.supply(&wallet.inner, vault_address, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 
     fn withdraw(&self, wallet: &PyEvmWallet, vault_address: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.withdraw(&wallet.inner, vault_address, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 }

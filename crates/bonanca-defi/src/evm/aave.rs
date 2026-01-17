@@ -1,6 +1,7 @@
 use alloy::{
     primitives::{Address, U256},
     providers::DynProvider,
+    rpc::types::TransactionReceipt,
     sol,
 };
 use anyhow::Result;
@@ -75,28 +76,38 @@ impl AaveV3 {
         Ok(token_pool)
     }
 
-    pub async fn supply(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+    pub async fn supply(
+        &self,
+        wallet: &EvmWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let amnt = wallet.parse_token_amount(amount, token).await?;
 
-        poolv3
+        let sig = poolv3
             .supply(asset, U256::from(amnt), wallet.pubkey, 0)
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 
-    pub async fn borrow(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+    pub async fn borrow(
+        &self,
+        wallet: &EvmWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
         let amnt = wallet.parse_token_amount(amount, token).await?;
 
-        poolv3
+        let sig = poolv3
             .borrow(
                 asset,
                 U256::from(amnt),
@@ -106,19 +117,24 @@ impl AaveV3 {
             )
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 
-    pub async fn repay(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+    pub async fn repay(
+        &self,
+        wallet: &EvmWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
         let amnt = wallet.parse_token_amount(amount, token).await?;
 
-        poolv3
+        let sig = poolv3
             .repay(
                 asset,
                 U256::from(amnt),
@@ -127,25 +143,30 @@ impl AaveV3 {
             )
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 
-    pub async fn withdraw(&self, wallet: &EvmWallet, token: &str, amount: f64) -> Result<()> {
+    pub async fn withdraw(
+        &self,
+        wallet: &EvmWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let amnt = wallet.parse_token_amount(amount, token).await?;
 
-        poolv3
+        let sig = poolv3
             .withdraw(asset, U256::from(amnt), wallet.pubkey)
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 }
 

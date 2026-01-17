@@ -65,30 +65,38 @@ impl PyAaveV3 {
     // }
 
     fn supply(&self, wallet: &PyEvmWallet, token: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.supply(&wallet.inner, token, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 
     fn borrow(&self, wallet: &PyEvmWallet, token: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.borrow(&wallet.inner, token, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 
     fn repay(&self, wallet: &PyEvmWallet, token: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.repay(&wallet.inner, token, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 
     fn withdraw(&self, wallet: &PyEvmWallet, token: &str, amount: f64) -> PyResult<()> {
-        wallet
+        let _ = wallet
             .rt
             .block_on(self.inner.withdraw(&wallet.inner, token, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+
+        Ok(())
     }
 }

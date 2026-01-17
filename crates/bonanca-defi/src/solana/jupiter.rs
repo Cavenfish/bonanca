@@ -3,7 +3,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
 use bonanca_api_lib::defi::jupiter::JupiterApi;
-use bonanca_wallets::wallets::solana::SolWallet;
+use bonanca_wallets::wallets::solana::{SolTxnReceipt, SolWallet};
 use solana_sdk::transaction::VersionedTransaction;
 
 pub struct Jupiter {
@@ -24,7 +24,13 @@ impl Jupiter {
         Ok(value)
     }
 
-    pub async fn swap(&self, wallet: &SolWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {
+    pub async fn swap(
+        &self,
+        wallet: &SolWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> Result<SolTxnReceipt> {
         let taker = wallet.get_pubkey()?;
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
         let swap_quote = self.api.get_swap_quote(sell, buy, big_amount).await?;
@@ -37,8 +43,8 @@ impl Jupiter {
 
         let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
 
-        let _ = wallet.sign_and_send(txn).await.unwrap();
+        let sig = wallet.sign_and_send(txn).await.unwrap();
 
-        Ok(())
+        Ok(sig)
     }
 }

@@ -1,15 +1,22 @@
+use alloy::rpc::client;
 use anyhow::{Context, Result};
 use bonanca_db::{
     BonancaDB,
     transactions::{CryptoOperation, CryptoTransfer, Txn},
 };
 use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
-use solana_client::rpc_request::TokenAccountsFilter::Mint;
-use solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::UiTransactionEncoding};
+use solana_client::{
+    nonblocking::rpc_client::RpcClient,
+    rpc_config::UiTransactionEncoding,
+    rpc_response::{OptionSerializer, UiLoadedAddresses},
+};
+use solana_client::{
+    rpc_request::TokenAccountsFilter::Mint, rpc_response::UiTransactionTokenBalance,
+};
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    signature::Signature,
+    signature::{SIGNATURE_BYTES, Signature},
     signer::{Signer, keypair::Keypair},
     transaction::{Transaction, VersionedTransaction},
 };
@@ -159,11 +166,6 @@ impl SolWallet {
         Ok(self.pubkey.to_string())
     }
 
-    // fn get_signer(&self) -> Result<CryptoSigners> {
-    //     let kp = self.key_pair.as_ref().unwrap();
-    //     Ok(CryptoSigners::Sol(kp.insecure_clone()))
-    // }
-
     pub fn parse_native_amount(&self, amount: f64) -> Result<u64> {
         let amt = (amount * 1e9) as u64;
 
@@ -194,12 +196,6 @@ impl SolWallet {
         Ok(())
     }
 
-    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-    //     let tmp = Vec::new();
-
-    //     Ok(tmp)
-    // }
-
     pub async fn balance(&self) -> Result<f64> {
         let balance = self.client.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
@@ -207,7 +203,7 @@ impl SolWallet {
         Ok(bal)
     }
 
-    pub async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
+    pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let lamp = self.parse_native_amount(amount)?;
@@ -224,18 +220,7 @@ impl SolWallet {
             .await
             .unwrap();
 
-        let hash = sig.to_string();
-
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "SOL".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
+        Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
     pub async fn token_balance(&self, mint: &str) -> Result<f64> {
@@ -253,7 +238,7 @@ impl SolWallet {
         Ok(bal)
     }
 
-    pub async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<(String, Txn)> {
+    pub async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<SolTxnReceipt> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
@@ -292,18 +277,7 @@ impl SolWallet {
             .await
             .unwrap();
 
-        let hash = sig.to_string();
-
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "Native".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
+        Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
     pub async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<()> {
@@ -318,7 +292,7 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn sign_and_send(&self, mut txn: VersionedTransaction) -> Result<()> {
+    pub async fn sign_and_send(&self, mut txn: VersionedTransaction) -> Result<SolTxnReceipt> {
         let kp = self.key_pair.as_ref().unwrap();
         let message = txn.message.serialize();
         let signature = kp.sign_message(&message);
@@ -331,8 +305,54 @@ impl SolWallet {
             txn.signatures[0] = signature;
         };
 
-        let _ = self.client.send_and_confirm_transaction(&txn).await?;
+        let sig = self.client.send_and_confirm_transaction(&txn).await?;
 
-        Ok(())
+        Ok(SolTxnReceipt::new(sig, &self.client).await)
+    }
+}
+
+pub struct SolTxnReceipt {
+    pub hash: String,
+    pub slot: u64,
+    pub block_time: Option<i64>,
+    pub gas_used: f64,
+    pub pre_balances: Vec<f64>,
+    pub post_balances: Vec<f64>,
+    pub pre_token_balances: Option<Vec<UiTransactionTokenBalance>>,
+    pub post_token_balances: Option<Vec<UiTransactionTokenBalance>>,
+    pub loaded_addresses: OptionSerializer<UiLoadedAddresses>,
+}
+
+impl SolTxnReceipt {
+    pub async fn new(sig: Signature, client: &RpcClient) -> Self {
+        let data = client
+            .get_transaction(&sig, UiTransactionEncoding::Json)
+            .await
+            .expect("Transaction not found");
+
+        let meta = data.transaction.meta.unwrap();
+        let gas_used = (meta.fee as f64) / 1e9;
+        let pre_balances = meta
+            .pre_balances
+            .iter()
+            .map(|b| (*b as f64) / 1e9)
+            .collect();
+        let post_balances = meta
+            .post_balances
+            .iter()
+            .map(|b| (*b as f64) / 1e9)
+            .collect();
+
+        Self {
+            hash: sig.to_string(),
+            slot: data.slot,
+            block_time: data.block_time,
+            gas_used,
+            pre_balances,
+            post_balances,
+            pre_token_balances: meta.pre_token_balances.into(),
+            post_token_balances: meta.post_token_balances.into(),
+            loaded_addresses: meta.loaded_addresses,
+        }
     }
 }

@@ -1,5 +1,6 @@
 use alloy::{
     primitives::{Address, U256},
+    rpc::types::TransactionReceipt,
     sol,
 };
 use anyhow::Result;
@@ -48,7 +49,12 @@ impl MorphoVaultV1 {
         self.api.query_vaults_v1(token_symbol, chain_id).await
     }
 
-    pub async fn supply(&self, wallet: &EvmWallet, vault_address: &str, amount: f64) -> Result<()> {
+    pub async fn supply(
+        &self,
+        wallet: &EvmWallet,
+        vault_address: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
@@ -56,14 +62,14 @@ impl MorphoVaultV1 {
             .parse_token_amount(amount, &token.to_string())
             .await?;
 
-        vault
+        let sig = vault
             .deposit(U256::from(amnt), wallet.pubkey)
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 
     pub async fn withdraw(
@@ -71,7 +77,7 @@ impl MorphoVaultV1 {
         wallet: &EvmWallet,
         vault_address: &str,
         amount: f64,
-    ) -> Result<()> {
+    ) -> Result<TransactionReceipt> {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
@@ -79,13 +85,13 @@ impl MorphoVaultV1 {
             .parse_token_amount(amount, &token.to_string())
             .await?;
 
-        vault
+        let sig = vault
             .withdraw(U256::from(amnt), wallet.pubkey, wallet.pubkey)
             .send()
             .await?
-            .watch()
+            .get_receipt()
             .await?;
 
-        Ok(())
+        Ok(sig)
     }
 }

@@ -1,6 +1,6 @@
 use alloy::{
     network::TransactionBuilder,
-    rpc::types::{TransactionInput, TransactionRequest},
+    rpc::types::{TransactionInput, TransactionReceipt, TransactionRequest},
 };
 use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
@@ -37,7 +37,13 @@ impl ZeroX {
         Ok(quote.issues)
     }
 
-    pub async fn swap(&self, wallet: &EvmWallet, sell: &str, buy: &str, amount: f64) -> Result<()> {
+    pub async fn swap(
+        &self,
+        wallet: &EvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt> {
         let taker = wallet.get_pubkey()?;
 
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
@@ -74,8 +80,8 @@ impl ZeroX {
             .with_gas_limit(gas_limit)
             .with_max_fee_per_gas(gas_price);
 
-        let _ = wallet.sign_and_send(txn).await.unwrap();
+        let sig = wallet.sign_and_send(txn).await.unwrap();
 
-        Ok(())
+        Ok(sig)
     }
 }

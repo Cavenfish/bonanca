@@ -145,11 +145,6 @@ impl EvmWallet {
         Ok(self.pubkey.to_string())
     }
 
-    // fn get_signer(&self) -> Result<CryptoSigners> {
-    //     let signer = self.signer.as_ref().unwrap();
-    //     Ok(CryptoSigners::Evm(signer.clone()))
-    // }
-
     pub fn parse_native_amount(&self, amount: f64) -> Result<u64> {
         let amt = (amount * 1e18) as u64;
 
@@ -192,21 +187,6 @@ impl EvmWallet {
         Ok(())
     }
 
-    // async fn get_history(&self) -> Result<Vec<(String, Txn)>> {
-    //     let db = BonancaDB::load();
-    //     let api_key = db.get_api_key("Etherscan")?;
-    //     let chain_id = self.client.get_chain_id().await?;
-    //     let pubkey = &self.pubkey.to_string();
-
-    //     let ethscan = EtherscanApi::new(api_key);
-    //     let mut history = ethscan.get_native_history(chain_id, pubkey, 1).await?;
-    //     let token_history = ethscan.get_token_history(chain_id, pubkey, 1).await?;
-
-    //     history.extend(token_history);
-
-    //     Ok(history)
-    // }
-
     pub async fn balance(&self) -> Result<f64> {
         let bal = self.client.get_balance(self.pubkey).await?;
 
@@ -215,7 +195,7 @@ impl EvmWallet {
         Ok(fbal.parse()?)
     }
 
-    pub async fn transfer(&self, to: &str, amount: f64) -> Result<(String, Txn)> {
+    pub async fn transfer(&self, to: &str, amount: f64) -> Result<TransactionReceipt> {
         let to_addy = Address::from_str(to)?;
         let wei = parse_ether(&amount.to_string())?;
 
@@ -230,18 +210,8 @@ impl EvmWallet {
             .await?
             .get_receipt()
             .await?;
-        let hash = sig.transaction_hash.to_string();
 
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "Native".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
+        Ok(sig)
     }
 
     pub async fn token_balance(&self, token: &str) -> Result<f64> {
@@ -264,7 +234,7 @@ impl EvmWallet {
         token: &str,
         amount: f64,
         to: &str,
-    ) -> Result<(String, Txn)> {
+    ) -> Result<TransactionReceipt> {
         let to_addy = Address::from_str(to)?;
         let token_addy = Address::from_str(token)?;
 
@@ -280,18 +250,7 @@ impl EvmWallet {
             .get_receipt()
             .await?;
 
-        let hash = sig.transaction_hash.to_string();
-
-        let operation = CryptoOperation::Transfer(CryptoTransfer {
-            token: "Token".to_string(),
-            amount,
-            from: self.pubkey.to_string(),
-            to: to.to_string(),
-        });
-
-        let txn = self.make_txn_receipt(operation, sig).await?;
-
-        Ok((hash, txn))
+        Ok(sig)
     }
 
     pub async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
@@ -304,9 +263,14 @@ impl EvmWallet {
         Ok(())
     }
 
-    pub async fn sign_and_send(&self, txn: TransactionRequest) -> Result<()> {
-        let _ = self.client.send_transaction(txn).await?.watch().await?;
+    pub async fn sign_and_send(&self, txn: TransactionRequest) -> Result<TransactionReceipt> {
+        let sig = self
+            .client
+            .send_transaction(txn)
+            .await?
+            .get_receipt()
+            .await?;
 
-        Ok(())
+        Ok(sig)
     }
 }

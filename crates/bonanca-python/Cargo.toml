@@ -8,6 +8,8 @@ name = "bonanca"
 crate-type = ["cdylib"]
 
 [dependencies]
+alloy.workspace = true
+bonanca-api-lib = { path = "../bonanca-api-lib" }
 bonanca-defi = { path = "../bonanca-defi" }
 bonanca-keyvault = { path = "../bonanca-keyvault" }
 bonanca-oracle = { path = "../bonanca-oracle" }

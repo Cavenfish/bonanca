@@ -33,8 +33,11 @@ mod pywallets {
 mod pydefi {
     #[pymodule_export]
     use crate::defi::{
-        evm::{morpho::PyMorphoVaultV1, zerox::PyZeroX},
-        solana::jupiter::PyJupiter,
+        evm::{
+            morpho::PyMorphoVaultV1,
+            zerox::{PyZeroX, PyZeroXSwapQuote, PyZeroXIssues, PyTransactionReceipt},
+        },
+        solana::jupiter::{PyJupiter, PyJupiterSwapQuote, PySolTxnReceipt},
     };
 }
 

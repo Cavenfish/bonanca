@@ -2,7 +2,7 @@ use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
-use bonanca_api_lib::defi::jupiter::JupiterApi;
+use bonanca_api_lib::defi::jupiter::{JupiterApi, JupiterSwapQuote};
 use bonanca_wallets::wallets::solana::{SolTxnReceipt, SolWallet};
 use solana_sdk::transaction::VersionedTransaction;
 
@@ -24,7 +24,33 @@ impl Jupiter {
         Ok(value)
     }
 
-    pub async fn swap(
+    pub async fn get_swap_quote(
+        &self,
+        wallet: &SolWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> Result<JupiterSwapQuote> {
+        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        self.api.get_swap_quote(sell, buy, big_amount).await
+    }
+
+    pub async fn swap(&self, wallet: &SolWallet, quote: JupiterSwapQuote) -> Result<SolTxnReceipt> {
+        let taker = wallet.get_pubkey()?;
+        let swap_order = self.api.get_swap_order(&taker, quote).await?;
+
+        let swap_tx_bytes = STANDARD
+            .decode(swap_order.swap_transaction)
+            .expect("Failed to decode base64 transaction");
+
+        let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+
+        let sig = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(sig)
+    }
+
+    pub async fn quick_swap(
         &self,
         wallet: &SolWallet,
         sell: &str,

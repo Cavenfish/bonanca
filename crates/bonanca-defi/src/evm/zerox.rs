@@ -4,7 +4,7 @@ use alloy::{
 };
 use alloy_primitives::{Address, Bytes, Uint, hex::decode};
 use anyhow::Result;
-use bonanca_api_lib::defi::zerox::{Issues, ZeroXApi};
+use bonanca_api_lib::defi::zerox::{Issues, ZeroXApi, ZeroXSwapQuote};
 use bonanca_wallets::wallets::evm::EvmWallet;
 use std::str::FromStr;
 
@@ -37,7 +37,58 @@ impl ZeroX {
         Ok(quote.issues)
     }
 
+    pub async fn get_swap_quote(
+        &self,
+        wallet: &EvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> Result<ZeroXSwapQuote> {
+        let taker = wallet.get_pubkey()?;
+
+        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+
+        self.api.get_swap_quote(sell, buy, big_amount, &taker).await
+    }
+
     pub async fn swap(
+        &self,
+        wallet: &EvmWallet,
+        quote: ZeroXSwapQuote,
+    ) -> Result<TransactionReceipt> {
+        if let Some(issues) = quote.issues.allowance {
+            panic!("Allowance issues: {:?}", issues);
+        };
+
+        if let Some(issues) = quote.issues.balance {
+            panic!("Balance issues: {:?}", issues);
+        };
+
+        let taker = wallet.pubkey;
+        let to_addy = Address::from_str(&quote.transaction.to)?;
+        let tmp = decode(quote.transaction.data)?;
+        let data = Bytes::copy_from_slice(&tmp);
+        let value: Uint<256, 4> = quote.transaction.value.parse()?;
+        let gas_limit: u64 = quote.transaction.gas.parse()?;
+        let gas_price: u128 = quote.transaction.gas_price.parse()?;
+
+        let input = TransactionInput::new(data);
+
+        let txn = TransactionRequest::default()
+            .input(input)
+            .with_input_and_data()
+            .with_from(taker)
+            .with_to(to_addy)
+            .with_value(value)
+            .with_gas_limit(gas_limit)
+            .with_max_fee_per_gas(gas_price);
+
+        let sig = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(sig)
+    }
+
+    pub async fn quick_swap(
         &self,
         wallet: &EvmWallet,
         sell: &str,

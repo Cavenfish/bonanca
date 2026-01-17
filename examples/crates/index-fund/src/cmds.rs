@@ -97,7 +97,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
                 }
 
                 let _ = dex
-                    .swap(&wallet, &trade.from, &trade.to, trade.amount)
+                    .quick_swap(&wallet, &trade.from, &trade.to, trade.amount)
                     .await
                     .unwrap();
             }
@@ -108,7 +108,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
 
             for trade in trades.iter() {
                 let _ = dex
-                    .swap(&wallet, &trade.from, &trade.to, trade.amount)
+                    .quick_swap(&wallet, &trade.from, &trade.to, trade.amount)
                     .await
                     .unwrap();
             }

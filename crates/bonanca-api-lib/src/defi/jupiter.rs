@@ -174,7 +174,7 @@ pub struct JupiterUltraOrder {
     pub route_plan: Vec<RoutePlan>,
     pub fee_mint: String,
     pub fee_bps: u32,
-    pub platform_fee: PlatformFee,
+    pub platform_fee: Option<PlatformFee>,
     pub signature_fee_lamports: u64,
     pub signature_fee_payer: Option<String>,
     pub prioritization_fee_lamports: u64,
@@ -232,8 +232,8 @@ pub struct SwapOrder {
 pub struct RoutePlan {
     #[serde(rename = "swapInfo")]
     pub swap_info: SwapInfo,
-    pub percent: u32,
-    pub bps: u32,
+    pub percent: Option<u32>,
+    pub bps: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -245,8 +245,6 @@ pub struct SwapInfo {
     pub output_mint: String,
     pub in_amount: String,
     pub out_amount: String,
-    pub fee_amount: String,
-    pub fee_mint: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,9 +1,8 @@
 use std::any::type_name;
 use std::fmt::Debug;
 
-use anyhow::Result;
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
-use redb::{Database, Value};
+use redb::Value;
 
 #[derive(Debug)]
 pub struct Bincode<T>(pub T);

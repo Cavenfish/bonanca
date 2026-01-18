@@ -1,6 +1,5 @@
 use alloy_primitives::{Address, ChainId, address};
 use anyhow::Result;
-use bincode::de;
 use graphql_client::{GraphQLQuery, Response};
 use reqwest::Client;
 

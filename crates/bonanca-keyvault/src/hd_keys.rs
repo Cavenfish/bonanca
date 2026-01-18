@@ -8,7 +8,6 @@ use argon2::password_hash::SaltString;
 use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
 use hdwallet::{ExtendedPrivKey, KeyIndex};
-use rpassword::prompt_password;
 use solana_sdk::signer::{Signer, keypair::Keypair};
 use zeroize::ZeroizeOnDrop;
 

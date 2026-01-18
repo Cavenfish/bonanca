@@ -3,8 +3,6 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::fmt;
 
-use crate::lending_oracle::LendingRate;
-
 pub struct KaminoApi {
     base_url: String,
 }
@@ -46,24 +44,24 @@ impl KaminoApi {
         Ok(resp)
     }
 
-    pub async fn get_token_rates(&self, token: &str) -> Result<Vec<LendingRate>> {
-        let mut rates: Vec<LendingRate> = Vec::new();
+    // pub async fn get_token_rates(&self, token: &str) -> Result<Vec<LendingRate>> {
+    //     let mut rates: Vec<LendingRate> = Vec::new();
 
-        let vaults = self.get_all_kvaults().await?;
+    //     let vaults = self.get_all_kvaults().await?;
 
-        for vault in vaults.iter().filter(|v| v.state.name.contains(token)) {
-            let metrics = self.get_vault_metrics(&vault.address).await?;
+    //     for vault in vaults.iter().filter(|v| v.state.name.contains(token)) {
+    //         let metrics = self.get_vault_metrics(&vault.address).await?;
 
-            rates.push(LendingRate {
-                apy: metrics.apy.parse()?,
-                protocol: "Kamino".to_string(),
-                token: token.to_string(),
-                vault_name: vault.state.name.clone(),
-            });
-        }
+    //         rates.push(LendingRate {
+    //             apy: metrics.apy.parse()?,
+    //             protocol: "Kamino".to_string(),
+    //             token: token.to_string(),
+    //             vault_name: vault.state.name.clone(),
+    //         });
+    //     }
 
-        Ok(rates)
-    }
+    //     Ok(rates)
+    // }
 
     pub async fn get_user_data(&self, user: &str) -> Result<Vec<KVaultPosition>> {
         let client = Client::new();

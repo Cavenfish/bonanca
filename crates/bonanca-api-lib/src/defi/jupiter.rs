@@ -30,24 +30,14 @@ impl JupiterApi {
             &self.base_url, sell, buy, amount, taker
         );
 
-        let order: JupiterUltraOrder = if self.api_key.is_empty() {
-            client
-                .get(&url)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<JupiterUltraOrder>()
-                .await?
-        } else {
-            client
-                .get(&url)
-                .header("x-api-key", &self.api_key)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<JupiterUltraOrder>()
-                .await?
-        };
+        let order: JupiterUltraOrder = client
+            .get(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<JupiterUltraOrder>()
+            .await?;
 
         Ok(order)
     }
@@ -57,24 +47,14 @@ impl JupiterApi {
 
         let url = format!("{}/price/v3?ids={}", &self.base_url, token);
 
-        let quote: HashMap<String, TokenPrice> = if self.api_key.is_empty() {
-            client
-                .get(&url)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<HashMap<String, TokenPrice>>()
-                .await?
-        } else {
-            client
-                .get(&url)
-                .header("x-api-key", &self.api_key)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<HashMap<String, TokenPrice>>()
-                .await?
-        };
+        let quote: HashMap<String, TokenPrice> = client
+            .get(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<HashMap<String, TokenPrice>>()
+            .await?;
 
         Ok(quote)
     }
@@ -92,24 +72,14 @@ impl JupiterApi {
             &self.base_url, sell, buy, amount
         );
 
-        let quote: JupiterSwapQuote = if self.api_key.is_empty() {
-            client
-                .get(&url)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<JupiterSwapQuote>()
-                .await?
-        } else {
-            client
-                .get(&url)
-                .header("x-api-key", &self.api_key)
-                .header("Accept", "application/json")
-                .send()
-                .await?
-                .json::<JupiterSwapQuote>()
-                .await?
-        };
+        let quote: JupiterSwapQuote = client
+            .get(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json::<JupiterSwapQuote>()
+            .await?;
 
         Ok(quote)
     }
@@ -128,26 +98,15 @@ impl JupiterApi {
             quote_response: swap_quote,
         };
 
-        let order: SwapOrder = if self.api_key.is_empty() {
-            client
-                .post(&url)
-                .header("Content-Type", "application/json")
-                .json(&swap_data)
-                .send()
-                .await?
-                .json::<SwapOrder>()
-                .await?
-        } else {
-            client
-                .post(&url)
-                .header("x-api-key", &self.api_key)
-                .header("Content-Type", "application/json")
-                .json(&swap_data)
-                .send()
-                .await?
-                .json::<SwapOrder>()
-                .await?
-        };
+        let order: SwapOrder = client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&swap_data)
+            .send()
+            .await?
+            .json::<SwapOrder>()
+            .await?;
 
         Ok(order)
     }

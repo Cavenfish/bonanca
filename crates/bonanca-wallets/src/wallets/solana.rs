@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
 use solana_client::{
     nonblocking::rpc_client::RpcClient,
-    rpc_config::UiTransactionEncoding,
+    rpc_config::{CommitmentConfig, RpcTransactionConfig, UiTransactionEncoding},
     rpc_response::{OptionSerializer, UiLoadedAddresses},
 };
 use solana_client::{
@@ -299,8 +299,14 @@ pub struct SolTxnReceipt {
 
 impl SolTxnReceipt {
     pub async fn new(sig: Signature, client: &RpcClient) -> Self {
+        let config = RpcTransactionConfig {
+            encoding: Some(UiTransactionEncoding::Json),
+            commitment: Some(CommitmentConfig::confirmed()),
+            max_supported_transaction_version: Some(0),
+        };
+
         let data = client
-            .get_transaction(&sig, UiTransactionEncoding::Json)
+            .get_transaction_with_config(&sig, config)
             .await
             .expect("Transaction not found");
 

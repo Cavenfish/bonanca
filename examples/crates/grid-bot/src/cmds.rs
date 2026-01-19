@@ -85,8 +85,7 @@ async fn maybe_buy(
         .await
         .unwrap();
 
-    let out: f64 =
-        quote.min_buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_b.decimals);
+    let out: f64 = quote.buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_b.decimals);
     let price = 1.0 / (out / pair.sell_amount);
 
     for level in levels.iter_mut() {
@@ -121,8 +120,7 @@ async fn maybe_sell(
         .await
         .unwrap();
 
-    let out: f64 =
-        quote.min_buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_a.decimals);
+    let out: f64 = quote.buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_a.decimals);
     let price = out / pair.sell_amount;
 
     for level in levels.iter_mut() {

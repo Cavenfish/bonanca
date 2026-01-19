@@ -47,4 +47,5 @@ pub struct Token {
     pub name: String,
     pub symbol: String,
     pub address: String,
+    pub decimals: i32,
 }

@@ -96,7 +96,7 @@ async fn maybe_buy(
                 let txn = dex.swap(&wallet, quote).await?;
                 println!("Buy Txn: {}", txn.block_hash.unwrap().to_string());
             }
-            *level = pair.upper_limit * 2.0;
+            *level = pair.lower_limit / 2.0;
             break;
         }
     }
@@ -131,7 +131,7 @@ async fn maybe_sell(
                 let txn = dex.swap(&wallet, quote).await?;
                 println!("Buy Txn: {}", txn.block_hash.unwrap().to_string());
             }
-            *level = pair.lower_limit / 2.0;
+            *level = pair.upper_limit * 2.0;
             break;
         }
     }

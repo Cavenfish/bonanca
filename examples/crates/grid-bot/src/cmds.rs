@@ -53,7 +53,8 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
             &dex,
             cmds.dry,
         )
-        .await?;
+        .await
+        .unwrap_or_else(|err| println!("Error: {}", err));
         maybe_sell(
             &settings.trading_pair,
             &mut sell_levels,
@@ -61,7 +62,9 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
             &dex,
             cmds.dry,
         )
-        .await?;
+        .await
+        .unwrap_or_else(|err| println!("Error: {}", err));
+
         sleep(Duration::from_mins(cmds.interval));
     }
 
@@ -82,15 +85,15 @@ async fn maybe_buy(
             &pair.token_b.address,
             pair.buy_amount,
         )
-        .await
-        .unwrap();
+        .await?;
 
-    let out: f64 = quote.buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_b.decimals);
+    let out: f64 = quote.buy_amount.parse::<f64>()? / 10.0_f64.powi(pair.token_b.decimals);
     let price = 1.0 / (out / pair.sell_amount);
 
     for level in levels.iter_mut() {
         if &price < level {
             if dry {
+                println!("Level: {}", level);
                 println!("I would have bought {} for {}", pair.token_b.symbol, price);
             } else {
                 let txn = dex.swap(&wallet, quote).await?;
@@ -117,15 +120,15 @@ async fn maybe_sell(
             &pair.token_a.address,
             pair.sell_amount,
         )
-        .await
-        .unwrap();
+        .await?;
 
-    let out: f64 = quote.buy_amount.parse::<f64>().unwrap() / 10.0_f64.powi(pair.token_a.decimals);
+    let out: f64 = quote.buy_amount.parse::<f64>()? / 10.0_f64.powi(pair.token_a.decimals);
     let price = out / pair.sell_amount;
 
     for level in levels.iter_mut() {
         if &price > level {
             if dry {
+                println!("Level: {}", level);
                 println!("I would have sold {} for {}", pair.token_b.symbol, price);
             } else {
                 let txn = dex.swap(&wallet, quote).await?;

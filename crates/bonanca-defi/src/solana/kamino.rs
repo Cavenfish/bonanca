@@ -1,13 +1,15 @@
 use anchor_client::{
     Client, Cluster,
     solana_sdk::{
-        commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Keypair, signer::Signer,
+        commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Keypair,
+        signer::SeedDerivable,
     },
 };
 use anchor_lang::prelude::*;
 use anyhow::Result;
-use bonanca_api_lib::defi::kamino::{KVaultInfo, KaminoApi};
-use std::{path::Path, sync::Arc};
+use bonanca_api_lib::defi::kamino::{KVaultInfo, KVaultPosition, KaminoApi};
+use bonanca_wallets::wallets::solana::SolWallet;
+use std::{rc::Rc, str::FromStr};
 
 const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
@@ -39,106 +41,163 @@ impl Kamino {
         Self { api }
     }
 
-    async fn get_vault_data(&self, name: &str) -> Result<KVaultInfo> {
+    pub async fn get_vaults(&self) -> Result<Vec<KVaultInfo>> {
+        self.api.get_all_kvaults().await
+    }
+
+    pub async fn get_vault_data(&self, name: &str) -> Result<KVaultInfo> {
         let vaults = self.api.get_all_kvaults().await?;
 
-        let vault = vaults.iter().find(|v| v.state.name == name).unwrap();
+        let vault = vaults.into_iter().find(|v| v.state.name == name).unwrap();
 
-        Ok(vault.clone())
+        Ok(vault)
     }
 
-    async fn get_pools(&self) -> Result<()> {
-        let pools = self.api.get_all_kvaults().await?;
-
-        for pool in pools.iter() {
-            println!("Pool Address: {}", pool.address);
-            println!("Token Available: {}", pool.state.token_available);
-            println!("Min Deposit Amount: {}", pool.state.min_deposit_amount);
-            println!("Performance Fee: {} bps", pool.state.performance_fee_bps);
-            println!("Management Fee: {} bps", pool.state.management_fee_bps);
-        }
-
-        Ok(())
+    pub async fn get_user_data(&self, pubkey: &str) -> Result<Vec<KVaultPosition>> {
+        self.api.get_user_data(&pubkey).await
     }
 
-    async fn get_user_data(&self, pubkey: &str) -> Result<()> {
-        let data = self.api.get_user_data(&pubkey).await?;
-
-        data.iter().for_each(|f| println!("{}", f));
-
-        Ok(())
-    }
-
-    async fn get_token_pools(&self, token: &str) -> Result<()> {
+    pub async fn get_token_vaults(&self, token: &str) -> Result<Vec<KVaultInfo>> {
         let vaults = self.api.get_all_kvaults().await?;
 
-        let token_vaults: Vec<&KVaultInfo> = vaults
-            .iter()
+        let token_vaults: Vec<KVaultInfo> = vaults
+            .into_iter()
             .filter(|v| v.state.token_mint == token)
             .collect();
 
-        token_vaults
-            .iter()
-            .for_each(|v| println!("Vault name: {}", v.state.name));
+        Ok(token_vaults)
+    }
+
+    pub async fn supply(
+        &self,
+        wallet: &SolWallet,
+        vault_data: &KVaultInfo,
+        amount: f64,
+    ) -> Result<()> {
+        // These two conversion are because Anchor and solana_sdk use different versions
+        let payer = Keypair::from_seed(wallet.key_pair.as_ref().unwrap().secret_bytes())
+            .expect("Couldn't conver keypair types");
+        let user = Pubkey::from_str(&wallet.pubkey.to_string())?;
+
+        let provider = Client::new_with_options(
+            Cluster::Localnet,
+            Rc::new(payer),
+            CommitmentConfig::confirmed(),
+        );
+
+        let program = provider.program(kvault::ID)?;
+
+        let token_mint = Pubkey::from_str_const(&vault_data.state.token_mint);
+        let token_vault = Pubkey::from_str_const(&vault_data.state.token_vault);
+        let base_vault_authority = Pubkey::from_str_const(&vault_data.state.base_vault_authority);
+        let shares_mint = Pubkey::from_str_const(&vault_data.state.shares_mint);
+        let token_program = Pubkey::from_str_const(&vault_data.state.token_program);
+        let vault_state = Pubkey::from_str_const(&vault_data.address);
+
+        let user_token_ata = get_ata(&user, &token_mint);
+        let user_shares_ata = get_ata(&user, &shares_mint);
+
+        let event_authority = get_event_authority(&program.id());
+
+        let amnt = wallet
+            .parse_token_amount(amount, &vault_data.state.token_mint)
+            .await?;
+
+        let supply_ix = program
+            .request()
+            .accounts(accounts::Deposit {
+                user,
+                vault_state,
+                token_vault,
+                token_mint,
+                base_vault_authority,
+                shares_mint,
+                user_token_ata,
+                user_shares_ata,
+                klend_program: KLEND_ID,
+                token_program,
+                shares_token_program: TOKEN_ID,
+                event_authority,
+                program: program.id(),
+            })
+            .args(args::Deposit { max_amount: amnt })
+            .instructions()?
+            .remove(0);
+
+        let _ = program.request().instruction(supply_ix).send().await?;
 
         Ok(())
     }
 
-    async fn supply(&self, token: &str, amount: u64) -> Result<()> {
-        // let user = self.user.pubkey();
-        // let token_mint = Pubkey::from_str_const(token);
-        // let client = self.get_client();
+    pub async fn withdraw(
+        &self,
+        wallet: &SolWallet,
+        vault_data: &KVaultInfo,
+        amount: f64,
+    ) -> Result<()> {
+        // These two conversion are because Anchor and solana_sdk use different versions
+        let payer = Keypair::from_seed(wallet.key_pair.as_ref().unwrap().secret_bytes())
+            .expect("Couldn't conver keypair types");
+        let user = Pubkey::from_str(&wallet.pubkey.to_string())?;
 
-        // let program = client.program(kvault::ID)?;
+        let provider = Client::new_with_options(
+            Cluster::Localnet,
+            Rc::new(payer),
+            CommitmentConfig::confirmed(),
+        );
 
-        // let vault_data = self.get_vault_data().await?;
+        let program = provider.program(kvault::ID)?;
 
-        // let token_vault = Pubkey::from_str_const(&vault_data.state.token_vault);
-        // let base_vault_authority = Pubkey::from_str_const(&vault_data.state.base_vault_authority);
-        // let shares_mint = Pubkey::from_str_const(&vault_data.state.shares_mint);
-        // let token_program = Pubkey::from_str_const(&vault_data.state.token_program);
-        // let vault_state = Pubkey::from_str_const(&vault_data.address);
+        let token_mint = Pubkey::from_str_const(&vault_data.state.token_mint);
+        let token_vault = Pubkey::from_str_const(&vault_data.state.token_vault);
+        let base_vault_authority = Pubkey::from_str_const(&vault_data.state.base_vault_authority);
+        let shares_mint = Pubkey::from_str_const(&vault_data.state.shares_mint);
+        let token_program = Pubkey::from_str_const(&vault_data.state.token_program);
+        let vault_state = Pubkey::from_str_const(&vault_data.address);
 
-        // let user_token_ata = get_ata(&user, &token_mint);
-        // let user_shares_ata = get_ata(&user, &shares_mint);
+        let user_token_ata = get_ata(&user, &token_mint);
+        let user_shares_ata = get_ata(&user, &shares_mint);
 
-        // let event_authority = get_event_authority(&program.id());
+        let event_authority = get_event_authority(&program.id());
 
-        // let supply_ix = program
-        //     .request()
-        //     .accounts(accounts::Deposit {
-        //         user,
-        //         vault_state,
-        //         token_vault,
-        //         token_mint,
-        //         base_vault_authority,
-        //         shares_mint,
-        //         user_token_ata,
-        //         user_shares_ata,
-        //         klend_program: KLEND_ID,
-        //         token_program,
-        //         shares_token_program: TOKEN_ID,
-        //         event_authority,
-        //         program: program.id(),
-        //     })
-        //     .args(args::Deposit { max_amount: amount })
-        //     .instructions()?
-        //     .remove(0);
+        let amnt = wallet
+            .parse_token_amount(amount, &vault_data.state.token_mint)
+            .await?;
 
-        // let _ = program.request().instruction(supply_ix).send().await?;
+        // This address was taken from Leo AI chat
+        // Need to find more reliable source of information
+        let global_config = Pubkey::from_str_const("GcJ95j99v76X95Y17o29149v896584792K4YvXK3152v");
 
-        Ok(())
-    }
+        let withdraw_from_available = accounts::WithdrawFromAvailable {
+            user,
+            vault_state,
+            token_vault,
+            token_mint,
+            base_vault_authority,
+            shares_mint,
+            user_token_ata,
+            user_shares_ata,
+            klend_program: KLEND_ID,
+            token_program,
+            shares_token_program: TOKEN_ID,
+            event_authority,
+            program: program.id(),
+            global_config,
+        };
 
-    async fn borrow(&self, token: &str, amount: u64) -> Result<()> {
-        Ok(())
-    }
+        let supply_ix = program
+            .request()
+            .accounts(accounts::Withdraw {
+                withdraw_from_available,
+                event_authority,
+                program: program.id(),
+            })
+            .args(args::Deposit { max_amount: amnt })
+            .instructions()?
+            .remove(0);
 
-    async fn repay(&self, token: &str, amount: u64) -> Result<()> {
-        Ok(())
-    }
+        let _ = program.request().instruction(supply_ix).send().await?;
 
-    async fn withdraw(&self, token: &str, amount: u64) -> Result<()> {
         Ok(())
     }
 }

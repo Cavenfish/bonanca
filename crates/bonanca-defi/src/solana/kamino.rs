@@ -164,9 +164,8 @@ impl Kamino {
             .parse_token_amount(amount, &vault_data.state.token_mint)
             .await?;
 
-        // This address was taken from Leo AI chat
-        // Need to find more reliable source of information
-        let global_config = Pubkey::from_str_const("GcJ95j99v76X95Y17o29149v896584792K4YvXK3152v");
+        let global_config =
+            Pubkey::find_program_address(&["global_config".as_bytes()], &program.id()).0;
 
         let withdraw_from_available = accounts::WithdrawFromAvailable {
             user,

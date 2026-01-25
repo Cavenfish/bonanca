@@ -1,6 +1,7 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
+use serde_with::{DisplayFromStr, serde_as};
 use std::fmt;
 
 pub struct KaminoApi {
@@ -129,7 +130,7 @@ pub struct VaultState {
 pub struct AllocationStrategy {
     pub reserve: String,
     pub ctoken_vault: String,
-    pub target_allocation_weight: u32,
+    pub target_allocation_weight: u64,
     pub token_allocation_cap: String,
     pub ctoken_vault_bump: u8,
     pub ctoken_allocation: String,
@@ -137,12 +138,16 @@ pub struct AllocationStrategy {
     pub token_target_allocation: String,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KVaultPosition {
     pub vault_address: String,
+    #[serde_as(as = "DisplayFromStr")]
     pub staked_shares: f64,
+    #[serde_as(as = "DisplayFromStr")]
     pub unstaked_shares: f64,
+    #[serde_as(as = "DisplayFromStr")]
     pub total_shares: f64,
 }
 

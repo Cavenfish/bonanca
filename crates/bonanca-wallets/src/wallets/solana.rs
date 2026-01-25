@@ -73,12 +73,32 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn create_token_account(&self, mint_str: &str) -> Result<Pubkey> {
-        let mint = Pubkey::from_str(mint_str)?;
-        let owner = self.client.get_account(&mint).await?.owner;
+    pub async fn get_ata(&self, mint: &str) -> Result<Pubkey> {
+        let token = Pubkey::from_str(mint)?;
+        let owner = self.client.get_account(&token).await?.owner;
 
         let (token_account, _) = Pubkey::find_program_address(
-            &[&self.pubkey.to_bytes(), &owner.to_bytes(), &mint.to_bytes()],
+            &[
+                &self.pubkey.to_bytes(),
+                &owner.to_bytes(),
+                &token.to_bytes(),
+            ],
+            &ATOKEN_ID,
+        );
+
+        Ok(token_account)
+    }
+
+    pub async fn create_token_account(&self, mint: &str) -> Result<Pubkey> {
+        let token = Pubkey::from_str(mint)?;
+        let owner = self.client.get_account(&token).await?.owner;
+
+        let (token_account, _) = Pubkey::find_program_address(
+            &[
+                &self.pubkey.to_bytes(),
+                &owner.to_bytes(),
+                &token.to_bytes(),
+            ],
             &ATOKEN_ID,
         );
 
@@ -88,7 +108,7 @@ impl SolWallet {
                 AccountMeta::new(self.pubkey, true),
                 AccountMeta::new(token_account, false),
                 AccountMeta::new_readonly(self.pubkey, false),
-                AccountMeta::new_readonly(mint, false),
+                AccountMeta::new_readonly(token, false),
                 AccountMeta::new_readonly(SYSTEM_ID, false),
                 AccountMeta::new_readonly(owner, false),
             ],

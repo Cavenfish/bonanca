@@ -2,12 +2,12 @@ use alloy::{
     network::TransactionBuilder,
     providers::{DynProvider, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
+    signers::{Signer, k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
     transports::http::reqwest::Url,
 };
 use alloy_primitives::{
-    Address, Uint,
+    Address, FixedBytes, Signature, Uint,
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
@@ -67,6 +67,12 @@ impl EvmWallet {
             client,
             pubkey: addy,
         }
+    }
+
+    pub async fn sign_hash(&self, hash: &FixedBytes<32>) -> Result<Signature> {
+        let sig = self.signer.as_ref().unwrap().sign_hash(&hash).await?;
+
+        Ok(sig)
     }
 
     pub async fn approve_token_spending(

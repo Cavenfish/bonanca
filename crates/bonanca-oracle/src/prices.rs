@@ -1,5 +1,9 @@
 use anyhow::Result;
-use bonanca_api_lib::price_feeds::{cmc::CoinMarketCapApi, defi_llama::DefiLlamaApi};
+use bonanca_api_lib::price_feeds::{
+    cmc::CoinMarketCapApi,
+    defi_llama::DefiLlamaApi,
+    dexscreener::{DexScreenerApi, DexScreenerPairData},
+};
 
 pub struct CoinMarketCap {
     api: CoinMarketCapApi,
@@ -38,5 +42,42 @@ impl DefiLlama {
         let value = price * amount;
 
         Ok(value)
+    }
+}
+
+pub struct DexScreener {
+    api: DexScreenerApi,
+}
+
+impl DexScreener {
+    pub fn new() -> Self {
+        let api = DexScreenerApi::new();
+        Self { api }
+    }
+
+    pub async fn get_pair_data(&self, chain: &str, pair: &str) -> Result<DexScreenerPairData> {
+        let resp = self.api.get_pair_data(chain, pair).await?;
+
+        match resp.pair {
+            Some(pair) => Ok(pair),
+            None => Err(anyhow::anyhow!("Pair not found")),
+        }
+    }
+
+    pub async fn get_pairs_from_query(&self, query: &str) -> Result<Vec<DexScreenerPairData>> {
+        let resp = self.api.get_pairs_from_query(query).await?;
+
+        match resp.pairs {
+            Some(pairs) => Ok(pairs),
+            None => Err(anyhow::anyhow!("Pair not found")),
+        }
+    }
+
+    pub async fn get_token_pairs(
+        &self,
+        chain: &str,
+        token: &str,
+    ) -> Result<Vec<DexScreenerPairData>> {
+        self.api.get_token_pairs(chain, token).await
     }
 }

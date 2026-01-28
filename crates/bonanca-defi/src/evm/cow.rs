@@ -1,10 +1,11 @@
 use std::str::FromStr;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use alloy::{
     sol,
     sol_types::{SolStruct, eip712_domain},
 };
-use alloy_primitives::{Address, U256, address, keccak256};
+use alloy_primitives::{Address, FixedBytes, U256, address, keccak256};
 use anyhow::Result;
 use bonanca_api_lib::defi::cow::{CowApi, CowQuote, CowSwapData, CowSwapOrder};
 use bonanca_wallets::wallets::evm::EvmWallet;
@@ -71,7 +72,20 @@ impl CoW {
         Ok(Self { api, chain_id })
     }
 
-    pub async fn get_swap_quote(
+    fn get_signing_hash(&self, order: Order) -> Result<FixedBytes<32>> {
+        let domain = eip712_domain! {
+            name: "Gnosis Protocol",
+            version: "v2",
+            chain_id: self.chain_id,
+            verifying_contract: address!("0x9008D19f58AAbD9eD0D60971565AA8510560ab41"),
+        };
+
+        let eip712_hash = order.eip712_signing_hash(&domain);
+
+        Ok(eip712_hash)
+    }
+
+    pub async fn get_market_quote(
         &self,
         wallet: &EvmWallet,
         sell: &str,
@@ -88,8 +102,9 @@ impl CoW {
             kind: "sell".to_string(),
             from: taker.clone(),
             receiver: taker,
-            app_data: "{}".to_string(),
-            app_data_hash: keccak256("{}".as_bytes()).to_string(),
+            app_data: "{}".to_string(), // hash below is keccak256("{}")
+            app_data_hash: "0xb48d38f93eaa084033fc5970bf96e559c33c4cdc07d889ab00b4d63f9590739d"
+                .to_string(),
         };
 
         let quote = self.api.get_swap_quote(&data).await?;
@@ -97,19 +112,89 @@ impl CoW {
         Ok(quote)
     }
 
-    pub async fn swap(&self, wallet: &EvmWallet, quote: CowSwapOrder) -> Result<String> {
-        let domain = eip712_domain! {
-            name: "Gnosis Protocol",
-            version: "v2",
-            chain_id: self.chain_id,
-            verifying_contract: address!("0x9008D19f58AAbD9eD0D60971565AA8510560ab41"),
-        };
-
+    pub async fn post_market_order(
+        &self,
+        wallet: &EvmWallet,
+        quote: CowSwapOrder,
+    ) -> Result<String> {
         let order = Order::new(&quote.quote)?;
-        let eip712_hash = order.eip712_signing_hash(&domain);
-        let sig = wallet.sign_hash(&eip712_hash).await?;
-
+        let hash = self.get_signing_hash(order)?;
+        let sig = wallet.sign_hash(&hash).await?;
         let signed_order = quote.sign(sig.to_string());
+
+        let uid = self.api.post_swap_order(&signed_order).await?;
+
+        Ok(uid)
+    }
+
+    pub async fn limit_order(
+        &self,
+        wallet: &EvmWallet,
+        sell: &str,
+        buy: &str,
+        sell_amount: f64,
+        buy_amount: f64,
+        lifetime: Duration,
+    ) -> Result<String> {
+        let taker = wallet.pubkey.to_string();
+        let sell_amnt = wallet.parse_token_amount(sell_amount, sell).await?;
+        let buy_amnt = wallet.parse_token_amount(buy_amount, buy).await?;
+        let valid_to = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + lifetime.as_secs();
+
+        let quote = CowQuote::build_quote(
+            sell,
+            buy,
+            Some(taker.clone()),
+            sell_amnt,
+            buy_amnt,
+            valid_to as u32,
+        );
+
+        let order = Order::new(&quote)?;
+        let hash = self.get_signing_hash(order)?;
+        let sig = wallet.sign_hash(&hash).await?;
+        let signed_order = quote.sign(sig.to_string(), taker);
+
+        let uid = self.api.post_swap_order(&signed_order).await?;
+
+        Ok(uid)
+    }
+
+    pub async fn limit_order_by_price(
+        &self,
+        wallet: &EvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+        sell_price: f64,
+        lifetime: Duration,
+    ) -> Result<String> {
+        let taker = wallet.pubkey.to_string();
+        let sell_amount = wallet.parse_token_amount(amount, sell).await?;
+        let buy_amount = wallet.parse_token_amount(amount * sell_price, buy).await?;
+        let valid_to = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + lifetime.as_secs();
+
+        let quote = CowQuote::build_quote(
+            sell,
+            buy,
+            Some(taker.clone()),
+            sell_amount,
+            buy_amount,
+            valid_to as u32,
+        );
+
+        let order = Order::new(&quote)?;
+        let hash = self.get_signing_hash(order)?;
+        let sig = wallet.sign_hash(&hash).await?;
+        let signed_order = quote.sign(sig.to_string(), taker);
 
         let uid = self.api.post_swap_order(&signed_order).await?;
 

@@ -126,6 +126,56 @@ pub struct CowQuote {
     pub signing_scheme: String,
 }
 
+impl CowQuote {
+    pub fn build_quote(
+        sell_token: &str,
+        buy_token: &str,
+        receiver: Option<String>,
+        sell_amount: u64,
+        buy_amount: u64,
+        valid_to: u32,
+    ) -> Self {
+        Self {
+            sell_token: sell_token.to_string(),
+            buy_token: buy_token.to_string(),
+            receiver,
+            sell_amount,
+            buy_amount,
+            valid_to,
+            app_data: "{}".to_string(), // hash below is keccak256("{}")
+            app_data_hash: "0xb48d38f93eaa084033fc5970bf96e559c33c4cdc07d889ab00b4d63f9590739d"
+                .to_string(),
+            fee_amount: 0,
+            kind: "sell".to_string(),
+            partially_fillable: true,
+            sell_token_balance: "erc20".to_string(),
+            buy_token_balance: "erc20".to_string(),
+            signing_scheme: "eip712".to_string(),
+        }
+    }
+
+    pub fn sign(self, sig: String, from: String) -> CowOrder {
+        CowOrder {
+            sell_token: self.sell_token,
+            buy_token: self.buy_token,
+            receiver: self.receiver,
+            sell_amount: self.sell_amount,
+            buy_amount: self.buy_amount,
+            valid_to: self.valid_to,
+            app_data: self.app_data,
+            app_data_hash: self.app_data_hash,
+            fee_amount: self.fee_amount,
+            kind: self.kind,
+            partially_fillable: self.partially_fillable,
+            sell_token_balance: self.sell_token_balance,
+            buy_token_balance: self.buy_token_balance,
+            signing_scheme: self.signing_scheme,
+            signature: sig,
+            from: from,
+        }
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

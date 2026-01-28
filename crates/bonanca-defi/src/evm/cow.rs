@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use alloy::{
     sol,
-    sol_types::{SolStruct, SolValue, eip712_domain},
+    sol_types::{SolStruct, eip712_domain},
 };
-use alloy_primitives::{Address, B256, U256, address, keccak256};
+use alloy_primitives::{Address, U256, address, keccak256};
 use anyhow::Result;
 use bonanca_api_lib::defi::cow::{CowApi, CowQuote, CowSwapData, CowSwapOrder};
 use bonanca_wallets::wallets::evm::EvmWallet;
@@ -17,13 +17,13 @@ sol! {
         address receiver;
         uint256 sellAmount;
         uint256 buyAmount;
-        uint256 validTo;
+        uint32 validTo;
         bytes32 appData;
         uint256 feeAmount;
-        bytes32 kind;
+        string kind;
         bool partiallyFillable;
-        bytes32 sellTokenBalance;
-        bytes32 buyTokenBalance;
+        string sellTokenBalance;
+        string buyTokenBalance;
     }
 }
 
@@ -31,17 +31,17 @@ impl Order {
     pub fn new(quote: &CowQuote) -> Result<Self> {
         Ok(Self {
             sellToken: Address::from_str(&quote.sell_token)?,
-            buyToken: Address::from_str(&quote.sell_token)?,
-            receiver: Address::from_str(&quote.sell_token)?,
+            buyToken: Address::from_str(&quote.buy_token)?,
+            receiver: Address::from_str(&quote.receiver.as_ref().unwrap())?,
             sellAmount: U256::from(quote.sell_amount),
             buyAmount: U256::from(quote.buy_amount),
-            validTo: U256::from(quote.valid_to),
-            appData: B256::abi_decode(&quote.app_data.as_bytes())?,
+            validTo: quote.valid_to,
+            appData: keccak256(quote.app_data.as_bytes()),
             feeAmount: U256::from(quote.fee_amount),
-            kind: keccak256(quote.kind.as_bytes()),
+            kind: quote.kind.clone(),
             partiallyFillable: quote.partially_fillable,
-            sellTokenBalance: keccak256(quote.sell_token_balance.as_bytes()),
-            buyTokenBalance: keccak256(quote.buy_token_balance.as_bytes()),
+            sellTokenBalance: quote.sell_token_balance.clone(),
+            buyTokenBalance: quote.buy_token_balance.clone(),
         })
     }
 }
@@ -78,6 +78,7 @@ impl CoW {
         buy: &str,
         amount: f64,
     ) -> Result<CowSwapOrder> {
+        let taker = wallet.pubkey.to_string();
         let big_amount = wallet.parse_token_amount(amount, sell).await?;
 
         let data = CowSwapData {
@@ -85,7 +86,10 @@ impl CoW {
             buy_token: buy.to_string(),
             sell_amount_before_fee: big_amount,
             kind: "sell".to_string(),
-            from: wallet.pubkey.to_string(),
+            from: taker.clone(),
+            receiver: taker,
+            app_data: "{}".to_string(),
+            app_data_hash: keccak256("{}".as_bytes()).to_string(),
         };
 
         let quote = self.api.get_swap_quote(&data).await?;
@@ -93,7 +97,7 @@ impl CoW {
         Ok(quote)
     }
 
-    pub async fn swap(&self, wallet: &EvmWallet, quote: &CowSwapOrder) -> Result<()> {
+    pub async fn swap(&self, wallet: &EvmWallet, quote: CowSwapOrder) -> Result<String> {
         let domain = eip712_domain! {
             name: "Gnosis Protocol",
             version: "v2",
@@ -102,15 +106,13 @@ impl CoW {
         };
 
         let order = Order::new(&quote.quote)?;
-        let hash = order.eip712_signing_hash(&domain);
-        let sig = wallet.sign_hash(&hash).await?;
+        let eip712_hash = order.eip712_signing_hash(&domain);
+        let sig = wallet.sign_hash(&eip712_hash).await?;
 
-        let signed_order = quote.quote.sign(sig.to_string());
+        let signed_order = quote.sign(sig.to_string());
 
         let uid = self.api.post_swap_order(&signed_order).await?;
 
-        println!("{}", uid);
-
-        Ok(())
+        Ok(uid)
     }
 }

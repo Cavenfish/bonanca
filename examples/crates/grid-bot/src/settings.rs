@@ -8,11 +8,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GridBotSettings {
-    pub chain_id: Option<u16>,
+    pub chain: String,
     pub rpc_url: String,
     pub keyvault: PathBuf,
     pub child: u32,
-    pub aggregator: ApiInfo,
     pub trading_pair: TradePair,
 }
 
@@ -23,12 +22,6 @@ impl GridBotSettings {
 
         serde_json::from_reader(reader).expect("Check JSON file")
     }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ApiInfo {
-    pub name: String,
-    pub api_key: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -30,19 +30,15 @@ pub struct RunArgs {
     #[arg(short)]
     pub json: PathBuf,
 
-    /// Time in minutes between trade queries
-    #[arg(long, default_value_t = 5)]
-    pub interval: u64,
-
-    /// Time in minutes to run bot
-    #[arg(long, default_value_t = 5)]
+    /// Order lifetime in mins (combinations possible)
+    #[arg(long, default_value_t = 0)]
     pub mins: u64,
 
-    /// Time in hours to run bot
-    #[arg(long, default_value_t = 0)]
+    /// Order lifetime in hours (combinations possible)
+    #[arg(long, default_value_t = 2)]
     pub hours: u64,
 
-    /// Dry run (prints what trades would be done)
+    /// Dry run (prints what trades would be placed)
     #[arg(long, action)]
     pub dry: bool,
 }

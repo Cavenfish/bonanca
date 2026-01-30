@@ -1,10 +1,7 @@
-use std::{
-    thread::sleep,
-    time::{Duration, Instant},
-};
+use std::{thread::sleep, time::Duration};
 
 use anyhow::Result;
-use bonanca::{defi::ZeroX, wallets::EvmWallet};
+use bonanca::{defi::CoW, wallets::EvmWallet};
 
 use crate::{
     args::{BalArgs, RunArgs},
@@ -37,107 +34,54 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
     } else {
         EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child)
     };
-    let dex = ZeroX::new(settings.aggregator.api_key, settings.chain_id.unwrap());
+    let cow = CoW::new(&settings.chain)?;
 
-    let start_time = Instant::now();
-    let total_time = Duration::from_mins(cmds.mins) + Duration::from_hours(cmds.hours);
+    let buy_levels = get_buy_levels(&settings.trading_pair)?;
+    let sell_levels = get_sell_levels(&settings.trading_pair)?;
 
-    let mut buy_levels = get_buy_levels(&settings.trading_pair)?;
-    let mut sell_levels = get_sell_levels(&settings.trading_pair)?;
-
-    while start_time.elapsed() < total_time {
-        maybe_buy(
-            &settings.trading_pair,
-            &mut buy_levels,
-            &wallet,
-            &dex,
-            cmds.dry,
-        )
-        .await
-        .unwrap_or_else(|err| println!("Error: {}", err));
-        maybe_sell(
-            &settings.trading_pair,
-            &mut sell_levels,
-            &wallet,
-            &dex,
-            cmds.dry,
-        )
-        .await
-        .unwrap_or_else(|err| println!("Error: {}", err));
-
-        sleep(Duration::from_mins(cmds.interval));
+    if cmds.dry {
+        println!("Buy levels:");
+        buy_levels.iter().for_each(|l| println!("{}", l));
+        println!("Sell Levels:");
+        sell_levels.iter().for_each(|l| println!("{}", l));
+        return Ok(());
     }
 
-    Ok(())
-}
+    let lifetime = Duration::from_hours(cmds.hours) + Duration::from_mins(cmds.mins);
 
-async fn maybe_buy(
-    pair: &TradePair,
-    levels: &mut Vec<f64>,
-    wallet: &EvmWallet,
-    dex: &ZeroX,
-    dry: bool,
-) -> Result<()> {
-    let quote = dex
-        .get_swap_quote(
-            &wallet,
-            &pair.token_a.address,
-            &pair.token_b.address,
-            pair.buy_amount,
-        )
-        .await?;
-
-    let out: f64 = quote.buy_amount.parse::<f64>()? / 10.0_f64.powi(pair.token_b.decimals);
-    let price = 1.0 / (out / pair.sell_amount);
-
-    for level in levels.iter_mut() {
-        if &price < level {
-            if dry {
-                println!("Level: {}", level);
-                println!("I would have bought {} for {}", pair.token_b.symbol, price);
-            } else {
-                let txn = dex.swap(&wallet, quote).await?;
-                println!("Buy Txn: {}", txn.block_hash.unwrap().to_string());
-            }
-            *level = pair.lower_limit / 2.0;
-            break;
-        }
+    for level in buy_levels.into_iter() {
+        let uid = cow
+            .limit_order_by_price(
+                &wallet,
+                &settings.trading_pair.token_a.address,
+                &settings.trading_pair.token_b.address,
+                settings.trading_pair.sell_amount,
+                level,
+                lifetime,
+            )
+            .await?;
+        println!("Buy Level UID: {}", uid);
+        sleep(Duration::from_secs(1));
     }
-    Ok(())
-}
 
-async fn maybe_sell(
-    pair: &TradePair,
-    levels: &mut Vec<f64>,
-    wallet: &EvmWallet,
-    dex: &ZeroX,
-    dry: bool,
-) -> Result<()> {
-    let quote = dex
-        .get_swap_quote(
-            &wallet,
-            &pair.token_b.address,
-            &pair.token_a.address,
-            pair.sell_amount,
-        )
-        .await?;
+    // Sleeps are for avoiding rate limits
+    sleep(Duration::from_secs(10));
 
-    let out: f64 = quote.buy_amount.parse::<f64>()? / 10.0_f64.powi(pair.token_a.decimals);
-    let price = out / pair.sell_amount;
-
-    for level in levels.iter_mut() {
-        if &price > level {
-            if dry {
-                println!("Level: {}", level);
-                println!("I would have sold {} for {}", pair.token_b.symbol, price);
-            } else {
-                let txn = dex.swap(&wallet, quote).await?;
-                println!("Buy Txn: {}", txn.block_hash.unwrap().to_string());
-            }
-            *level = pair.upper_limit * 2.0;
-            break;
-        }
+    for level in sell_levels.into_iter() {
+        let uid = cow
+            .limit_order_by_price(
+                &wallet,
+                &settings.trading_pair.token_b.address,
+                &settings.trading_pair.token_a.address,
+                settings.trading_pair.sell_amount,
+                1.0 / level,
+                lifetime,
+            )
+            .await?;
+        println!("Sell Level UID: {}", uid);
+        sleep(Duration::from_secs(1));
     }
+
     Ok(())
 }
 

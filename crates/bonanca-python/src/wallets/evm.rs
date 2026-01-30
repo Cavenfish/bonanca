@@ -1,8 +1,38 @@
+use alloy::rpc::types::TransactionReceipt;
 use bonanca_wallets::wallets::evm::EvmWallet;
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use pyo3::{exceptions::PyRuntimeError, types::PyDict};
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
+
+pub fn parse_txn_receipt<'py>(
+    py: Python<'py>,
+    receipt: TransactionReceipt,
+) -> PyResult<Py<PyDict>> {
+    let dict = PyDict::new(py);
+
+    dict.set_item("transaction_hash", receipt.transaction_hash.to_string())?;
+    dict.set_item("gas_used", receipt.gas_used)?;
+    dict.set_item("effective_gas_price", receipt.effective_gas_price)?;
+    dict.set_item("from", receipt.from.to_string())?;
+
+    if let Some(block_hash) = receipt.block_hash {
+        dict.set_item("block_hash", block_hash.to_string())?;
+    }
+
+    if let Some(block_number) = receipt.block_number {
+        dict.set_item("block_number", block_number)?;
+    }
+    if let Some(gas_price) = receipt.blob_gas_price {
+        dict.set_item("gas_price", gas_price)?;
+    }
+
+    if let Some(to) = receipt.to {
+        dict.set_item("to", to.to_string())?;
+    }
+
+    Ok(dict.into())
+}
 
 #[pyclass(name = "EvmWalletView")]
 pub struct PyEvmWalletView {
@@ -107,20 +137,28 @@ impl PyEvmWallet {
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn transfer(&self, to: &str, amount: f64) -> PyResult<()> {
-        let _ = self
+    fn transfer<'py>(&self, py: Python<'py>, to: &str, amount: f64) -> PyResult<Py<PyDict>> {
+        let receipt = self
             .rt
             .block_on(self.inner.transfer(to, amount))
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-        Ok(())
+
+        parse_txn_receipt(py, receipt)
     }
 
-    fn transfer_token(&self, token: &str, amount: f64, to: &str) -> PyResult<()> {
-        let _ = self
+    fn transfer_token<'py>(
+        &self,
+        py: Python<'py>,
+        token: &str,
+        amount: f64,
+        to: &str,
+    ) -> PyResult<Py<PyDict>> {
+        let receipt = self
             .rt
             .block_on(self.inner.transfer_token(token, amount, to))
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-        Ok(())
+
+        parse_txn_receipt(py, receipt)
     }
 
     fn transfer_all_tokens(&self, token: &str, to: &str) -> PyResult<()> {

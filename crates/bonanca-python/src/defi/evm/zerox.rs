@@ -1,27 +1,94 @@
 use bonanca_api_lib::defi::zerox::{Issues as RustIssues, ZeroXSwapQuote as RustZeroXSwapQuote};
 use bonanca_defi::evm::zerox::ZeroX;
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use pyo3::{exceptions::PyRuntimeError, types::PyDict};
 
-use crate::wallets::evm::PyEvmWallet;
+use crate::wallets::evm::{PyEvmWallet, parse_txn_receipt};
 
-#[pyclass(name = "ZeroXIssues")]
-pub struct PyZeroXIssues {
-    pub allowance_issue: Option<String>,
-    pub balance_issue: Option<String>,
-    pub simulation_incomplete: bool,
+#[pyclass(name = "ZeroX")]
+pub struct PyZeroX {
+    inner: ZeroX,
 }
 
-impl PyZeroXIssues {
-    fn from_rust(issues: RustIssues) -> Self {
-        let allowance_issue = issues.allowance.map(|a| format!("spender: {}", a.spender));
-        let balance_issue = issues.balance.map(|b| format!("token: {}", b.token));
-        
-        Self {
-            allowance_issue,
-            balance_issue,
-            simulation_incomplete: issues.simulation_incomplete,
+#[pymethods]
+impl PyZeroX {
+    #[new]
+    fn new(api_key: String, chain_id: u16) -> Self {
+        let inner = ZeroX::new(api_key, chain_id);
+        Self { inner }
+    }
+
+    fn check_swap<'py>(
+        &self,
+        py: Python<'py>,
+        wallet: &PyEvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> PyResult<Py<PyDict>> {
+        let issues = wallet
+            .rt
+            .block_on(self.inner.check_swap(&wallet.inner, sell, buy, amount))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        let dict = PyDict::new(py);
+
+        dict.set_item("simulation_incomplete", issues.simulation_incomplete)?;
+        if let Some(allowance) = issues.allowance {
+            dict.set_item("allowance_issue", format!("spender: {}", allowance.spender))?;
         }
+        if let Some(balance) = issues.balance {
+            dict.set_item("balance_issue", format!("token: {}", balance.token))?;
+        }
+
+        Ok(dict.into())
+    }
+
+    fn get_swap_quote(
+        &self,
+        wallet: &PyEvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> PyResult<PyZeroXSwapQuote> {
+        let quote = wallet
+            .rt
+            .block_on(self.inner.get_swap_quote(&wallet.inner, sell, buy, amount))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(PyZeroXSwapQuote::from_rust(quote))
+    }
+
+    fn swap<'py>(
+        &self,
+        py: Python<'py>,
+        wallet: &PyEvmWallet,
+        quote: &PyZeroXSwapQuote,
+    ) -> PyResult<Py<PyDict>> {
+        let rust_quote = quote.clone().to_rust();
+
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.swap(&wallet.inner, rust_quote))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        parse_txn_receipt(py, receipt)
+    }
+
+    fn quick_swap<'py>(
+        &self,
+        py: Python<'py>,
+        wallet: &PyEvmWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+    ) -> PyResult<Py<PyDict>> {
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.quick_swap(&wallet.inner, sell, buy, amount))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        parse_txn_receipt(py, receipt)
     }
 }
 
@@ -95,88 +162,5 @@ impl PyZeroXSwapQuote {
             },
             zid: String::new(),
         }
-    }
-}
-
-#[pyclass(name = "TransactionReceipt")]
-pub struct PyTransactionReceipt {
-    pub transaction_hash: String,
-}
-
-impl PyTransactionReceipt {
-    fn from_rust(receipt: alloy::rpc::types::TransactionReceipt) -> Self {
-        Self {
-            transaction_hash: format!("{:?}", receipt.transaction_hash),
-        }
-    }
-}
-
-#[pyclass(name = "ZeroX")]
-pub struct PyZeroX {
-    inner: ZeroX,
-}
-
-#[pymethods]
-impl PyZeroX {
-    #[new]
-    fn new(api_key: String, chain_id: u16) -> Self {
-        let inner = ZeroX::new(api_key, chain_id);
-        Self { inner }
-    }
-
-    fn check_swap(
-        &self,
-        wallet: &PyEvmWallet,
-        sell: &str,
-        buy: &str,
-        amount: f64,
-    ) -> PyResult<PyZeroXIssues> {
-        let issues = wallet
-            .rt
-            .block_on(self.inner.check_swap(&wallet.inner, sell, buy, amount))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-
-        Ok(PyZeroXIssues::from_rust(issues))
-    }
-
-    fn get_swap_quote(
-        &self,
-        wallet: &PyEvmWallet,
-        sell: &str,
-        buy: &str,
-        amount: f64,
-    ) -> PyResult<PyZeroXSwapQuote> {
-        let quote = wallet
-            .rt
-            .block_on(self.inner.get_swap_quote(&wallet.inner, sell, buy, amount))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-
-        Ok(PyZeroXSwapQuote::from_rust(quote))
-    }
-
-    fn swap(&self, wallet: &PyEvmWallet, quote: &PyZeroXSwapQuote) -> PyResult<PyTransactionReceipt> {
-        let rust_quote = quote.clone().to_rust();
-        
-        let receipt = wallet
-            .rt
-            .block_on(self.inner.swap(&wallet.inner, rust_quote))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-
-        Ok(PyTransactionReceipt::from_rust(receipt))
-    }
-
-    fn quick_swap(
-        &self,
-        wallet: &PyEvmWallet,
-        sell: &str,
-        buy: &str,
-        amount: f64,
-    ) -> PyResult<PyTransactionReceipt> {
-        let receipt = wallet
-            .rt
-            .block_on(self.inner.quick_swap(&wallet.inner, sell, buy, amount))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
-
-        Ok(PyTransactionReceipt::from_rust(receipt))
     }
 }

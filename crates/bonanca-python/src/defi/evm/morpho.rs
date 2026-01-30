@@ -1,7 +1,8 @@
 use bonanca_defi::evm::morpho::MorphoVaultV1;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
-use crate::wallets::evm::PyEvmWallet;
+use crate::wallets::evm::{PyEvmWallet, parse_txn_receipt};
 
 #[pyclass(name = "MorphoVaultV1")]
 pub struct PyMorphoVaultV1 {
@@ -39,21 +40,33 @@ impl PyMorphoVaultV1 {
         Ok(format!("{:#?}", vaults))
     }
 
-    fn supply(&self, wallet: &PyEvmWallet, vault_address: &str, amount: f64) -> PyResult<()> {
-        let _ = wallet
+    fn supply<'py>(
+        &self,
+        py: Python<'py>,
+        wallet: &PyEvmWallet,
+        vault_address: &str,
+        amount: f64,
+    ) -> PyResult<Py<PyDict>> {
+        let receipt = wallet
             .rt
             .block_on(self.inner.supply(&wallet.inner, vault_address, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
-        Ok(())
+        parse_txn_receipt(py, receipt)
     }
 
-    fn withdraw(&self, wallet: &PyEvmWallet, vault_address: &str, amount: f64) -> PyResult<()> {
-        let _ = wallet
+    fn withdraw<'py>(
+        &self,
+        py: Python<'py>,
+        wallet: &PyEvmWallet,
+        vault_address: &str,
+        amount: f64,
+    ) -> PyResult<Py<PyDict>> {
+        let receipt = wallet
             .rt
             .block_on(self.inner.withdraw(&wallet.inner, vault_address, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
-        Ok(())
+        parse_txn_receipt(py, receipt)
     }
 }

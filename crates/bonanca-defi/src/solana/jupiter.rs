@@ -2,7 +2,9 @@ use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
-use bonanca_api_lib::defi::jupiter::{JupiterApi, JupiterSwapQuote};
+use bonanca_api_lib::defi::jupiter::{
+    JupEarnDeposit, JupiterApi, JupiterLendMarket, JupiterSwapQuote,
+};
 use bonanca_wallets::wallets::solana::{SolTxnReceipt, SolWallet};
 use solana_sdk::transaction::VersionedTransaction;
 
@@ -68,6 +70,39 @@ impl Jupiter {
             .expect("Failed to decode base64 transaction");
 
         let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+
+        let sig = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(sig)
+    }
+
+    pub async fn get_lendable_tokens(&self) -> Result<Vec<JupiterLendMarket>> {
+        self.api.get_lendable_tokens().await
+    }
+
+    pub async fn deposit(
+        &self,
+        wallet: &SolWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<SolTxnReceipt> {
+        let big_amount = wallet.parse_token_amount(amount, token).await?;
+        let body = JupEarnDeposit {
+            asset: token.to_string(),
+            signer: wallet.pubkey.to_string(),
+            amount: big_amount,
+        };
+
+        let data = self.api.post_deposit(body).await?;
+
+        let swap_tx_bytes = STANDARD
+            .decode(data.transaction)
+            .expect("Failed to decode base64 transaction");
+
+        let mut txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+
+        let hash = wallet.client.get_latest_blockhash().await?;
+        txn.message.set_recent_blockhash(hash);
 
         let sig = wallet.sign_and_send(txn).await.unwrap();
 

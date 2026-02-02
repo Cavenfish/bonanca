@@ -1,6 +1,7 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use serde_with::{DisplayFromStr, serde_as};
 use std::collections::HashMap;
 
 pub struct JupiterApi {
@@ -110,6 +111,44 @@ impl JupiterApi {
 
         Ok(order)
     }
+
+    pub async fn get_lendable_tokens(&self) -> Result<Vec<JupiterLendMarket>> {
+        let client = Client::new();
+        let url = format!("{}/lend/v1/earn/tokens", self.base_url);
+
+        let tokens = client
+            .get(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .send()
+            .await?
+            .json::<Vec<JupiterLendMarket>>()
+            .await?;
+
+        Ok(tokens)
+    }
+
+    pub async fn post_deposit(&self, body: JupEarnDeposit) -> Result<JupTxn> {
+        let client = Client::new();
+        let url = format!("{}/lend/v1/earn/deposit", self.base_url);
+
+        let resp = client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await?
+            .json::<JupTxn>()
+            .await?;
+
+        Ok(resp)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JupTxn {
+    pub transaction: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -217,4 +256,63 @@ pub struct PlatformFee {
 pub struct SwapData {
     pub user_public_key: String,
     pub quote_response: JupiterSwapQuote,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JupiterLendMarket {
+    pub id: u64,
+    pub address: String,
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    pub asset_address: String,
+    pub asset: Asset,
+    pub total_assets: String,
+    pub total_supply: String,
+    pub convert_to_shares: String,
+    pub convert_to_assets: String,
+    pub rewards_rate: String,
+    pub supply_rate: String,
+    pub total_rate: String,
+    pub rebalance_difference: String,
+    pub liquidity_supply_data: LiquiditySupplyData,
+    pub rewards: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Asset {
+    pub address: String,
+    pub chain_id: String,
+    pub name: String,
+    pub symbol: String,
+    pub ui_symbol: String,
+    pub decimals: u8,
+    pub logo_url: String,
+    pub price: String,
+    pub coingecko_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiquiditySupplyData {
+    pub mode_with_interest: bool,
+    pub supply: String,
+    pub withdrawal_limit: String,
+    pub last_update_timestamp: String,
+    pub expand_percent: u64,
+    pub expand_duration: String,
+    pub base_withdrawal_limit: String,
+    pub withdrawable_until_limit: String,
+    pub withdrawable: String,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize)]
+pub struct JupEarnDeposit {
+    pub asset: String,
+    pub signer: String,
+    #[serde_as(as = "DisplayFromStr")]
+    pub amount: u64,
 }

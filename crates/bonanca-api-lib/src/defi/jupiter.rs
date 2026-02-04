@@ -112,6 +112,23 @@ impl JupiterApi {
         Ok(order)
     }
 
+    pub async fn post_limit_order(&self, body: JupLimitOrder) -> Result<JupTxn> {
+        let client = Client::new();
+        let url = format!("{}/trigger/v1/createOrder", &self.base_url);
+
+        let resp = client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await?
+            .json::<JupTxn>()
+            .await?;
+
+        Ok(resp)
+    }
+
     pub async fn get_lendable_tokens(&self) -> Result<Vec<JupiterLendMarket>> {
         let client = Client::new();
         let url = format!("{}/lend/v1/earn/tokens", self.base_url);
@@ -128,9 +145,26 @@ impl JupiterApi {
         Ok(tokens)
     }
 
-    pub async fn post_deposit(&self, body: JupEarnDeposit) -> Result<JupTxn> {
+    pub async fn post_deposit(&self, body: JupEarnInput) -> Result<JupTxn> {
         let client = Client::new();
         let url = format!("{}/lend/v1/earn/deposit", self.base_url);
+
+        let resp = client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await?
+            .json::<JupTxn>()
+            .await?;
+
+        Ok(resp)
+    }
+
+    pub async fn post_withdraw(&self, body: JupEarnInput) -> Result<JupTxn> {
+        let client = Client::new();
+        let url = format!("{}/lend/v1/earn/withdraw", self.base_url);
 
         let resp = client
             .post(&url)
@@ -310,9 +344,31 @@ pub struct LiquiditySupplyData {
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize)]
-pub struct JupEarnDeposit {
+pub struct JupEarnInput {
     pub asset: String,
     pub signer: String,
     #[serde_as(as = "DisplayFromStr")]
     pub amount: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JupLimitOrder {
+    pub maker: String,
+    pub payer: String,
+    pub input_mint: String,
+    pub output_mint: String,
+    pub params: JupLimitParams,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JupLimitParams {
+    #[serde_as(as = "DisplayFromStr")]
+    pub making_amount: u64,
+    #[serde_as(as = "DisplayFromStr")]
+    pub taking_amount: u64,
+    #[serde_as(as = "DisplayFromStr")]
+    pub expired_at: u64,
 }

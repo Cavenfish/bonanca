@@ -73,6 +73,12 @@ impl SolWallet {
         Ok(())
     }
 
+    pub async fn get_timestamp(&self) -> Result<i64> {
+        let slot = self.client.get_slot().await?;
+        let time = self.client.get_block_time(slot).await?;
+        Ok(time)
+    }
+
     pub async fn get_ata(&self, mint: &str) -> Result<Pubkey> {
         let token = Pubkey::from_str(mint)?;
         let owner = self.client.get_account(&token).await?.owner;
@@ -231,6 +237,40 @@ impl SolWallet {
         Ok(bal)
     }
 
+    pub async fn burn_token(&self, mint: &str, amount: f64) -> Result<SolTxnReceipt> {
+        let kp = self.key_pair.as_ref().unwrap();
+        let mint_pubkey = Pubkey::from_str_const(mint);
+        let owner = self.client.get_account(&mint_pubkey).await?.owner;
+        let source = self.get_token_account(&mint_pubkey).await?;
+        let lamp = self.parse_token_amount(amount, mint).await?;
+
+        let mut data = vec![8];
+        data.extend_from_slice(&lamp.to_le_bytes());
+
+        let instruction = Instruction {
+            program_id: owner,
+            accounts: vec![
+                AccountMeta::new(source, false),
+                AccountMeta::new(mint_pubkey, false),
+                AccountMeta::new_readonly(self.pubkey, true),
+            ],
+            data,
+        };
+
+        let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
+
+        let blockhash = self.client.get_latest_blockhash().await?;
+        trans.sign(&[kp], blockhash);
+
+        let sig = self
+            .client
+            .send_and_confirm_transaction(&trans)
+            .await
+            .unwrap();
+
+        Ok(SolTxnReceipt::new(sig, &self.client).await)
+    }
+
     pub async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<SolTxnReceipt> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
@@ -298,6 +338,9 @@ impl SolWallet {
             // Replace the first signature (fee payer)
             txn.signatures[0] = signature;
         };
+
+        let hash = self.client.get_latest_blockhash().await?;
+        txn.message.set_recent_blockhash(hash);
 
         let sig = self.client.send_and_confirm_transaction(&txn).await?;
 

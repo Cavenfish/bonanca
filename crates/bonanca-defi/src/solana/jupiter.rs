@@ -1,12 +1,24 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use bincode::deserialize;
 use bonanca_api_lib::defi::jupiter::{
-    JupEarnDeposit, JupiterApi, JupiterLendMarket, JupiterSwapQuote,
+    JupEarnInput, JupLimitOrder, JupLimitParams, JupiterApi, JupiterLendMarket, JupiterSwapQuote,
 };
 use bonanca_wallets::wallets::solana::{SolTxnReceipt, SolWallet};
 use solana_sdk::transaction::VersionedTransaction;
+
+fn make_txn(encoded_txn: String) -> Result<VersionedTransaction> {
+    let swap_tx_bytes = STANDARD
+        .decode(encoded_txn)
+        .expect("Failed to decode base64 transaction");
+
+    let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+
+    Ok(txn)
+}
 
 pub struct Jupiter {
     api: JupiterApi,
@@ -41,11 +53,7 @@ impl Jupiter {
         let taker = wallet.get_pubkey()?;
         let swap_order = self.api.get_swap_order(&taker, quote).await?;
 
-        let swap_tx_bytes = STANDARD
-            .decode(swap_order.swap_transaction)
-            .expect("Failed to decode base64 transaction");
-
-        let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+        let txn = make_txn(swap_order.swap_transaction)?;
 
         let sig = wallet.sign_and_send(txn).await.unwrap();
 
@@ -65,12 +73,39 @@ impl Jupiter {
 
         let swap_order = self.api.get_swap_order(&taker, swap_quote).await?;
 
-        let swap_tx_bytes = STANDARD
-            .decode(swap_order.swap_transaction)
-            .expect("Failed to decode base64 transaction");
+        let txn = make_txn(swap_order.swap_transaction)?;
+        let sig = wallet.sign_and_send(txn).await.unwrap();
 
-        let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+        Ok(sig)
+    }
 
+    pub async fn limit_order(
+        &self,
+        wallet: &SolWallet,
+        sell: &str,
+        buy: &str,
+        sell_amount: f64,
+        buy_amount: f64,
+        lifetime: Duration,
+    ) -> Result<SolTxnReceipt> {
+        let make = wallet.parse_token_amount(sell_amount, sell).await?;
+        let take = wallet.parse_token_amount(buy_amount, buy).await?;
+        let now = wallet.get_timestamp().await? as u64;
+
+        let body = JupLimitOrder {
+            maker: wallet.pubkey.to_string(),
+            payer: wallet.pubkey.to_string(),
+            input_mint: sell.to_string(),
+            output_mint: buy.to_string(),
+            params: JupLimitParams {
+                making_amount: make,
+                taking_amount: take,
+                expired_at: now + lifetime.as_secs(),
+            },
+        };
+
+        let data = self.api.post_limit_order(body).await?;
+        let txn = make_txn(data.transaction)?;
         let sig = wallet.sign_and_send(txn).await.unwrap();
 
         Ok(sig)
@@ -87,23 +122,34 @@ impl Jupiter {
         amount: f64,
     ) -> Result<SolTxnReceipt> {
         let big_amount = wallet.parse_token_amount(amount, token).await?;
-        let body = JupEarnDeposit {
+        let body = JupEarnInput {
             asset: token.to_string(),
             signer: wallet.pubkey.to_string(),
             amount: big_amount,
         };
 
         let data = self.api.post_deposit(body).await?;
+        let txn = make_txn(data.transaction)?;
+        let sig = wallet.sign_and_send(txn).await.unwrap();
 
-        let swap_tx_bytes = STANDARD
-            .decode(data.transaction)
-            .expect("Failed to decode base64 transaction");
+        Ok(sig)
+    }
 
-        let mut txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
+    pub async fn withdraw(
+        &self,
+        wallet: &SolWallet,
+        token: &str,
+        amount: f64,
+    ) -> Result<SolTxnReceipt> {
+        let big_amount = wallet.parse_token_amount(amount, token).await?;
+        let body = JupEarnInput {
+            asset: token.to_string(),
+            signer: wallet.pubkey.to_string(),
+            amount: big_amount,
+        };
 
-        let hash = wallet.client.get_latest_blockhash().await?;
-        txn.message.set_recent_blockhash(hash);
-
+        let data = self.api.post_withdraw(body).await?;
+        let txn = make_txn(data.transaction)?;
         let sig = wallet.sign_and_send(txn).await.unwrap();
 
         Ok(sig)

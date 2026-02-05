@@ -89,6 +89,10 @@ impl CoW {
         self.api.get_order_info(uid).await
     }
 
+    pub async fn get_user_orders(&self, user: &str) -> Result<Vec<CowSwapPlacedOrder>> {
+        self.api.get_user_orders(user).await
+    }
+
     pub async fn get_market_quote(
         &self,
         wallet: &EvmWallet,

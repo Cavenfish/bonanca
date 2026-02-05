@@ -30,6 +30,22 @@ impl CowApi {
         Ok(resp)
     }
 
+    pub async fn get_user_orders(&self, user: &str) -> Result<Vec<CowSwapPlacedOrder>> {
+        let client = Client::new();
+
+        let url = format!("{}/api/v1/account/{}/orders", self.base_url, user);
+
+        let resp = client
+            .get(&url)
+            .header("Content-Type", "application/json")
+            .send()
+            .await?
+            .json::<Vec<CowSwapPlacedOrder>>()
+            .await?;
+
+        Ok(resp)
+    }
+
     pub async fn get_swap_quote(&self, swap_data: &CowSwapData) -> Result<CowSwapOrder> {
         let client = Client::new();
 

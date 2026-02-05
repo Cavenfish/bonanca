@@ -174,12 +174,12 @@ impl CoW {
         sell: &str,
         buy: &str,
         amount: f64,
-        sell_price: f64,
+        price: f64,
         lifetime: Duration,
     ) -> Result<String> {
         let taker = wallet.pubkey.to_string();
         let sell_amount = wallet.parse_token_amount(amount, sell).await?;
-        let buy_amount = wallet.parse_token_amount(amount * sell_price, buy).await?;
+        let buy_amount = wallet.parse_token_amount(amount / price, buy).await?;
         let valid_to = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

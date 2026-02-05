@@ -252,7 +252,7 @@ pub struct CowSwapPlacedOrder {
     pub settlement_contract: String,
     pub is_liquidity_order: bool,
     pub full_app_data: String,
-    pub quote: CowSwapExistingQuote,
+    pub quote: Option<CowSwapExistingQuote>,
     pub sell_token: String,
     pub buy_token: String,
     pub receiver: String,

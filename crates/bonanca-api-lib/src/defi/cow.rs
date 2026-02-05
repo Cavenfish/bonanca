@@ -14,6 +14,22 @@ impl CowApi {
         }
     }
 
+    pub async fn get_order_info(&self, uid: &str) -> Result<CowSwapPlacedOrder> {
+        let client = Client::new();
+
+        let url = format!("{}/api/v1/orders/{}", self.base_url, uid);
+
+        let resp = client
+            .get(&url)
+            .header("Content-Type", "application/json")
+            .send()
+            .await?
+            .json::<CowSwapPlacedOrder>()
+            .await?;
+
+        Ok(resp)
+    }
+
     pub async fn get_swap_quote(&self, swap_data: &CowSwapData) -> Result<CowSwapOrder> {
         let client = Client::new();
 
@@ -199,4 +215,61 @@ pub struct CowOrder {
     pub signing_scheme: String,
     pub signature: String,
     pub from: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CowSwapPlacedOrder {
+    pub creation_date: String,
+    pub owner: String,
+    pub uid: String,
+    pub available_balance: Option<String>,
+    pub executed_buy_amount: String,
+    pub executed_sell_amount: String,
+    pub executed_sell_amount_before_fees: String,
+    pub executed_fee_amount: String,
+    pub executed_fee: String,
+    pub executed_fee_token: String,
+    pub invalidated: bool,
+    pub status: String,
+    pub class: String,
+    pub settlement_contract: String,
+    pub is_liquidity_order: bool,
+    pub full_app_data: String,
+    pub quote: CowSwapExistingQuote,
+    pub sell_token: String,
+    pub buy_token: String,
+    pub receiver: String,
+    pub sell_amount: String,
+    pub buy_amount: String,
+    pub valid_to: u64,
+    pub app_data: String,
+    pub fee_amount: String,
+    pub kind: String,
+    pub partially_fillable: bool,
+    pub sell_token_balance: String,
+    pub buy_token_balance: String,
+    pub signing_scheme: String,
+    pub signature: String,
+    pub interactions: Interactions,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CowSwapExistingQuote {
+    pub gas_amount: String,
+    pub gas_price: String,
+    pub sell_token_price: String,
+    pub sell_amount: String,
+    pub buy_amount: String,
+    pub fee_amount: String,
+    pub solver: String,
+    pub verified: bool,
+    pub metadata: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Interactions {
+    pub pre: Vec<String>,
+    pub post: Vec<String>,
 }

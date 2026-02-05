@@ -7,7 +7,7 @@ use alloy::{
 };
 use alloy_primitives::{Address, FixedBytes, U256, address, keccak256};
 use anyhow::Result;
-use bonanca_api_lib::defi::cow::{CowApi, CowQuote, CowSwapData, CowSwapOrder};
+use bonanca_api_lib::defi::cow::{CowApi, CowQuote, CowSwapData, CowSwapOrder, CowSwapPlacedOrder};
 use bonanca_wallets::wallets::evm::EvmWallet;
 
 sol! {
@@ -83,6 +83,10 @@ impl CoW {
         let eip712_hash = order.eip712_signing_hash(&domain);
 
         Ok(eip712_hash)
+    }
+
+    pub async fn get_order_info(&self, uid: &str) -> Result<CowSwapPlacedOrder> {
+        self.api.get_order_info(uid).await
     }
 
     pub async fn get_market_quote(

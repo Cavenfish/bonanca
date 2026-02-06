@@ -30,10 +30,19 @@ impl CowApi {
         Ok(resp)
     }
 
-    pub async fn get_user_orders(&self, user: &str) -> Result<Vec<CowSwapPlacedOrder>> {
+    pub async fn get_user_orders(
+        &self,
+        user: &str,
+        limit: Option<u16>,
+    ) -> Result<Vec<CowSwapPlacedOrder>> {
         let client = Client::new();
 
-        let url = format!("{}/api/v1/account/{}/orders", self.base_url, user);
+        let url = format!(
+            "{}/api/v1/account/{}/orders?limit={}",
+            self.base_url,
+            user,
+            limit.unwrap_or(10)
+        );
 
         let resp = client
             .get(&url)

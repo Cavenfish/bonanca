@@ -38,6 +38,14 @@ pub struct RunArgs {
     #[arg(long, default_value_t = 2)]
     pub hours: u64,
 
+    /// Places buy-side trades only
+    #[arg(long, action)]
+    pub buy_only: bool,
+
+    /// Places sell-side trades only
+    #[arg(long, action)]
+    pub sell_only: bool,
+
     /// Dry run (prints what trades would be placed)
     #[arg(long, action)]
     pub dry: bool,

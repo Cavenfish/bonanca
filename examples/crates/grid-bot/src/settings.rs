@@ -11,6 +11,7 @@ pub struct GridBotSettings {
     pub chain: String,
     pub rpc_url: String,
     pub keyvault: PathBuf,
+    pub log_file: PathBuf,
     pub child: u32,
     pub trading_pair: TradePair,
 }

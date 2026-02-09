@@ -1,10 +1,11 @@
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use bonanca::{defi::CoW, wallets::EvmWallet};
 
 use crate::{
     args::{BalArgs, RunArgs},
+    db::GridBotLog,
     settings::{GridBotSettings, TradePair},
 };
 
@@ -28,6 +29,10 @@ pub async fn balance(cmds: BalArgs) -> Result<()> {
 }
 
 pub async fn run(cmds: RunArgs) -> Result<()> {
+    if cmds.sell_only && cmds.buy_only {
+        bail!("Buy_only and sell_only cannot both be true");
+    }
+
     let settings = GridBotSettings::load(&cmds.json);
     let wallet = if cmds.dry {
         EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)
@@ -36,51 +41,54 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
     };
     let cow = CoW::new(&settings.chain)?;
 
-    let buy_levels = get_buy_levels(&settings.trading_pair)?;
-    let sell_levels = get_sell_levels(&settings.trading_pair)?;
-
-    if cmds.dry {
-        println!("Buy levels:");
-        buy_levels.iter().for_each(|l| println!("{}", l));
-        println!("Sell Levels:");
-        sell_levels.iter().for_each(|l| println!("{}", l));
-        return Ok(());
-    }
+    let mut log = GridBotLog::load(&settings);
+    log.prune_log(&settings.chain).await?;
 
     let lifetime = Duration::from_hours(cmds.hours) + Duration::from_mins(cmds.mins);
 
-    for level in buy_levels.into_iter() {
-        let uid = cow
-            .limit_order_by_price(
-                &wallet,
-                &settings.trading_pair.token_a.address,
-                &settings.trading_pair.token_b.address,
-                settings.trading_pair.sell_amount,
-                level,
-                lifetime,
-            )
-            .await?;
-        println!("Buy Level UID: {}", uid);
-        sleep(Duration::from_secs(1));
+    if !cmds.sell_only {
+        let buy_levels = get_buy_levels(&settings.trading_pair)?;
+        for level in buy_levels.into_iter() {
+            if cmds.dry {
+                println!("Buy level at: {}", level);
+            } else {
+                let uid = cow
+                    .limit_order_by_price(
+                        &wallet,
+                        &settings.trading_pair.token_a.address,
+                        &settings.trading_pair.token_b.address,
+                        settings.trading_pair.sell_amount,
+                        level,
+                        lifetime,
+                    )
+                    .await?;
+                log.active_orders.push(uid);
+            }
+        }
     }
 
-    // Sleeps are for avoiding rate limits
-    sleep(Duration::from_secs(10));
-
-    for level in sell_levels.into_iter() {
-        let uid = cow
-            .limit_order_by_price(
-                &wallet,
-                &settings.trading_pair.token_b.address,
-                &settings.trading_pair.token_a.address,
-                settings.trading_pair.sell_amount,
-                1.0 / level,
-                lifetime,
-            )
-            .await?;
-        println!("Sell Level UID: {}", uid);
-        sleep(Duration::from_secs(1));
+    if !cmds.buy_only {
+        let sell_levels = get_sell_levels(&settings.trading_pair)?;
+        for level in sell_levels.into_iter() {
+            if cmds.dry {
+                println!("Sell level at: {}", level);
+            } else {
+                let uid = cow
+                    .limit_order_by_price(
+                        &wallet,
+                        &settings.trading_pair.token_b.address,
+                        &settings.trading_pair.token_a.address,
+                        settings.trading_pair.sell_amount,
+                        1.0 / level,
+                        lifetime,
+                    )
+                    .await?;
+                log.active_orders.push(uid);
+            }
+        }
     }
+
+    log.write(&settings.log_file)?;
 
     Ok(())
 }

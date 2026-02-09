@@ -1,11 +1,14 @@
 mod args;
 mod cmds;
+mod db;
 mod settings;
 
 use clap::Parser;
 
-use args::{GridBot, GridBotArgs};
-use cmds::{balance, run};
+use crate::{
+    args::{GridBot, GridBotArgs},
+    cmds::{balance, run},
+};
 
 #[tokio::main]
 async fn main() {

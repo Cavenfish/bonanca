@@ -290,7 +290,6 @@ pub struct CowSwapExistingQuote {
     pub fee_amount: String,
     pub solver: String,
     pub verified: bool,
-    pub metadata: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

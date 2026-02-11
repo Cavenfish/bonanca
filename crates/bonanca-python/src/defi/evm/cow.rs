@@ -170,7 +170,6 @@ fn cow_swap_placed_order_to_dict<'py>(
         quote_dict.set_item("fee_amount", &quote.fee_amount)?;
         quote_dict.set_item("solver", &quote.solver)?;
         quote_dict.set_item("verified", quote.verified)?;
-        quote_dict.set_item("metadata", &quote.metadata)?;
         dict.set_item("quote", quote_dict)?;
     } else {
         dict.set_item("quote", py.None())?;

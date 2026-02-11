@@ -88,10 +88,10 @@ impl CowApi {
             .await?
             .text()
             .await?;
-        // .json::<String>()
-        // .await?;
 
-        Ok(resp)
+        let clean = resp.trim_matches(|c| c == '"').to_string();
+
+        Ok(clean)
     }
 }
 

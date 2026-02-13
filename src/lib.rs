@@ -16,11 +16,3 @@ pub mod defi {
 pub mod oracle {
     pub use bonanca_oracle::prices::{CoinMarketCap, DefiLlama, DexScreener};
 }
-
-#[cfg(feature = "database")]
-pub mod database {
-    pub use bonanca_db::{
-        api_db::ApiDB,
-        chains_db::{ChainInfo, ChainsDB},
-    };
-}

@@ -8,7 +8,6 @@ alloy.workspace = true
 alloy-primitives.workspace = true
 anyhow.workspace = true
 bonanca-api-lib.workspace = true
-bonanca-db = { path = "../bonanca-db" }
 bonanca-keyvault.workspace = true
 solana-client = "3.0.2"
 solana-sdk.workspace = true

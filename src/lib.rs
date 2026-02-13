@@ -6,6 +6,7 @@ pub mod wallets {
     pub use bonanca_wallets::wallets::{evm::EvmWallet, solana::SolWallet};
 }
 
+#[cfg(feature = "defi")]
 pub mod defi {
     pub use bonanca_defi::{
         evm::{aave::AaveV3, cow::CoW, morpho::MorphoVaultV1, zerox::ZeroX},
@@ -13,6 +14,7 @@ pub mod defi {
     };
 }
 
+#[cfg(feature = "oracle")]
 pub mod oracle {
     pub use bonanca_oracle::prices::{CoinMarketCap, DefiLlama, DexScreener};
 }

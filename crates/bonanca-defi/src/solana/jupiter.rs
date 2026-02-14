@@ -111,6 +111,38 @@ impl Jupiter {
         Ok(sig)
     }
 
+    pub async fn limit_order_by_price(
+        &self,
+        wallet: &SolWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+        price: f64,
+        lifetime: Duration,
+    ) -> Result<SolTxnReceipt> {
+        let make = wallet.format_token(amount, sell).await?;
+        let take = wallet.format_token(amount / price, buy).await?;
+        let now = wallet.get_timestamp().await? as u64;
+
+        let body = JupLimitOrder {
+            maker: wallet.pubkey.to_string(),
+            payer: wallet.pubkey.to_string(),
+            input_mint: sell.to_string(),
+            output_mint: buy.to_string(),
+            params: JupLimitParams {
+                making_amount: make,
+                taking_amount: take,
+                expired_at: now + lifetime.as_secs(),
+            },
+        };
+
+        let data = self.api.post_limit_order(body).await?;
+        let txn = make_txn(data.transaction)?;
+        let sig = wallet.sign_and_send(txn).await.unwrap();
+
+        Ok(sig)
+    }
+
     pub async fn get_lendable_tokens(&self) -> Result<Vec<JupiterLendMarket>> {
         self.api.get_lendable_tokens().await
     }

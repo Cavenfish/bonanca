@@ -1,14 +1,11 @@
 use alloy::{
-    primitives::{Address, I32, U256},
+    primitives::{Address, U256},
     sol,
 };
-use alloy_primitives::{
-    Signed,
-    aliases::{I24, U24},
-};
+use alloy_primitives::aliases::{I24, U24};
 use anyhow::Result;
 use bonanca_wallets::wallets::evm::EvmWallet;
-use std::{ops::Add, str::FromStr};
+use std::str::FromStr;
 
 use crate::evm::uniswap::INonfungiblePositionManager::MintParams;
 
@@ -330,5 +327,119 @@ impl UniswapV3 {
             amount0_out,
             amount1_out,
         ))
+    }
+
+    pub async fn collect(
+        &self,
+        wallet: &EvmWallet,
+        token_id: u64,
+        token0: &str,
+        token1: &str,
+        amount0_max: f64,
+        amount1_max: f64,
+        recipient: &str,
+    ) -> Result<(f64, f64)> {
+        let pmv3 = PositionManagerV3::new(self.manager, &wallet.client);
+        let recipient_addr = Address::from_str(recipient)?;
+
+        let amt0_max = wallet.format_token(amount0_max, token0).await?;
+        let amt1_max = wallet.format_token(amount1_max, token1).await?;
+
+        let result = pmv3
+            .collect(INonfungiblePositionManager::CollectParams {
+                tokenId: U256::from(token_id),
+                recipient: recipient_addr,
+                amount0Max: amt0_max as u128,
+                amount1Max: amt1_max as u128,
+            })
+            .call()
+            .await?;
+
+        let amount0_out = wallet
+            .parse_token(result.amount0.to::<u64>(), token0)
+            .await?;
+        let amount1_out = wallet
+            .parse_token(result.amount1.to::<u64>(), token1)
+            .await?;
+
+        Ok((amount0_out, amount1_out))
+    }
+
+    pub async fn increase_liquidity(
+        &self,
+        wallet: &EvmWallet,
+        token_id: u64,
+        token0: &str,
+        token1: &str,
+        amount0_desired: f64,
+        amount1_desired: f64,
+        amount0_min: f64,
+        amount1_min: f64,
+        deadline: u64,
+    ) -> Result<(u128, f64, f64)> {
+        let pmv3 = PositionManagerV3::new(self.manager, &wallet.client);
+
+        let amt0_desired = wallet.format_token(amount0_desired, token0).await?;
+        let amt1_desired = wallet.format_token(amount1_desired, token1).await?;
+        let amt0_min = wallet.format_token(amount0_min, token0).await?;
+        let amt1_min = wallet.format_token(amount1_min, token1).await?;
+
+        let result = pmv3
+            .increaseLiquidity(INonfungiblePositionManager::IncreaseLiquidityParams {
+                tokenId: U256::from(token_id),
+                amount0Desired: U256::from(amt0_desired),
+                amount1Desired: U256::from(amt1_desired),
+                amount0Min: U256::from(amt0_min),
+                amount1Min: U256::from(amt1_min),
+                deadline: U256::from(deadline),
+            })
+            .call()
+            .await?;
+
+        let amount0_out = wallet
+            .parse_token(result.amount0.to::<u64>(), token0)
+            .await?;
+        let amount1_out = wallet
+            .parse_token(result.amount1.to::<u64>(), token1)
+            .await?;
+
+        Ok((result.liquidity, amount0_out, amount1_out))
+    }
+
+    pub async fn decrease_liquidity(
+        &self,
+        wallet: &EvmWallet,
+        token_id: u64,
+        token0: &str,
+        token1: &str,
+        liquidity: u128,
+        amount0_min: f64,
+        amount1_min: f64,
+        deadline: u64,
+    ) -> Result<(f64, f64)> {
+        let pmv3 = PositionManagerV3::new(self.manager, &wallet.client);
+
+        let amt0_min = wallet.format_token(amount0_min, token0).await?;
+        let amt1_min = wallet.format_token(amount1_min, token1).await?;
+
+        let result = pmv3
+            .decreaseLiquidity(INonfungiblePositionManager::DecreaseLiquidityParams {
+                tokenId: U256::from(token_id),
+                liquidity,
+                amount0Min: U256::from(amt0_min),
+                amount1Min: U256::from(amt1_min),
+                deadline: U256::from(deadline),
+            })
+            .call()
+            .await?;
+
+        let amount0_out = wallet
+            .parse_token(result.amount0.to::<u64>(), token0)
+            .await?;
+        let amount1_out = wallet
+            .parse_token(result.amount1.to::<u64>(), token1)
+            .await?;
+
+        Ok((amount0_out, amount1_out))
     }
 }

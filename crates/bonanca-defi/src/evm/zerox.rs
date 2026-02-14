@@ -27,7 +27,7 @@ impl ZeroX {
     ) -> Result<Issues> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
 
         let quote = self
             .api
@@ -46,7 +46,7 @@ impl ZeroX {
     ) -> Result<ZeroXSwapQuote> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
 
         self.api.get_swap_quote(sell, buy, big_amount, &taker).await
     }
@@ -97,7 +97,7 @@ impl ZeroX {
     ) -> Result<TransactionReceipt> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
 
         let quote = self
             .api

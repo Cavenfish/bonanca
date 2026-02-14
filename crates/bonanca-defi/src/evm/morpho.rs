@@ -58,9 +58,7 @@ impl MorphoVaultV1 {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
-        let amnt = wallet
-            .parse_token_amount(amount, &token.to_string())
-            .await?;
+        let amnt = wallet.format_token(amount, &token.to_string()).await?;
 
         let sig = vault
             .deposit(U256::from(amnt), wallet.pubkey)
@@ -81,9 +79,7 @@ impl MorphoVaultV1 {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
-        let amnt = wallet
-            .parse_token_amount(amount, &token.to_string())
-            .await?;
+        let amnt = wallet.format_token(amount, &token.to_string()).await?;
 
         let sig = vault
             .withdraw(U256::from(amnt), wallet.pubkey, wallet.pubkey)

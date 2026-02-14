@@ -105,7 +105,7 @@ impl CoW {
         amount: f64,
     ) -> Result<CowSwapOrder> {
         let taker = wallet.pubkey.to_string();
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
 
         let data = CowSwapData {
             sell_token: sell.to_string(),
@@ -149,8 +149,8 @@ impl CoW {
         lifetime: Duration,
     ) -> Result<String> {
         let taker = wallet.pubkey.to_string();
-        let sell_amnt = wallet.parse_token_amount(sell_amount, sell).await?;
-        let buy_amnt = wallet.parse_token_amount(buy_amount, buy).await?;
+        let sell_amnt = wallet.format_token(sell_amount, sell).await?;
+        let buy_amnt = wallet.format_token(buy_amount, buy).await?;
         let valid_to = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -186,8 +186,8 @@ impl CoW {
         lifetime: Duration,
     ) -> Result<String> {
         let taker = wallet.pubkey.to_string();
-        let sell_amount = wallet.parse_token_amount(amount, sell).await?;
-        let buy_amount = wallet.parse_token_amount(amount / price, buy).await?;
+        let sell_amount = wallet.format_token(amount, sell).await?;
+        let buy_amount = wallet.format_token(amount / price, buy).await?;
         let valid_to = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

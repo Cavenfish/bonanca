@@ -67,15 +67,27 @@ impl PyEvmWalletView {
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn parse_native_amount(&self, amount: f64) -> PyResult<u64> {
+    fn format_native(&self, amount: f64) -> PyResult<u64> {
         self.inner
-            .parse_native_amount(amount)
+            .format_native(amount)
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn parse_token_amount(&self, amount: f64, token: &str) -> PyResult<u64> {
+    fn parse_native(&self, amount: u64) -> PyResult<f64> {
+        self.inner
+            .parse_native(amount)
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
+
+    fn format_token(&self, amount: f64, token: &str) -> PyResult<u64> {
         self.rt
-            .block_on(self.inner.parse_token_amount(amount, token))
+            .block_on(self.inner.format_token(amount, token))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
+
+    fn parse_token(&self, amount: u64, token: &str) -> PyResult<f64> {
+        self.rt
+            .block_on(self.inner.parse_token(amount, token))
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 }
@@ -119,15 +131,27 @@ impl PyEvmWallet {
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn parse_native_amount(&self, amount: f64) -> PyResult<u64> {
+    fn format_native(&self, amount: f64) -> PyResult<u64> {
         self.inner
-            .parse_native_amount(amount)
+            .format_native(amount)
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn parse_token_amount(&self, amount: f64, token: &str) -> PyResult<u64> {
+    fn parse_native(&self, amount: u64) -> PyResult<f64> {
+        self.inner
+            .parse_native(amount)
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
+
+    fn format_token(&self, amount: f64, token: &str) -> PyResult<u64> {
         self.rt
-            .block_on(self.inner.parse_token_amount(amount, token))
+            .block_on(self.inner.format_token(amount, token))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
+
+    fn parse_token(&self, amount: u64, token: &str) -> PyResult<f64> {
+        self.rt
+            .block_on(self.inner.parse_token(amount, token))
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 

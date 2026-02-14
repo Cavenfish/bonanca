@@ -117,22 +117,32 @@ impl EvmWallet {
         Ok(self.pubkey.to_string())
     }
 
-    pub fn parse_native_amount(&self, amount: f64) -> Result<u64> {
+    pub fn format_native(&self, amount: f64) -> Result<u64> {
         let amt = (amount * 1e18) as u64;
 
         Ok(amt)
     }
 
-    pub async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
-        let token_addy = Address::from_str(token)?;
+    pub fn parse_native(&self, amount: u64) -> Result<f64> {
+        Ok((amount as f64) / 1.0e18)
+    }
 
-        // Instantiate the contract instance
+    pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64> {
+        let token_addy = Address::from_str(token)?;
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
         let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
 
         Ok(amt)
+    }
+
+    pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64> {
+        let token_addy = Address::from_str(token)?;
+        let erc20 = ERC20::new(token_addy, &self.client);
+        let deci = erc20.decimals().call().await?;
+
+        Ok((amount as f64) / 10.0_f64.powi(deci.into()))
     }
 
     pub async fn close(&self, to: &str) -> Result<()> {

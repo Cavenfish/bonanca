@@ -112,7 +112,7 @@ impl Kamino {
         let event_authority = get_event_authority(&program.id());
 
         let amnt = wallet
-            .parse_token_amount(amount, &vault_data.state.token_mint)
+            .format_token(amount, &vault_data.state.token_mint)
             .await?;
 
         let supply_ix = program
@@ -193,7 +193,7 @@ impl Kamino {
         let event_authority = get_event_authority(&program.id());
 
         let amnt = wallet
-            .parse_token_amount(amount, &vault_data.state.token_mint)
+            .format_token(amount, &vault_data.state.token_mint)
             .await?;
 
         let global_config =

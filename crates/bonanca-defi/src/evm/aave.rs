@@ -84,7 +84,7 @@ impl AaveV3 {
     ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
-        let amnt = wallet.parse_token_amount(amount, token).await?;
+        let amnt = wallet.format_token(amount, token).await?;
 
         let sig = poolv3
             .supply(asset, U256::from(amnt), wallet.pubkey, 0)
@@ -105,7 +105,7 @@ impl AaveV3 {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
-        let amnt = wallet.parse_token_amount(amount, token).await?;
+        let amnt = wallet.format_token(amount, token).await?;
 
         let sig = poolv3
             .borrow(
@@ -132,7 +132,7 @@ impl AaveV3 {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
-        let amnt = wallet.parse_token_amount(amount, token).await?;
+        let amnt = wallet.format_token(amount, token).await?;
 
         let sig = poolv3
             .repay(
@@ -157,7 +157,7 @@ impl AaveV3 {
     ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
-        let amnt = wallet.parse_token_amount(amount, token).await?;
+        let amnt = wallet.format_token(amount, token).await?;
 
         let sig = poolv3
             .withdraw(asset, U256::from(amnt), wallet.pubkey)

@@ -165,13 +165,17 @@ impl SolWallet {
         Ok(self.pubkey.to_string())
     }
 
-    pub fn parse_native_amount(&self, amount: f64) -> Result<u64> {
+    pub fn format_native(&self, amount: f64) -> Result<u64> {
         let amt = (amount * 1e9) as u64;
 
         Ok(amt)
     }
 
-    pub async fn parse_token_amount(&self, amount: f64, token: &str) -> Result<u64> {
+    pub fn parse_native(&self, amount: u64) -> Result<f64> {
+        Ok((amount as f64) / 1.0e9)
+    }
+
+    pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self.client.get_token_account(&token_addy).await?.unwrap();
@@ -181,6 +185,16 @@ impl SolWallet {
         let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
 
         Ok(amt)
+    }
+
+    pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64> {
+        let pubkey = Pubkey::from_str_const(token);
+        let token_addy = self.get_token_account(&pubkey).await?;
+        let acct = self.client.get_token_account(&token_addy).await?.unwrap();
+
+        let deci = acct.token_amount.decimals;
+
+        Ok((amount as f64) / 10.0_f64.powi(deci.into()))
     }
 
     pub async fn close(&self, to: &str) -> Result<()> {
@@ -205,7 +219,7 @@ impl SolWallet {
     pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
-        let lamp = self.parse_native_amount(amount)?;
+        let lamp = self.format_native(amount)?;
 
         let info = transfer(&self.pubkey, &to_pubkey, lamp);
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
@@ -242,7 +256,7 @@ impl SolWallet {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
-        let lamp = self.parse_token_amount(amount, mint).await?;
+        let lamp = self.format_token(amount, mint).await?;
 
         let mut data = vec![8];
         data.extend_from_slice(&lamp.to_le_bytes());
@@ -277,7 +291,7 @@ impl SolWallet {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
-        let lamp = self.parse_token_amount(amount, mint).await?;
+        let lamp = self.format_token(amount, mint).await?;
 
         let mut data = vec![3];
         data.extend_from_slice(&lamp.to_le_bytes());

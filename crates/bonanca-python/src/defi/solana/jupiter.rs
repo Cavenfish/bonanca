@@ -1,7 +1,8 @@
-use bonanca_api_lib::defi::jupiter::JupiterSwapQuote;
+use bonanca_api_lib::defi::jupiter::{JupiterLendMarket, JupiterSwapQuote};
 use bonanca_defi::solana::jupiter::Jupiter;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use std::time::Duration;
 
 use crate::wallets::solana::PySolWallet;
 
@@ -39,6 +40,7 @@ impl PyJupiterSwapQuote {
 }
 
 #[pyclass(name = "SolTxnReceipt")]
+#[allow(dead_code)]
 pub struct PySolTxnReceipt {
     pub hash: String,
     pub slot: u64,
@@ -53,6 +55,44 @@ impl PySolTxnReceipt {
             slot: receipt.slot,
             block_time: receipt.block_time,
             gas_used: receipt.gas_used,
+        }
+    }
+}
+
+#[pyclass(name = "JupiterLendMarket")]
+#[allow(dead_code)]
+pub struct PyJupiterLendMarket {
+    pub id: u64,
+    pub address: String,
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    pub asset_address: String,
+    pub total_assets: String,
+    pub total_supply: String,
+    pub convert_to_shares: String,
+    pub convert_to_assets: String,
+    pub rewards_rate: String,
+    pub supply_rate: String,
+    pub total_rate: String,
+}
+
+impl PyJupiterLendMarket {
+    fn from_rust(market: JupiterLendMarket) -> Self {
+        Self {
+            id: market.id,
+            address: market.address,
+            name: market.name,
+            symbol: market.symbol,
+            decimals: market.decimals,
+            asset_address: market.asset_address,
+            total_assets: market.total_assets,
+            total_supply: market.total_supply,
+            convert_to_shares: market.convert_to_shares,
+            convert_to_assets: market.convert_to_assets,
+            rewards_rate: market.rewards_rate,
+            supply_rate: market.supply_rate,
+            total_rate: market.total_rate,
         }
     }
 }
@@ -133,6 +173,89 @@ impl PyJupiter {
         let receipt = wallet
             .rt
             .block_on(self.inner.quick_swap(&wallet.inner, sell, buy, amount))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(PySolTxnReceipt::from_rust(receipt))
+    }
+
+    fn limit_order(
+        &self,
+        wallet: &PySolWallet,
+        sell: &str,
+        buy: &str,
+        sell_amount: f64,
+        buy_amount: f64,
+        lifetime_secs: u64,
+    ) -> PyResult<PySolTxnReceipt> {
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.limit_order(
+                &wallet.inner,
+                sell,
+                buy,
+                sell_amount,
+                buy_amount,
+                Duration::from_secs(lifetime_secs),
+            ))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(PySolTxnReceipt::from_rust(receipt))
+    }
+
+    fn limit_order_by_price(
+        &self,
+        wallet: &PySolWallet,
+        sell: &str,
+        buy: &str,
+        amount: f64,
+        price: f64,
+        lifetime_secs: u64,
+    ) -> PyResult<PySolTxnReceipt> {
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.limit_order(
+                &wallet.inner,
+                sell,
+                buy,
+                amount,
+                price,
+                Duration::from_secs(lifetime_secs),
+            ))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(PySolTxnReceipt::from_rust(receipt))
+    }
+
+    fn get_lendable_tokens(&self, wallet: &PySolWallet) -> PyResult<Vec<PyJupiterLendMarket>> {
+        let markets = wallet
+            .rt
+            .block_on(self.inner.get_lendable_tokens())
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(markets
+            .into_iter()
+            .map(PyJupiterLendMarket::from_rust)
+            .collect())
+    }
+
+    fn deposit(&self, wallet: &PySolWallet, token: &str, amount: f64) -> PyResult<PySolTxnReceipt> {
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.deposit(&wallet.inner, token, amount))
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(PySolTxnReceipt::from_rust(receipt))
+    }
+
+    fn withdraw(
+        &self,
+        wallet: &PySolWallet,
+        token: &str,
+        amount: f64,
+    ) -> PyResult<PySolTxnReceipt> {
+        let receipt = wallet
+            .rt
+            .block_on(self.inner.withdraw(&wallet.inner, token, amount))
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
 
         Ok(PySolTxnReceipt::from_rust(receipt))

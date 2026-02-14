@@ -45,7 +45,7 @@ impl Jupiter {
         buy: &str,
         amount: f64,
     ) -> Result<JupiterSwapQuote> {
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
         self.api.get_swap_quote(sell, buy, big_amount).await
     }
 
@@ -68,7 +68,7 @@ impl Jupiter {
         amount: f64,
     ) -> Result<SolTxnReceipt> {
         let taker = wallet.get_pubkey()?;
-        let big_amount = wallet.parse_token_amount(amount, sell).await?;
+        let big_amount = wallet.format_token(amount, sell).await?;
         let swap_quote = self.api.get_swap_quote(sell, buy, big_amount).await?;
 
         let swap_order = self.api.get_swap_order(&taker, swap_quote).await?;
@@ -88,8 +88,8 @@ impl Jupiter {
         buy_amount: f64,
         lifetime: Duration,
     ) -> Result<SolTxnReceipt> {
-        let make = wallet.parse_token_amount(sell_amount, sell).await?;
-        let take = wallet.parse_token_amount(buy_amount, buy).await?;
+        let make = wallet.format_token(sell_amount, sell).await?;
+        let take = wallet.format_token(buy_amount, buy).await?;
         let now = wallet.get_timestamp().await? as u64;
 
         let body = JupLimitOrder {
@@ -121,7 +121,7 @@ impl Jupiter {
         token: &str,
         amount: f64,
     ) -> Result<SolTxnReceipt> {
-        let big_amount = wallet.parse_token_amount(amount, token).await?;
+        let big_amount = wallet.format_token(amount, token).await?;
         let body = JupEarnInput {
             asset: token.to_string(),
             signer: wallet.pubkey.to_string(),
@@ -141,7 +141,7 @@ impl Jupiter {
         token: &str,
         amount: f64,
     ) -> Result<SolTxnReceipt> {
-        let big_amount = wallet.parse_token_amount(amount, token).await?;
+        let big_amount = wallet.format_token(amount, token).await?;
         let body = JupEarnInput {
             asset: token.to_string(),
             signer: wallet.pubkey.to_string(),

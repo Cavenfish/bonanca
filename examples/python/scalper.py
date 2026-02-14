@@ -40,6 +40,49 @@ class TradeSettings:
         self.expiry = (int(tmp[0]) * 24 + int(tmp[1]), int(tmp[2]))
 
 
+class Log:
+    """Logging for the scalper bot"""
+
+    active_orders: list[str]
+    profit: float
+    buy_history: Dict
+    sell_history: Dict
+
+    def __init__(self, log: Dict):
+        self.active_orders = log["active_orders"]
+        self.profit = log["profit"]
+        self.buy_history = log["buy_history"]
+        self.sell_history = log["sell_history"]
+
+    def add_buy(self, amount: float, price: float):
+        avg_price = (
+            self.buy_history["avg_price"] * self.buy_history["bought"] + price * amount
+        ) / (self.buy_history["bought"] + amount)
+
+        self.buy_history["bought"] += amount
+        self.buy_history["avg_price"] = avg_price
+
+    def add_sell(self, amount: float, price: float):
+        avg_price = (
+            self.sell_history["avg_price"] * self.sell_history["sold"] + price * amount
+        ) / (self.sell_history["sold"] + amount)
+
+        self.sell_history["sold"] += amount
+        self.sell_history["avg_price"] = avg_price
+
+    def to_dict(self):
+        return {
+            "active_orders": self.active_orders,
+            "profit": self.profit,
+            "buy_history": self.buy_history,
+            "sell_history": self.sell_history,
+        }
+
+    def save(self, log_file: Path):
+        with open(log_file, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+
 class Config:
     """Configuration for the scalper bot"""
 
@@ -71,6 +114,8 @@ class Scalper:
             cfg = tomllib.load(io)
 
         self.config = Config(cfg)
+        self.load_dex(self.config.chain)
+        self.load_oracle()
 
         if not self.config.log_file.exists():
             init = {
@@ -88,10 +133,10 @@ class Scalper:
             with open(self.config.log_file, "w") as f:
                 json.dump(init, f, indent=2)
 
-            self.log = init
+            self.log = Log(init)
         else:
             with open(self.config.log_file, "r") as f:
-                self.log = json.load(f)
+                self.log = Log(json.load(f))
 
     def load_wallet(self, dry=True):
         if dry:
@@ -138,6 +183,7 @@ class Scalper:
     def check_spendable_base(self):
         base_bal = self.wallet.token_balance(self.config.base.address)
 
+        expired: list[str] = []
         for uid in self.log["active_orders"]:
             order = self.dex.get_order_info(uid)
 
@@ -148,6 +194,10 @@ class Scalper:
                 amount = float(order["sell_amount"]) / (10**self.config.base.decimals)
                 base_bal -= amount
 
+            if order["status"] == "expired":
+                expired.append(uid)
+
+        self.prune_expired_orders(expired)
         return base_bal
 
     def set_buy_levels(self, dry=True):
@@ -240,10 +290,8 @@ class Scalper:
         if not orders:
             return
 
-        self.log["active_orders"].extend(orders)
-
-        with open(self.config.log_file, "w") as f:
-            json.dump(self.log, f, indent=2)
+        self.log.active_orders.extend(orders)
+        self.log.save(self.config.log_file)
 
     def log_trades(self, trades: list[Dict]):
         if not trades:
@@ -254,43 +302,39 @@ class Scalper:
 
     def log_trade(self, trade: Dict):
         if trade["sell_token"] == self.config.base.address.lower():
-            bought = float(trade["buy_amount"]) / (10**self.config.target.decimals)
-            price = (
-                float(trade["sell_amount"]) / (10**self.config.base.decimals) / bought
+            bought = float(trade["executed_buy_amount"]) / (
+                10**self.config.target.decimals
             )
-            avg_price = (
-                self.log["buy_history"]["avg_price"] * self.log["buy_history"]["bought"]
-                + price * bought
-            ) / (self.log["buy_history"]["bought"] + bought)
-
-            self.log["buy_history"]["bought"] += bought
-            self.log["buy_history"]["avg_price"] = avg_price
+            price = (
+                float(trade["executed_sell_amount"])
+                / (10**self.config.base.decimals)
+                / bought
+            )
+            self.log.add_buy(bought, price)
 
         if trade["sell_token"] == self.config.target.address.lower():
-            sold = float(trade["sell_amount"]) / (10**self.config.target.decimals)
-            buy_amount = float(trade["buy_amount"]) / (10**self.config.base.decimals)
+            sold = float(trade["executed_sell_amount"]) / (
+                10**self.config.target.decimals
+            )
+            buy_amount = float(trade["executed_buy_amount"]) / (
+                10**self.config.base.decimals
+            )
             price = buy_amount / sold
-            avg_price = (
-                self.log["sell_history"]["avg_price"] * self.log["sell_history"]["sold"]
-                + price * sold
-            ) / (self.log["sell_history"]["sold"] + sold)
 
-            self.log["sell_history"]["sold"] += sold
-            self.log["sell_history"]["avg_price"] = avg_price
-            self.log["profit"] += buy_amount - self.config.trade_settings.size
+            self.log.add_sell(sold, price)
+            self.log.profit += buy_amount - self.config.trade_settings.size
 
-        self.log["active_orders"].remove(trade["uid"])
+        self.log.active_orders.remove(trade["uid"])
+        self.log.save(self.config.log_file)
 
-        with open(self.config.log_file, "w") as f:
-            json.dump(self.log, f, indent=2)
+    def prune_expired_orders(self, expired_uids: list[str]):
+        for uid in expired_uids:
+            self.log.active_orders.remove(uid)
 
-    def prune_active_orders(self):
-        pass
+        self.log.save(self.config.log_file)
 
     def run(self, dry=True):
         self.load_wallet(dry=dry)
-        self.load_dex(self.config.chain)
-        self.load_oracle()
         self.set_buy_levels(dry=dry)
         self.set_sell_levels(dry=dry)
 

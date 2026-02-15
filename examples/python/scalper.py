@@ -184,7 +184,7 @@ class Scalper:
         base_bal = self.wallet.token_balance(self.config.base.address)
 
         expired: list[str] = []
-        for uid in self.log["active_orders"]:
+        for uid in self.log.active_orders:
             order = self.dex.get_order_info(uid)
 
             if (
@@ -233,7 +233,7 @@ class Scalper:
         self.log_orders(orders)
 
     def set_sell_levels(self, dry=True):
-        if not self.log["active_orders"]:
+        if not self.log.active_orders:
             print("No active orders to set sell levels for")
             return
 
@@ -243,7 +243,7 @@ class Scalper:
 
         trades: list[Dict] = []
         tp_uids: list[str] = []
-        for uid in self.log["active_orders"]:
+        for uid in self.log.active_orders:
             order = self.dex.get_order_info(uid)
 
             if (

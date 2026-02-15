@@ -3,8 +3,9 @@ use reqwest::Client;
 use serde::Deserialize;
 
 pub struct CoinMarketCapApi {
-    pub base_url: String,
-    pub api_key: String,
+    base_url: String,
+    api_key: String,
+    client: Client,
 }
 
 impl CoinMarketCapApi {
@@ -12,17 +13,18 @@ impl CoinMarketCapApi {
         Self {
             base_url: "https://pro-api.coinmarketcap.com".to_string(),
             api_key,
+            client: Client::new(),
         }
     }
 
     pub async fn get_price_quote(&self, token: &str, amount: f64) -> Result<CmcPriceQuote> {
-        let client = Client::new();
         let url = format!(
             "{}/v2/tools/price-conversion?symbol={}&amount={}&convert=USD",
             &self.base_url, token, amount
         );
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("X-CMC_PRO_API_KEY", &self.api_key)
             .header("Accept", "application/json")

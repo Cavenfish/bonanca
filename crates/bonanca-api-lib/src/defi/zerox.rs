@@ -3,9 +3,10 @@ use reqwest::Client;
 use serde::Deserialize;
 
 pub struct ZeroXApi {
-    pub base_url: String,
-    pub api_key: String,
-    pub chain_id: u16,
+    base_url: String,
+    api_key: String,
+    chain_id: u16,
+    client: Client,
 }
 
 impl ZeroXApi {
@@ -14,6 +15,7 @@ impl ZeroXApi {
             base_url: "https://api.0x.org".to_string(),
             api_key,
             chain_id,
+            client: Client::new(),
         }
     }
 
@@ -23,14 +25,13 @@ impl ZeroXApi {
         buy: &str,
         amount: u64,
     ) -> Result<ZeroXPriceQuote> {
-        let client = Client::new();
-
         let url = format!(
             "{}/swap/allowance-holder/price?chainId={}&sellToken={}&sellAmount={}&buyToken={}",
             &self.base_url, &self.chain_id, sell, amount, buy
         );
 
-        let quote: ZeroXPriceQuote = client
+        let quote: ZeroXPriceQuote = self
+            .client
             .get(&url)
             .header("0x-api-key", &self.api_key)
             .header("0x-version", "v2")
@@ -50,14 +51,13 @@ impl ZeroXApi {
         amount: u64,
         taker: &str,
     ) -> Result<ZeroXSwapQuote> {
-        let client = Client::new();
-
         let url = format!(
             "{}/swap/allowance-holder/quote?chainId={}&sellToken={}&sellAmount={}&buyToken={}&taker={}",
             &self.base_url, &self.chain_id, sell, amount, buy, taker,
         );
 
-        let quote: ZeroXSwapQuote = client
+        let quote: ZeroXSwapQuote = self
+            .client
             .get(&url)
             .header("0x-api-key", &self.api_key)
             .header("0x-version", "v2")

@@ -4,21 +4,23 @@ use serde::Deserialize;
 use std::collections::HashMap;
 
 pub struct DefiLlamaApi {
-    pub base_url: String,
+    base_url: String,
+    client: Client,
 }
 
 impl DefiLlamaApi {
     pub fn new() -> Self {
         Self {
             base_url: "https://coins.llama.fi".to_string(),
+            client: Client::new(),
         }
     }
 
     pub async fn get_price_quote(&self, chain: &str, address: &str) -> Result<LlamaPrice> {
-        let client = Client::new();
         let url = format!("{}/prices/current/{}:{}", &self.base_url, chain, address);
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()

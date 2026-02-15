@@ -5,21 +5,22 @@ use serde_with::{DisplayFromStr, serde_as};
 
 pub struct CowApi {
     base_url: String,
+    client: Client,
 }
 
 impl CowApi {
     pub fn new(chain: &str) -> Self {
         Self {
             base_url: format!("https://api.cow.fi/{}", chain),
+            client: Client::new(),
         }
     }
 
     pub async fn get_order_info(&self, uid: &str) -> Result<CowSwapPlacedOrder> {
-        let client = Client::new();
-
         let url = format!("{}/api/v1/orders/{}", self.base_url, uid);
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Content-Type", "application/json")
             .send()
@@ -35,8 +36,6 @@ impl CowApi {
         user: &str,
         limit: Option<u16>,
     ) -> Result<Vec<CowSwapPlacedOrder>> {
-        let client = Client::new();
-
         let url = format!(
             "{}/api/v1/account/{}/orders?limit={}",
             self.base_url,
@@ -44,7 +43,8 @@ impl CowApi {
             limit.unwrap_or(10)
         );
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Content-Type", "application/json")
             .send()
@@ -56,11 +56,10 @@ impl CowApi {
     }
 
     pub async fn get_swap_quote(&self, swap_data: &CowSwapData) -> Result<CowSwapOrder> {
-        let client = Client::new();
-
         let url = format!("{}/api/v1/quote", self.base_url);
 
-        let mut resp: CowSwapOrder = client
+        let mut resp: CowSwapOrder = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .json(&swap_data)
@@ -76,11 +75,10 @@ impl CowApi {
     }
 
     pub async fn post_swap_order(&self, order: &CowOrder) -> Result<String> {
-        let client = Client::new();
-
         let url = format!("{}/api/v1/orders", self.base_url);
 
-        let resp: String = client
+        let resp: String = self
+            .client
             .post(&url)
             .header("Content-Type", "application/json")
             .json(&order)

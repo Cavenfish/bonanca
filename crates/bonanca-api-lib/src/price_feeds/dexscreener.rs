@@ -4,21 +4,23 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 
 pub struct DexScreenerApi {
-    pub base_url: String,
+    base_url: String,
+    client: Client,
 }
 
 impl DexScreenerApi {
     pub fn new() -> Self {
         Self {
             base_url: "https://api.dexscreener.com".to_string(),
+            client: Client::new(),
         }
     }
 
     pub async fn get_pair_data(&self, chain: &str, pair: &str) -> Result<DexScreenerResponse> {
-        let client = Client::new();
         let url = format!("{}/latest/dex/pairs/{}/{}", &self.base_url, chain, pair);
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -30,10 +32,10 @@ impl DexScreenerApi {
     }
 
     pub async fn get_pairs_from_query(&self, query: &str) -> Result<DexScreenerResponse> {
-        let client = Client::new();
         let url = format!("{}/latest/dex/search?q={}", &self.base_url, query);
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -49,10 +51,10 @@ impl DexScreenerApi {
         chain: &str,
         token: &str,
     ) -> Result<Vec<DexScreenerPairData>> {
-        let client = Client::new();
         let url = format!("{}/token-pairs/v1/{}/{}", &self.base_url, chain, token);
 
-        let resp = client
+        let resp = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()

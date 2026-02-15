@@ -6,20 +6,21 @@ use std::fmt;
 
 pub struct KaminoApi {
     base_url: String,
+    client: Client,
 }
 
 impl KaminoApi {
     pub fn new() -> Self {
         Self {
             base_url: "https://api.kamino.finance".to_string(),
+            client: Client::new(),
         }
     }
 
     pub async fn get_all_kvaults(&self) -> Result<Vec<KVaultInfo>> {
-        let client = Client::new();
         let url = format!("{}/kvaults/vaults", &self.base_url);
 
-        let resp = client
+        let resp = self.client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -31,10 +32,9 @@ impl KaminoApi {
     }
 
     pub async fn get_vault_metrics(&self, vault: &str) -> Result<VaultMetrics> {
-        let client = Client::new();
         let url = format!("{}/kvaults/vaults/{}/metrics", &self.base_url, vault);
 
-        let resp = client
+        let resp = self.client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -65,10 +65,9 @@ impl KaminoApi {
     // }
 
     pub async fn get_user_data(&self, user: &str) -> Result<Vec<KVaultPosition>> {
-        let client = Client::new();
         let url = format!("{}/kvaults/users/{}/positions", &self.base_url, user);
 
-        let resp = client
+        let resp = self.client
             .get(&url)
             .header("Accept", "application/json")
             .send()

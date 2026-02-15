@@ -5,8 +5,9 @@ use serde_with::{DisplayFromStr, serde_as};
 use std::collections::HashMap;
 
 pub struct JupiterApi {
-    pub base_url: String,
-    pub api_key: String,
+    base_url: String,
+    api_key: String,
+    client: Client,
 }
 
 impl JupiterApi {
@@ -14,6 +15,7 @@ impl JupiterApi {
         Self {
             base_url: "https://api.jup.ag".to_string(),
             api_key,
+            client: Client::new(),
         }
     }
 
@@ -24,14 +26,13 @@ impl JupiterApi {
         amount: u64,
         taker: &str,
     ) -> Result<JupiterUltraOrder> {
-        let client = Client::new();
-
         let url = format!(
             "{}/ultra/v1/order?inputMint={}&outputMint={}&amount={}&taker={}",
             &self.base_url, sell, buy, amount, taker
         );
 
-        let order: JupiterUltraOrder = client
+        let order: JupiterUltraOrder = self
+            .client
             .get(&url)
             .header("x-api-key", &self.api_key)
             .header("Accept", "application/json")
@@ -44,11 +45,10 @@ impl JupiterApi {
     }
 
     pub async fn get_price_quote(&self, token: &str) -> Result<HashMap<String, TokenPrice>> {
-        let client = Client::new();
-
         let url = format!("{}/price/v3?ids={}", &self.base_url, token);
 
-        let quote: HashMap<String, TokenPrice> = client
+        let quote: HashMap<String, TokenPrice> = self
+            .client
             .get(&url)
             .header("x-api-key", &self.api_key)
             .header("Accept", "application/json")
@@ -66,14 +66,13 @@ impl JupiterApi {
         buy: &str,
         amount: u64,
     ) -> Result<JupiterSwapQuote> {
-        let client = Client::new();
-
         let url = format!(
             "{}/swap/v1/quote?inputMint={}&outputMint={}&amount={}",
             &self.base_url, sell, buy, amount
         );
 
-        let quote: JupiterSwapQuote = client
+        let quote: JupiterSwapQuote = self
+            .client
             .get(&url)
             .header("x-api-key", &self.api_key)
             .header("Accept", "application/json")
@@ -90,8 +89,6 @@ impl JupiterApi {
         pubkey: &str,
         swap_quote: JupiterSwapQuote,
     ) -> Result<SwapOrder> {
-        let client = Client::new();
-
         let url = format!("{}/swap/v1/swap", &self.base_url);
 
         let swap_data = SwapData {
@@ -99,7 +96,8 @@ impl JupiterApi {
             quote_response: swap_quote,
         };
 
-        let order: SwapOrder = client
+        let order: SwapOrder = self
+            .client
             .post(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -113,10 +111,10 @@ impl JupiterApi {
     }
 
     pub async fn post_limit_order(&self, body: JupLimitOrder) -> Result<JupTxn> {
-        let client = Client::new();
         let url = format!("{}/trigger/v1/createOrder", &self.base_url);
 
-        let resp = client
+        let resp = self
+            .client
             .post(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -130,10 +128,10 @@ impl JupiterApi {
     }
 
     pub async fn get_lendable_tokens(&self) -> Result<Vec<JupiterLendMarket>> {
-        let client = Client::new();
         let url = format!("{}/lend/v1/earn/tokens", self.base_url);
 
-        let tokens = client
+        let tokens = self
+            .client
             .get(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -146,10 +144,10 @@ impl JupiterApi {
     }
 
     pub async fn post_deposit(&self, body: JupEarnInput) -> Result<JupTxn> {
-        let client = Client::new();
         let url = format!("{}/lend/v1/earn/deposit", self.base_url);
 
-        let resp = client
+        let resp = self
+            .client
             .post(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")
@@ -163,10 +161,10 @@ impl JupiterApi {
     }
 
     pub async fn post_withdraw(&self, body: JupEarnInput) -> Result<JupTxn> {
-        let client = Client::new();
         let url = format!("{}/lend/v1/earn/withdraw", self.base_url);
 
-        let resp = client
+        let resp = self
+            .client
             .post(&url)
             .header("x-api-key", &self.api_key)
             .header("Content-Type", "application/json")

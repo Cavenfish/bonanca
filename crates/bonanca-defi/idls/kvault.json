@@ -280,6 +280,43 @@
           ]
         },
         {
+          "name": "withdraw_from_reserve_accounts",
+          "accounts": [
+            {
+              "name": "vault_state",
+              "writable": true
+            },
+            {
+              "name": "reserve",
+              "writable": true
+            },
+            {
+              "name": "ctoken_vault",
+              "writable": true
+            },
+            {
+              "name": "lending_market"
+            },
+            {
+              "name": "lending_market_authority"
+            },
+            {
+              "name": "reserve_liquidity_supply",
+              "writable": true
+            },
+            {
+              "name": "reserve_collateral_mint",
+              "writable": true
+            },
+            {
+              "name": "reserve_collateral_token_program"
+            },
+            {
+              "name": "instruction_sysvar_account"
+            }
+          ]
+        },
+        {
           "name": "event_authority"
         },
         {
@@ -298,7 +335,7 @@
       "discriminator": [51, 230, 133, 164, 1, 127, 131, 173],
       "accounts": [
         {
-          "name": "withdraw_from_available",
+          "name": "withdraw_from_available_sell",
           "accounts": [
             {
               "name": "user",
@@ -353,7 +390,7 @@
           ]
         },
         {
-          "name": "withdraw_from_reserve_accounts",
+          "name": "withdraw_from_reserve_accounts_sell",
           "accounts": [
             {
               "name": "vault_state",

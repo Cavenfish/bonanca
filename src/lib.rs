@@ -10,7 +10,7 @@ pub mod wallets {
 pub mod defi {
     pub use bonanca_defi::{
         evm::{aave::AaveV3, cow::CoW, morpho::MorphoVaultV1, zerox::ZeroX},
-        solana::jupiter::Jupiter,
+        solana::{jupiter::Jupiter, kamino::Kamino},
     };
 }
 

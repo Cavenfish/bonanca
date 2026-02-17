@@ -1,16 +1,8 @@
 use anchor_client::{
     Client, Cluster,
     solana_sdk::{
-        address_lookup_table::state::AddressLookupTable,
-        commitment_config::CommitmentConfig,
-        message::{
-            AddressLookupTableAccount, VersionedMessage,
-            v0::{Message, MessageAddressTableLookup},
-        },
-        pubkey::Pubkey,
-        signature::Keypair,
+        commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Keypair,
         signer::SeedDerivable,
-        transaction::VersionedTransaction,
     },
 };
 use anchor_lang::prelude::*;
@@ -19,6 +11,7 @@ use bonanca_api_lib::defi::kamino::{KVaultInfo, KVaultPosition, KaminoApi};
 use bonanca_wallets::wallets::solana::SolWallet;
 use std::{rc::Rc, str::FromStr};
 
+const SYSVAR: Pubkey = Pubkey::from_str_const("Sysvar1nstructions1111111111111111111111111");
 const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const KLEND_ID: Pubkey = Pubkey::from_str_const("KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD");
 
@@ -28,7 +21,11 @@ fn get_event_authority(program_id: &Pubkey) -> Pubkey {
 
 declare_program!(kvault);
 
-use kvault::{accounts::VaultState, client::accounts, client::args};
+use kvault::{
+    accounts::{Reserve, VaultState},
+    client::accounts,
+    client::args,
+};
 
 // This only exists to solve the dependency mismatch between Anchor
 // and solana_sdk. If Anchor updates to solana_sdk v3 then this can
@@ -93,7 +90,7 @@ impl Kamino {
     ) -> Result<()> {
         // These two conversion are because Anchor and solana_sdk use different versions
         let payer = Keypair::from_seed(wallet.key_pair.as_ref().unwrap().secret_bytes())
-            .expect("Couldn't conver keypair types");
+            .expect("Couldn't convert keypair types");
         let user = Pubkey::from_str(&wallet.pubkey.to_string())?;
 
         let provider = Client::new_with_options(
@@ -115,6 +112,32 @@ impl Kamino {
             .format_token(amount, &vault_data.state.token_mint)
             .await?;
 
+        let mut remaining_accounts = Vec::new();
+
+        let empty = Pubkey::default();
+        for item in vault_state.vault_allocation_strategy.iter() {
+            if item.reserve == empty {
+                continue;
+            }
+            remaining_accounts.push(AccountMeta {
+                pubkey: item.reserve,
+                is_signer: false,
+                is_writable: true,
+            });
+        }
+
+        for item in vault_state.vault_allocation_strategy.iter() {
+            if item.reserve == empty {
+                continue;
+            }
+            let acct: Reserve = program.account(item.reserve).await?;
+            remaining_accounts.push(AccountMeta {
+                pubkey: acct.lending_market,
+                is_signer: false,
+                is_writable: false,
+            });
+        }
+
         let supply_ix = program
             .request()
             .accounts(accounts::Deposit {
@@ -132,31 +155,12 @@ impl Kamino {
                 event_authority,
                 program: program.id(),
             })
+            .accounts(remaining_accounts)
             .args(args::Deposit { max_amount: amnt })
             .instructions()?
             .remove(0);
 
-        let raw_account = program
-            .rpc()
-            .get_account(&vault_state.vault_lookup_table)
-            .await?;
-        let address_lookup_table = AddressLookupTable::deserialize(&raw_account.data)?;
-        let address_lookup_table_account = AddressLookupTableAccount {
-            key: vault_state.vault_lookup_table,
-            addresses: address_lookup_table.addresses.to_vec(),
-        };
-
-        let recent_blockhash = program.rpc().get_latest_blockhash().await?;
-        let message = VersionedMessage::V0(Message::try_compile(
-            &user,
-            &[supply_ix],
-            &[address_lookup_table_account],
-            recent_blockhash,
-        )?);
-
-        let txn = VersionedTransaction::try_new(message, &[&payer])?;
-
-        let _ = program.rpc().send_and_confirm_transaction(&txn).await?;
+        let _ = program.request().instruction(supply_ix).send().await?;
 
         Ok(())
     }
@@ -185,7 +189,8 @@ impl Kamino {
         let base_vault_authority = Pubkey::from_str_const(&vault_data.state.base_vault_authority);
         let shares_mint = Pubkey::from_str_const(&vault_data.state.shares_mint);
         let token_program = Pubkey::from_str_const(&vault_data.state.token_program);
-        let vault_state = Pubkey::from_str_const(&vault_data.address);
+        let state_addy = Pubkey::from_str_const(&vault_data.address);
+        let vault_state: VaultState = program.account(state_addy).await?;
 
         let user_token_ata = get_v2_ata(&wallet, &vault_data.state.token_mint).await?;
         let user_shares_ata = get_v2_ata(&wallet, &vault_data.state.shares_mint).await?;
@@ -201,7 +206,7 @@ impl Kamino {
 
         let withdraw_from_available = accounts::WithdrawFromAvailable {
             user,
-            vault_state,
+            vault_state: state_addy,
             token_vault,
             token_mint,
             base_vault_authority,
@@ -216,13 +221,63 @@ impl Kamino {
             global_config,
         };
 
+        let mut remaining_accounts = Vec::new();
+
+        let empty = Pubkey::default();
+        for item in vault_state.vault_allocation_strategy.iter() {
+            if item.reserve == empty {
+                continue;
+            }
+            remaining_accounts.push(AccountMeta {
+                pubkey: item.reserve,
+                is_signer: false,
+                is_writable: true,
+            });
+        }
+
+        for item in vault_state.vault_allocation_strategy.iter() {
+            if item.reserve == empty {
+                continue;
+            }
+            let acct: Reserve = program.account(item.reserve).await?;
+            remaining_accounts.push(AccountMeta {
+                pubkey: acct.lending_market,
+                is_signer: false,
+                is_writable: false,
+            });
+        }
+
+        let reserve_addy = remaining_accounts.get(0).unwrap().pubkey;
+        let ctoken = vault_data
+            .state
+            .vault_allocation_strategy
+            .get(0)
+            .unwrap()
+            .ctoken_vault
+            .clone();
+        let reserve: Reserve = program.account(reserve_addy).await?;
+
+        let withdraw_from_reserve_accounts = accounts::WithdrawFromReserveAccounts {
+            vault_state: state_addy,
+            reserve: reserve_addy,
+            ctoken_vault: Pubkey::from_str(&ctoken)?,
+            lending_market: reserve.lending_market,
+            lending_market_authority: vault_state.vault_admin_authority,
+            reserve_liquidity_supply: reserve.liquidity.supply_vault,
+            reserve_collateral_mint: reserve.collateral.mint_pubkey,
+            reserve_collateral_token_program: TOKEN_ID,
+            instruction_sysvar_account: SYSVAR,
+        };
+
         let supply_ix = program
             .request()
             .accounts(accounts::Withdraw {
                 withdraw_from_available,
+                withdraw_from_reserve_accounts,
                 event_authority,
                 program: program.id(),
             })
+            .accounts(remaining_accounts)
             .args(args::Withdraw {
                 shares_amount: amnt,
             })

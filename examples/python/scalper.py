@@ -192,7 +192,10 @@ class Scalper:
                 and order["sell_token"] == self.config.base.address.lower()
             ):
                 amount = float(order["sell_amount"]) / (10**self.config.base.decimals)
-                base_bal -= amount
+                executed = float(order["executed_sell_amount"]) / (
+                    10**self.config.base.decimals
+                )
+                base_bal -= amount - executed
 
             if order["status"] == "expired":
                 expired.append(uid)
@@ -256,35 +259,55 @@ class Scalper:
                 order["status"] == "fulfilled"
                 and order["sell_token"] == self.config.base.address.lower()
             ):
-                sell_amount = float(order["buy_amount"]) / (
-                    10**self.config.target.decimals
-                )
-                buy_amount = (
-                    float(order["sell_amount"])
-                    / (10**self.config.base.decimals)
-                    * (1 + self.config.trade_settings.profit)
-                )
+                self.set_sell(price, order, trades, tp_uids, dry=dry)
 
-                if buy_amount / sell_amount < price:
-                    sell_price = price * 1.005
-                else:
-                    sell_price = buy_amount / sell_amount
+            if (
+                order["status"] == "open"
+                and order["sell_token"] == self.config.base.address.lower()
+            ):
+                got = float(order["executed_sell_amount"])
+                want = float(order["sell_amount"])
 
-                print(f"Sell level: ${sell_price:.4f}")
-                if not dry:
-                    trades.append(order)
-                    tp_uid = self.dex.limit_order_by_price(
-                        self.wallet,
-                        self.config.target.address,
-                        self.config.base.address,
-                        sell_amount,
-                        1 / sell_price,
-                        self.config.trade_settings.expiry,
-                    )
-                    tp_uids.append(tp_uid)
+                if got / want > 0.98:
+                    self.set_sell(price, order, trades, tp_uids, dry=dry)
 
         self.log_trades(trades)
         self.log_orders(tp_uids)
+
+    def set_sell(
+        self,
+        price: float,
+        order: Dict,
+        trades: list[Dict],
+        tp_uids: list[str],
+        dry=True,
+    ):
+        sell_amount = float(order["executed_buy_amount"]) / (
+            10**self.config.target.decimals
+        )
+        buy_amount = (
+            float(order["executed_sell_amount"])
+            / (10**self.config.base.decimals)
+            * (1 + self.config.trade_settings.profit)
+        )
+
+        sell_price = buy_amount / sell_amount
+
+        if sell_price < price:
+            sell_price = price
+
+        print(f"Sell level: ${sell_price:.4f}")
+        if not dry:
+            trades.append(order)
+            tp_uid = self.dex.limit_order_by_price(
+                self.wallet,
+                self.config.target.address,
+                self.config.base.address,
+                sell_amount,
+                1 / sell_price,
+                self.config.trade_settings.expiry,
+            )
+            tp_uids.append(tp_uid)
 
     def log_orders(self, orders: list[str]):
         if not orders:

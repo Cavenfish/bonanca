@@ -6,3 +6,4 @@ target/
 docs/book/
 todo.md
 .venv
+__pycache__

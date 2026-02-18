@@ -1,0 +1,709 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Solana - Bonança Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Bonança Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="solana-defi-interfaces"><a class="header" href="#solana-defi-interfaces">Solana DeFi Interfaces</a></h1>
+<p>Bonanca provides interfaces to interact with popular DeFi protocols on Solana. This section covers the main DeFi integrations available.</p>
+<h2 id="jupiter---dex-aggregator"><a class="header" href="#jupiter---dex-aggregator">Jupiter - DEX Aggregator</a></h2>
+<p>Jupiter is the leading decentralized exchange aggregator on Solana, sourcing liquidity from multiple DEXs to find the best prices for token swaps. It also offers a lending protocol called Jupiter Earn.</p>
+<h3 id="overview"><a class="header" href="#overview">Overview</a></h3>
+<ul>
+<li><strong>Token Swaps</strong>: Get best pricing across multiple Solana DEXs</li>
+<li><strong>Limit Orders</strong>: Place orders that execute at specified prices</li>
+<li><strong>Price Queries</strong>: Check token prices and value conversions</li>
+<li><strong>Lending/Earn</strong>: Deposit tokens to earn yield</li>
+<li><strong>Lendable Markets</strong>: Query available lending markets</li>
+</ul>
+<h3 id="supported-operations"><a class="header" href="#supported-operations">Supported Operations</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust</a></h4>
+<pre><code class="language-rust ignore">use bonanca::defi::Jupiter;
+use bonanca::wallets::solana::SolWallet;
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    // Initialize wallet
+    let wallet = SolWallet::new(
+        "base58_private_key",
+        "https://api.mainnet-beta.solana.com"
+    )?;
+
+    // Initialize Jupiter with API key
+    let jupiter = Jupiter::new("your_api_key".to_string());
+
+    // Token mint addresses
+    let sol = "So11111111111111111111111111111111111111112";
+    let usdc = "EPjFWdd5Au17FXxeB6VWyeXKSa3LvwV0LCH7f3uyxVEP";
+    let orca = "orcaEKTdK7LKz57chYcUBK6GDZT5bNvmnucEZDfmWQe";
+
+    // Example 1: Get token price in USD
+    let sol_price = jupiter.get_token_price(token_mint, 1.0).await?;
+    println!("1 SOL = ${}", sol_price);
+
+    // Example 2: Get swap quote
+    let quote = jupiter.get_swap_quote(
+        &amp;wallet,
+        sol,      // Sell token (SOL)
+        usdc,     // Buy token (USDC)
+        1.0       // Amount in decimal format
+    ).await?;
+
+    println!("Input Amount: {}", quote.in_amount);
+    println!("Output Amount: {}", quote.out_amount);
+    println!("Price Impact: {}%", quote.price_impact_pct);
+    println!("Slippage (bps): {}", quote.slippage_bps);
+
+    // Example 3: Execute swap with quote
+    let swap_receipt = jupiter.swap(&amp;wallet, quote).await?;
+    println!("Swap signature: {}", swap_receipt.hash);
+    println!("Slot: {}", swap_receipt.slot);
+
+    // Example 4: Quick swap (get quote and swap in one call)
+    let receipt = jupiter.quick_swap(
+        &amp;wallet,
+        sol,
+        usdc,
+        1.0
+    ).await?;
+    println!("Quick swap signature: {}", receipt.hash);
+
+    // Example 5: Place limit order
+    // Order is valid for 24 hours (86400 seconds)
+    let limit_receipt = jupiter.limit_order(
+        &amp;wallet,
+        sol,           // Sell token
+        usdc,          // Buy token
+        1.0,           // Amount to sell
+        34.5,          // Minimum to receive
+        Duration::from_secs(86400)
+    ).await?;
+    println!("Limit order signature: {}", limit_receipt.hash);
+
+    // Example 6: Limit order by price
+    // Sell 1 SOL if price reaches 35 USDC per SOL
+    let price_limit_receipt = jupiter.limit_order_by_price(
+        &amp;wallet,
+        sol,
+        usdc,
+        1.0,                  // Amount to sell
+        35.0,                 // Price threshold
+        Duration::from_secs(86400)
+    ).await?;
+    println!("Price limit order: {}", price_limit_receipt.hash);
+
+    // Example 7: Get available lending markets
+    let markets = jupiter.get_lendable_tokens().await?;
+    for market in &amp;markets {
+        println!("Market: {} ({})", market.name, market.symbol);
+        println!("  Supply Rate: {}", market.supply_rate);
+        println!("  Total Assets: {}", market.total_assets);
+        println!("  Total Supply: {}", market.total_supply);
+    }
+
+    // Example 8: Deposit into lending market
+    let deposit_receipt = jupiter.deposit(
+        &amp;wallet,
+        usdc,   // Token to deposit
+        100.0   // Amount in decimal format
+    ).await?;
+    println!("Deposit signature: {}", deposit_receipt.hash);
+
+    // Example 9: Withdraw from lending market
+    let withdraw_receipt = jupiter.withdraw(
+        &amp;wallet,
+        usdc,
+        50.0
+    ).await?;
+    println!("Withdraw signature: {}", withdraw_receipt.hash);
+
+    Ok(())
+}</code></pre>
+<h4 id="python"><a class="header" href="#python">Python</a></h4>
+<pre><code class="language-python">import bonanca
+import time
+
+# Initialize wallet
+wallet = bonanca.wallets.SolWallet(
+    "base58_private_key",
+    "https://api.mainnet-beta.solana.com"
+)
+
+# Initialize Jupiter
+jupiter = bonanca.defi.Jupiter("your_api_key")
+
+# Token mint addresses
+sol = "So11111111111111111111111111111111111111112"
+usdc = "EPjFWdd5Au17FXxeB6VWyeXKSa3LvwV0LCH7f3uyxVEP"
+orca = "orcaEKTdK7LKz57chYcUBK6GDZT5bNvmnucEZDfmWQe"
+
+# Get token price
+sol_price = jupiter.get_token_price(wallet, sol, 1.0)
+print(f"1 SOL = ${sol_price}")
+
+# Get swap quote
+quote = jupiter.get_swap_quote(wallet, sol, usdc, 1.0)
+print(f"Input: {quote.in_amount}")
+print(f"Output: {quote.out_amount}")
+print(f"Price Impact: {quote.price_impact_pct}%")
+
+# Execute swap
+swap_receipt = jupiter.swap(wallet, quote)
+print(f"Swap tx: {swap_receipt.hash}")
+
+# Quick swap (simpler one-liner)
+receipt = jupiter.quick_swap(wallet, sol, usdc, 1.0)
+print(f"Quick swap tx: {receipt.hash}")
+
+# Limit order (valid for 1 day = 86400 seconds)
+limit_receipt = jupiter.limit_order(
+    wallet,
+    sol,              # Sell token
+    usdc,             # Buy token
+    1.0,              # Amount to sell
+    34.5,             # Minimum to receive
+    86400             # Lifetime in seconds
+)
+print(f"Limit order: {limit_receipt.hash}")
+
+# Price-based limit order
+price_receipt = jupiter.limit_order_by_price(
+    wallet,
+    sol,
+    usdc,
+    1.0,              # Amount to sell
+    35.0,             # Price threshold
+    86400
+)
+print(f"Price limit: {price_receipt.hash}")
+
+# Get available lending markets
+markets = jupiter.get_lendable_tokens(wallet)
+for market in markets:
+    print(f"Market: {market.name} ({market.symbol})")
+    print(f"  APY: {market.supply_rate}")
+    print(f"  TVL: {market.total_assets}")
+
+# Deposit into lending protocol
+deposit_receipt = jupiter.deposit(wallet, usdc, 100.0)
+print(f"Deposit tx: {deposit_receipt.hash}")
+
+# Withdraw from lending protocol
+withdraw_receipt = jupiter.withdraw(wallet, usdc, 50.0)
+print(f"Withdraw tx: {withdraw_receipt.hash}")
+</code></pre>
+<h3 id="quote-structure"><a class="header" href="#quote-structure">Quote Structure</a></h3>
+<p>The swap quote includes:</p>
+<ul>
+<li><strong>in_amount</strong>: Exact input amount needed</li>
+<li><strong>out_amount</strong>: Expected output amount</li>
+<li><strong>other_amount_threshold</strong>: Minimum output considering slippage</li>
+<li><strong>price_impact_pct</strong>: Price impact percentage</li>
+<li><strong>slippage_bps</strong>: Slippage in basis points</li>
+<li><strong>context_slot</strong>: Slot when quote was created</li>
+<li><strong>swap_mode</strong>: Type of swap (ExactIn, ExactOut)</li>
+</ul>
+<h3 id="lending-markets"><a class="header" href="#lending-markets">Lending Markets</a></h3>
+<p>Jupiter Earn provides lending markets with:</p>
+<ul>
+<li><strong>supply_rate</strong>: Current APY for deposits</li>
+<li><strong>total_assets</strong>: Total assets in the market</li>
+<li><strong>total_supply</strong>: Total supply shares issued</li>
+<li><strong>decimals</strong>: Token decimal places</li>
+<li><strong>symbol</strong>: Token symbol</li>
+</ul>
+<h3 id="api-key"><a class="header" href="#api-key">API Key</a></h3>
+<p>Get a free API key from <a href="https://jup.ag/">Jupiter</a>:</p>
+<ul>
+<li>Free tier available for development</li>
+<li>Rate limits apply</li>
+<li>Required for production swaps</li>
+</ul>
+<hr />
+<h2 id="kamino---yield-optimization-vaults"><a class="header" href="#kamino---yield-optimization-vaults">Kamino - Yield Optimization Vaults</a></h2>
+<p>Kamino is a vault protocol on Solana that optimizes yield strategies by allocating assets across multiple lending markets. Kamino vaults provide automated yield farming and lending strategies.</p>
+<h3 id="overview-1"><a class="header" href="#overview-1">Overview</a></h3>
+<ul>
+<li><strong>Vault Discovery</strong>: Find vaults by name, ID, or underlying token</li>
+<li><strong>Vault Metrics</strong>: APY, TVL, performance tracking</li>
+<li><strong>Position Management</strong>: Deposit and withdraw from vaults</li>
+<li><strong>User Positions</strong>: Track vault holdings across all vaults</li>
+<li><strong>Strategy Allocation</strong>: Vaults allocate across KLend reserves</li>
+</ul>
+<h3 id="important-note"><a class="header" href="#important-note">Important Note</a></h3>
+<p>Kamino is currently available in <strong>Rust only</strong>. Python bindings are not yet available. The interface requires direct interaction with the Kamino smart contracts via Anchor.</p>
+<h3 id="supported-operations-rust-only"><a class="header" href="#supported-operations-rust-only">Supported Operations (Rust Only)</a></h3>
+<pre><code class="language-rust ignore">use bonanca::defi::Kamino;
+use bonanca::wallets::solana::SolWallet;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    let wallet = SolWallet::new(
+        "base58_private_key",
+        "https://api.mainnet-beta.solana.com"
+    )?;
+
+    let kamino = Kamino::new();
+
+    // Example 1: Get all available vaults
+    let all_vaults = kamino.get_vaults().await?;
+    println!("Total vaults: {}", all_vaults.len());
+    for vault in &amp;all_vaults {
+        println!("Vault: {} ({})", vault.state.name, vault.address);
+        println!("  Token: {}", vault.state.token_mint);
+        println!("  APY: {}", vault.state.name);
+    }
+
+    // Example 2: Find vault by name
+    let usdc_vault = kamino.get_vault_data_by_name("Kamino USDC")
+        .await?;
+    println!("USDC Vault Address: {}", usdc_vault.address);
+
+    // Example 3: Find vault by ID
+    let vault_id = "7i..."; // Vault address
+    let vault_data = kamino.get_vault_data_by_id(vault_id).await?;
+    println!("Vault Name: {}", vault_data.state.name);
+
+    // Example 4: Get user's vault positions
+    let positions = kamino.get_user_data(&amp;wallet.pubkey.to_string()).await?;
+    println!("User positions: {}", positions.len());
+    for position in &amp;positions {
+        println!("Vault: {}", position.vault_address);
+        println!("  Staked Shares: {}", position.staked_shares);
+        println!("  Unstaked Shares: {}", position.unstaked_shares);
+        println!("  Total Shares: {}", position.total_shares);
+    }
+
+    // Example 5: Find all USDC vaults
+    let usdc_mint = "EPjFWdd5Au17FXxeB6VWyeXKSa3LvwV0LCH7f3uyxVEP";
+    let usdc_vaults = kamino.get_token_vaults(usdc_mint).await?;
+    println!("USDC vaults available: {}", usdc_vaults.len());
+
+    // Example 6: Deposit into a vault
+    let vault = kamino.get_vault_data_by_name("Kamino USDC").await?;
+    kamino.supply(&amp;wallet, &amp;vault, 1000.0).await?;
+    println!("Deposited 1000 USDC into vault");
+
+    // Example 7: Withdraw from a vault
+    kamino.withdraw(&amp;wallet, &amp;vault, 500.0).await?;
+    println!("Withdrew 500 USDC from vault");
+
+    // Example 8: Monitor vault performance
+    println!("\nVault Details:");
+    println!("  Name: {}", vault.state.name);
+    println!("  Token Mint: {}", vault.state.token_mint);
+    println!("  Shares Mint: {}", vault.state.shares_mint);
+    println!("  Total Shares Issued: {}", vault.state.shares_issued);
+    println!("  Performance Fee: {} bps", vault.state.performance_fee_bps);
+    println!("  Management Fee: {} bps", vault.state.management_fee_bps);
+
+    Ok(())
+}</code></pre>
+<h3 id="vault-information"><a class="header" href="#vault-information">Vault Information</a></h3>
+<p>Each vault provides detailed information:</p>
+<ul>
+<li><strong>name</strong>: Human-readable vault name</li>
+<li><strong>token_mint</strong>: The token deposited in this vault</li>
+<li><strong>shares_mint</strong>: The receipt token for vault shares</li>
+<li><strong>address</strong>: Vault account address</li>
+<li><strong>token_available</strong>: Amount available for withdrawal</li>
+<li><strong>shares_issued</strong>: Total shares in circulation</li>
+<li><strong>performance_fee_bps</strong>: Fee on profits (basis points)</li>
+<li><strong>management_fee_bps</strong>: Annual management fee</li>
+<li><strong>vault_allocation_strategy</strong>: How tokens are allocated across reserves</li>
+</ul>
+<h3 id="vault-allocation"><a class="header" href="#vault-allocation">Vault Allocation</a></h3>
+<p>Kamino vaults automatically allocate deposits across multiple lending reserves:</p>
+<ul>
+<li>Optimizes yield across KLend markets</li>
+<li>Rebalances automatically</li>
+<li>Charges performance and management fees</li>
+<li>Reinvests earned interest</li>
+</ul>
+<h3 id="user-positions"><a class="header" href="#user-positions">User Positions</a></h3>
+<p>Track positions across all vaults:</p>
+<ul>
+<li><strong>staked_shares</strong>: Shares in staking/earning strategies</li>
+<li><strong>unstaked_shares</strong>: Shares not yet fully invested</li>
+<li><strong>total_shares</strong>: Total position size</li>
+<li>One entry per vault per user</li>
+</ul>
+<h3 id="fee-structure"><a class="header" href="#fee-structure">Fee Structure</a></h3>
+<ul>
+<li><strong>Performance Fee</strong>: Percentage of earned yield (in basis points)</li>
+<li><strong>Management Fee</strong>: Annual fee charged (in basis points)</li>
+<li><strong>Example</strong>: 10% performance fee = 1000 bps, 1% management fee = 100 bps</li>
+</ul>
+<hr />
+<h2 id="swap-best-practices"><a class="header" href="#swap-best-practices">Swap Best Practices</a></h2>
+<h3 id="general-guidelines"><a class="header" href="#general-guidelines">General Guidelines</a></h3>
+<ol>
+<li>
+<p><strong>Slippage Management</strong></p>
+<ul>
+<li>Always check <code>other_amount_threshold</code> on quotes</li>
+<li>Jupiter automatically handles slippage configuration</li>
+<li>Adjust slippage for volatile markets</li>
+</ul>
+</li>
+<li>
+<p><strong>Quote Validity</strong></p>
+<ul>
+<li>Quotes are typically valid for ~30 seconds</li>
+<li>Refresh quotes before executing large swaps</li>
+<li>Use quick_swap for time-sensitive trades</li>
+</ul>
+</li>
+<li>
+<p><strong>Price Impact</strong></p>
+<ul>
+<li>Monitor <code>price_impact_pct</code> in quotes</li>
+<li>Larger swaps have higher price impact</li>
+<li>Consider breaking into smaller swaps if &gt; 5% impact</li>
+</ul>
+</li>
+</ol>
+<h3 id="limit-order-strategy"><a class="header" href="#limit-order-strategy">Limit Order Strategy</a></h3>
+<ul>
+<li>
+<p><strong>Expiration</strong>: Set lifetime based on trading frequency</p>
+<ul>
+<li>Short-term: 1-24 hours</li>
+<li>Day trading: 1 hour</li>
+<li>Long-term: 7+ days</li>
+</ul>
+</li>
+<li>
+<p><strong>Order Amounts</strong></p>
+<ul>
+<li>limit_order takes exact amounts</li>
+<li>limit_order_by_price calculates amounts from price</li>
+</ul>
+</li>
+<li>
+<p><strong>Order Book</strong></p>
+<ul>
+<li>Limit orders wait for market to reach your price</li>
+<li>No execution guarantee</li>
+<li>Prices are checked continuously</li>
+</ul>
+</li>
+</ul>
+<h2 id="vault-management-best-practices"><a class="header" href="#vault-management-best-practices">Vault Management Best Practices</a></h2>
+<h3 id="deposit-strategy"><a class="header" href="#deposit-strategy">Deposit Strategy</a></h3>
+<ol>
+<li>
+<p><strong>Find Appropriate Vault</strong></p>
+<ul>
+<li>Check vault APY and TVL</li>
+<li>Verify vault allocation strategy</li>
+<li>Review fee structure</li>
+</ul>
+</li>
+<li>
+<p><strong>Monitor Positions</strong></p>
+<ul>
+<li>Track share value over time</li>
+<li>Monitor APY changes</li>
+<li>Watch fee deductions</li>
+</ul>
+</li>
+<li>
+<p><strong>Withdrawal Timing</strong></p>
+<ul>
+<li>Withdraw when strategy is optimal</li>
+<li>Consider gas costs</li>
+<li>Account for any lock-up periods</li>
+</ul>
+</li>
+</ol>
+<h3 id="risk-management"><a class="header" href="#risk-management">Risk Management</a></h3>
+<ul>
+<li><strong>Concentration Risk</strong>: Diversify across multiple vaults/tokens</li>
+<li><strong>Smart Contract Risk</strong>: Kamino/KLend are audited but not risk-free</li>
+<li><strong>Market Risk</strong>: Underlying tokens can be volatile</li>
+<li><strong>Strategy Risk</strong>: Allocations may not perform as expected</li>
+</ul>
+<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
+<h3 id="simple-swap"><a class="header" href="#simple-swap">Simple Swap</a></h3>
+<pre><code class="language-rust ignore">let receipt = jupiter.quick_swap(&amp;wallet, sell_token, buy_token, 1.0).await?;</code></pre>
+<h3 id="quoted-swap"><a class="header" href="#quoted-swap">Quoted Swap</a></h3>
+<pre><code class="language-rust ignore">let quote = jupiter.get_swap_quote(&amp;wallet, sell, buy, amount).await?;
+// Check quote before proceeding
+let receipt = jupiter.swap(&amp;wallet, quote).await?;</code></pre>
+<h3 id="deposit-to-earn"><a class="header" href="#deposit-to-earn">Deposit to Earn</a></h3>
+<pre><code class="language-rust ignore">let markets = jupiter.get_lendable_tokens().await?;
+// Find market with best APY
+let receipt = jupiter.deposit(&amp;wallet, chosen_market, amount).await?;</code></pre>
+<h3 id="vault-position-tracking"><a class="header" href="#vault-position-tracking">Vault Position Tracking</a></h3>
+<pre><code class="language-rust ignore">let kamino = Kamino::new();
+let positions = kamino.get_user_data(&amp;wallet_pubkey).await?;
+for position in positions {
+    let vault = kamino.get_vault_data_by_id(&amp;position.vault_address).await?;
+    println!("Position in {}: {}", vault.state.name, position.total_shares);
+}</code></pre>
+<h2 id="token-addresses"><a class="header" href="#token-addresses">Token Addresses</a></h2>
+<p>Common Solana token addresses:</p>
+<ul>
+<li><strong>SOL</strong>: So11111111111111111111111111111111111111112</li>
+<li><strong>USDC</strong>: EPjFWdd5Au17FXxeB6VWyeXKSa3LvwV0LCH7f3uyxVEP</li>
+<li><strong>USDT</strong>: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenEst</li>
+<li><strong>ORCA</strong>: orcaEKTdK7LKz57chYcUBK6GDZT5bNvmnucEZDfmWQe</li>
+<li><strong>JUP</strong>: JUPyiwrYJFskidvHPcMj5kLSnsxPJ3Bad7Or7SvxJvP</li>
+<li><strong>COPE</strong>: 8HGyAAB1yoM1ttS7pnK6DGPhcF1JSQhQTiNrgQpTsEq</li>
+<li><strong>RAY</strong>: 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX4r</li>
+</ul>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="swap-failures"><a class="header" href="#swap-failures">Swap Failures</a></h3>
+<ul>
+<li><strong>Insufficient Balance</strong>: Ensure wallet has enough tokens</li>
+<li><strong>Slippage Exceeded</strong>: Quote may have expired, refresh and try again</li>
+<li><strong>Network Congestion</strong>: Retry after waiting or increase priority fee</li>
+<li><strong>Liquidity Issues</strong>: Requested pair may not have sufficient liquidity</li>
+</ul>
+<h3 id="limit-order-issues"><a class="header" href="#limit-order-issues">Limit Order Issues</a></h3>
+<ul>
+<li><strong>Order Not Filling</strong>: Price may not have reached your target</li>
+<li><strong>Expired Order</strong>: Lifetime has passed, create new order</li>
+<li><strong>Invalid Amounts</strong>: Ensure amounts are correctly formatted</li>
+</ul>
+<h3 id="vault-operations"><a class="header" href="#vault-operations">Vault Operations</a></h3>
+<ul>
+<li><strong>Deposit Fails</strong>: Verify token balance and vault capacity</li>
+<li><strong>Withdraw Fails</strong>: Ensure sufficient shares, check vault liquidity</li>
+<li><strong>Account Creation</strong>: First interaction with vault may require account setup</li>
+</ul>
+<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
+<ul>
+<li>Never share your private key</li>
+<li>Use environment variables for sensitive data</li>
+<li>Test on devnet before mainnet</li>
+<li>Monitor transaction fees and balances</li>
+<li>Verify token addresses before trading</li>
+<li>Start with small amounts while testing</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../defi/evm.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../examples/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../defi/evm.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../examples/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>EVM - Bonança Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Bonança Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="evm-defi-interfaces"><a class="header" href="#evm-defi-interfaces">EVM DeFi Interfaces</a></h1>
+<p>Bonanca provides interfaces to interact with popular DeFi protocols on EVM-compatible blockchains. This section covers the main DeFi integrations available.</p>
+<h2 id="aave-v3---lending-protocol"><a class="header" href="#aave-v3---lending-protocol">Aave V3 - Lending Protocol</a></h2>
+<p>Aave V3 is a decentralized lending protocol that allows users to supply assets as collateral, borrow tokens, and earn interest. The AaveV3 interface provides methods for managing lending positions.</p>
+<h3 id="overview"><a class="header" href="#overview">Overview</a></h3>
+<ul>
+<li><strong>Supply</strong>: Deposit tokens to earn interest</li>
+<li><strong>Borrow</strong>: Borrow tokens using your collateral</li>
+<li><strong>Repay</strong>: Pay back borrowed tokens</li>
+<li><strong>Withdraw</strong>: Withdraw supplied tokens</li>
+<li><strong>Account Data</strong>: Query user's collateral, debt, and health factor</li>
+</ul>
+<h3 id="supported-operations"><a class="header" href="#supported-operations">Supported Operations</a></h3>
+<h4 id="rust"><a class="header" href="#rust">Rust</a></h4>
+<pre><code class="language-rust ignore">use bonanca::defi::AaveV3;
+use bonanca::wallets::evm::EvmWallet;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    // Initialize wallet
+    let wallet = EvmWallet::new(
+        "private_key",
+        "rpc_url",
+        137  // Chain ID for Polygon
+    )?;
+
+    // Initialize Aave V3 for Polygon (chain_id=137)
+    let aave = AaveV3::new(137);
+
+    // Example 1: Supply USDC
+    let usdc_address = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+    let receipt = aave.supply(&amp;wallet, usdc_address, 100.0).await?;
+    println!("Supply tx: {:?}", receipt.transaction_hash);
+
+    // Example 2: Check user account data
+    let user_data = aave.get_user_data(
+        &amp;wallet.pubkey.to_string(),
+        &amp;wallet.client
+    ).await?;
+    println!("Health Factor: {}", user_data.health_factor);
+    println!("Total Collateral: {}", user_data.total_collateral);
+    println!("Total Debt: {}", user_data.total_debt);
+    println!("Available Borrows: {}", user_data.available_borrows);
+
+    // Example 3: Borrow WETH
+    let weth_address = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726";
+    let borrow_receipt = aave.borrow(&amp;wallet, weth_address, 0.5).await?;
+    println!("Borrow tx: {:?}", borrow_receipt.transaction_hash);
+
+    // Example 4: Repay borrowed tokens
+    let repay_receipt = aave.repay(&amp;wallet, weth_address, 0.3).await?;
+    println!("Repay tx: {:?}", repay_receipt.transaction_hash);
+
+    // Example 5: Withdraw collateral
+    let withdraw_receipt = aave.withdraw(&amp;wallet, usdc_address, 50.0).await?;
+    println!("Withdraw tx: {:?}", withdraw_receipt.transaction_hash);
+
+    Ok(())
+}</code></pre>
+<h4 id="python"><a class="header" href="#python">Python</a></h4>
+<pre><code class="language-python">import bonanca
+
+# Initialize wallet
+wallet = bonanca.wallets.EvmWallet(
+    "private_key",
+    "https://polygon-rpc.com",
+    137  # Chain ID for Polygon
+)
+
+# Initialize Aave V3
+aave = bonanca.defi.AaveV3(137)
+
+# Token addresses on Polygon
+usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+weth = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726"
+
+# Supply tokens
+supply_receipt = aave.supply(wallet, usdc, 100.0)
+print(f"Supply tx: {supply_receipt['transaction_hash']}")
+
+# Check account data
+account_data = aave.get_user_data(wallet.pubkey, wallet)
+print(f"Health Factor: {account_data['Health Factor']}")
+print(f"Total Collateral: {account_data['Total Collateral']}")
+print(f"Total Debt: {account_data['Total Debt']}")
+
+# Borrow tokens
+borrow_receipt = aave.borrow(wallet, weth, 0.5)
+print(f"Borrow tx: {borrow_receipt['transaction_hash']}")
+
+# Repay debt
+repay_receipt = aave.repay(wallet, weth, 0.3)
+print(f"Repay tx: {repay_receipt['transaction_hash']}")
+
+# Withdraw collateral
+withdraw_receipt = aave.withdraw(wallet, usdc, 50.0)
+print(f"Withdraw tx: {withdraw_receipt['transaction_hash']}")
+</code></pre>
+<h3 id="chain-ids"><a class="header" href="#chain-ids">Chain IDs</a></h3>
+<p>Common Aave V3 deployments:</p>
+<ul>
+<li>Ethereum: 1</li>
+<li>Polygon: 137</li>
+<li>Arbitrum: 42161</li>
+<li>Optimism: 10</li>
+<li>Base: 8453</li>
+<li>Avalanche: 43114</li>
+</ul>
+<h3 id="important-notes"><a class="header" href="#important-notes">Important Notes</a></h3>
+<ul>
+<li>Ensure sufficient collateral before borrowing</li>
+<li>Monitor your health factor to avoid liquidation</li>
+<li>The health factor formula considers collateral and debt ratios</li>
+<li>Interest rates vary based on market utilization</li>
+<li>Requires token approval before first interaction with Aave</li>
+</ul>
+<hr />
+<h2 id="cow-coincidence-of-wants---dex-aggregator"><a class="header" href="#cow-coincidence-of-wants---dex-aggregator">CoW (Coincidence of Wants) - DEX Aggregator</a></h2>
+<p>CoW is an order-based DEX aggregator that uses batch auctions to execute trades. It supports both market orders and limit orders.</p>
+<h3 id="overview-1"><a class="header" href="#overview-1">Overview</a></h3>
+<ul>
+<li><strong>Market Orders</strong>: Execute immediately at best available price</li>
+<li><strong>Limit Orders</strong>: Execute only when price reaches your target</li>
+<li><strong>Order Queries</strong>: Check order status and history</li>
+<li><strong>EIP-712 Signing</strong>: Secure order signing</li>
+</ul>
+<h3 id="supported-operations-1"><a class="header" href="#supported-operations-1">Supported Operations</a></h3>
+<h4 id="rust-1"><a class="header" href="#rust-1">Rust</a></h4>
+<pre><code class="language-rust ignore">use bonanca::defi::CoW;
+use bonanca::wallets::evm::EvmWallet;
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    let wallet = EvmWallet::new(
+        "private_key",
+        "https://polygon-rpc.com",
+        137
+    )?;
+
+    // Initialize CoW for Polygon
+    let cow = CoW::new("polygon")?;
+
+    let weth = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726";
+    let usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+
+    // Example 1: Execute market order (WETH → USDC)
+    let market_quote = cow.get_market_quote(
+        &amp;wallet,
+        weth,
+        usdc,
+        0.1  // 0.1 WETH
+    ).await?;
+
+    let order_uid = cow.post_market_order(
+        &amp;wallet,
+        market_quote
+    ).await?;
+    println!("Market order placed: {}", order_uid);
+
+    // Example 2: Check order status
+    let order_info = cow.get_order_info(&amp;order_uid).await?;
+    println!("Status: {}", order_info.status);
+    println!("Executed Buy Amount: {}", order_info.executed_buy_amount);
+    println!("Executed Sell Amount: {}", order_info.executed_sell_amount);
+
+    // Example 3: Get user order history
+    let user_orders = cow.get_user_orders(
+        &amp;wallet.pubkey.to_string(),
+        Some(10)  // Last 10 orders
+    ).await?;
+    println!("Recent orders: {} found", user_orders.len());
+
+    // Example 4: Place limit order
+    // Valid for 1 hour (60 minutes + 0 seconds)
+    let limit_duration = Duration::new(3600, 0);
+    let limit_uid = cow.limit_order(
+        &amp;wallet,
+        weth,      // Selling WETH
+        usdc,      // Buying USDC
+        0.1,       // Sell amount
+        200.0,     // Buy amount (minimum)
+        limit_duration
+    ).await?;
+    println!("Limit order placed: {}", limit_uid);
+
+    // Example 5: Place limit order by price
+    let price_limit_uid = cow.limit_order_by_price(
+        &amp;wallet,
+        weth,
+        usdc,
+        0.1,       // Amount of WETH to sell
+        2000.0,    // Minimum price (USDC per WETH)
+        limit_duration
+    ).await?;
+    println!("Price limit order placed: {}", price_limit_uid);
+
+    Ok(())
+}</code></pre>
+<h4 id="python-1"><a class="header" href="#python-1">Python</a></h4>
+<pre><code class="language-python">import bonanca
+
+wallet = bonanca.wallets.EvmWallet(
+    "private_key",
+    "https://polygon-rpc.com",
+    137
+)
+
+# Initialize CoW for Polygon
+cow = bonanca.defi.CoW("polygon")
+
+weth = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726"
+usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+
+# Market order: Sell 0.1 WETH for USDC
+order_uid = cow.market_order(wallet, weth, usdc, 0.1)
+print(f"Order UID: {order_uid}")
+
+# Get order details
+order_info = cow.get_order_info(order_uid)
+print(f"Status: {order_info['status']}")
+print(f"Buy Amount: {order_info['executed_buy_amount']}")
+print(f"Sell Amount: {order_info['executed_sell_amount']}")
+
+# Get all orders for a user
+user_orders = cow.get_user_orders(wallet.pubkey, 10)
+print(f"Found {len(user_orders)} recent orders")
+
+# Limit order: Sell 0.1 WETH for minimum 200 USDC, valid for 1 hour
+limit_uid = cow.limit_order(
+    wallet,
+    weth,               # Sell token
+    usdc,               # Buy token
+    0.1,                # Sell amount
+    200.0,              # Minimum buy amount
+    (1, 0)              # Duration: 1 hour, 0 minutes
+)
+print(f"Limit order: {limit_uid}")
+
+# Limit order by price
+price_uid = cow.limit_order_by_price(
+    wallet,
+    weth,
+    usdc,
+    0.1,                # Amount to sell
+    2000.0,             # Minimum price
+    (1, 0)              # Duration
+)
+print(f"Price limit order: {price_uid}")
+</code></pre>
+<h3 id="supported-chains"><a class="header" href="#supported-chains">Supported Chains</a></h3>
+<ul>
+<li>Ethereum (mainnet)</li>
+<li>Polygon</li>
+<li>Arbitrum</li>
+<li>Optimism</li>
+<li>Base</li>
+<li>Gnosis Chain (xDai)</li>
+<li>Linea</li>
+<li>Avalanche</li>
+<li>BNB Chain</li>
+</ul>
+<h3 id="important-notes-1"><a class="header" href="#important-notes-1">Important Notes</a></h3>
+<ul>
+<li>CoW Protocol uses batch auctions for better pricing</li>
+<li>Limit orders expire after specified duration</li>
+<li>Orders must be signed with EIP-712</li>
+<li>Focus on MEV protection compared to traditional DEXs</li>
+<li>No gas required for failed orders</li>
+</ul>
+<hr />
+<h2 id="morpho---lending-optimization"><a class="header" href="#morpho---lending-optimization">Morpho - Lending Optimization</a></h2>
+<p>Morpho optimizes lending by matching users peer-to-peer while falling back to lending pools. The MorphoVaultV1 interface provides access to Morpho vaults.</p>
+<h3 id="overview-2"><a class="header" href="#overview-2">Overview</a></h3>
+<ul>
+<li><strong>Supply</strong>: Deposit into optimized vaults</li>
+<li><strong>Withdraw</strong>: Withdraw from vaults</li>
+<li><strong>Vault Data</strong>: Query available vaults for specific tokens</li>
+<li><strong>User Positions</strong>: Track user's vault positions</li>
+</ul>
+<h3 id="supported-operations-2"><a class="header" href="#supported-operations-2">Supported Operations</a></h3>
+<h4 id="rust-2"><a class="header" href="#rust-2">Rust</a></h4>
+<pre><code class="language-rust ignore">use bonanca::defi::MorphoVaultV1;
+use bonanca::wallets::evm::EvmWallet;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    let wallet = EvmWallet::new(
+        "private_key",
+        "https://polygon-rpc.com",
+        137
+    )?;
+
+    let morpho = MorphoVaultV1::new();
+
+    // Example 1: Get user's vault positions
+    let user_positions = morpho.get_user_data(
+        &amp;wallet.pubkey.to_string(),
+        137  // Chain ID
+    ).await?;
+    println!("User positions: {:?}", user_positions);
+
+    // Example 2: Find USDC vaults
+    let usdc_vaults = morpho.get_token_vaults(
+        "USDC",
+        137
+    ).await?;
+    println!("Available USDC vaults: {}", usdc_vaults.len());
+    for vault in &amp;usdc_vaults {
+        println!("Vault: {:?}", vault);
+    }
+
+    // Example 3: Supply to a vault
+    // First, get a vault address from get_token_vaults()
+    let vault_address = "0x..."; // Example vault address
+    let deposit_receipt = morpho.supply(
+        &amp;wallet,
+        vault_address,
+        100.0  // Amount in decimal format
+    ).await?;
+    println!("Deposit tx: {:?}", deposit_receipt.transaction_hash);
+
+    // Example 4: Withdraw from vault
+    let withdraw_receipt = morpho.withdraw(
+        &amp;wallet,
+        vault_address,
+        50.0
+    ).await?;
+    println!("Withdraw tx: {:?}", withdraw_receipt.transaction_hash);
+
+    Ok(())
+}</code></pre>
+<h4 id="python-2"><a class="header" href="#python-2">Python</a></h4>
+<pre><code class="language-python">import bonanca
+
+wallet = bonanca.wallets.EvmWallet(
+    "private_key",
+    "https://polygon-rpc.com",
+    137
+)
+
+morpho = bonanca.defi.MorphoVaultV1()
+
+# Get user's vault positions
+user_data = morpho.get_user_data(wallet.pubkey, 137, wallet)
+print(f"User positions: {user_data}")
+
+# Find USDC vaults
+usdc_vaults = morpho.get_token_vaults("USDC", 137, wallet)
+print(f"Available vaults: {usdc_vaults}")
+
+# Supply to a vault (replace with actual vault address)
+vault_address = "0x..."
+deposit_receipt = morpho.supply(wallet, vault_address, 100.0)
+print(f"Deposit tx: {deposit_receipt['transaction_hash']}")
+
+# Withdraw from vault
+withdraw_receipt = morpho.withdraw(wallet, vault_address, 50.0)
+print(f"Withdraw tx: {withdraw_receipt['transaction_hash']}")
+</code></pre>
+<h3 id="morpho-vaults"><a class="header" href="#morpho-vaults">Morpho Vaults</a></h3>
+<p>Morpho offers specialized vaults for different strategies:</p>
+<ul>
+<li><strong>USDC Vaults</strong>: Stable yield on USDC</li>
+<li><strong>WETH Vaults</strong>: Ethereum staking</li>
+<li><strong>Strategy Vaults</strong>: Custom yield strategies</li>
+<li><strong>Metamorpho Vaults</strong>: User-created vault bundles</li>
+</ul>
+<h3 id="important-notes-2"><a class="header" href="#important-notes-2">Important Notes</a></h3>
+<ul>
+<li>Vault addresses vary by chain</li>
+<li>Deposits are immediately invested</li>
+<li>Withdrawals may take time depending on vault liquidity</li>
+<li>Each vault has different risk/reward profiles</li>
+<li>Query vault details for APY and TVL information</li>
+</ul>
+<hr />
+<h2 id="0x-zerox---dex-aggregator"><a class="header" href="#0x-zerox---dex-aggregator">0x (ZeroX) - DEX Aggregator</a></h2>
+<p>0x is a decentralized exchange aggregator that sources liquidity from multiple DEXs to find the best prices for token swaps.</p>
+<h3 id="overview-3"><a class="header" href="#overview-3">Overview</a></h3>
+<ul>
+<li><strong>Swap Quotes</strong>: Get best available swap prices</li>
+<li><strong>Quick Swaps</strong>: Execute swaps in one transaction</li>
+<li><strong>Issue Checking</strong>: Verify swap feasibility</li>
+<li><strong>Multi-source Routing</strong>: Optimal liquidity from multiple DEXs</li>
+</ul>
+<h3 id="supported-operations-3"><a class="header" href="#supported-operations-3">Supported Operations</a></h3>
+<h4 id="rust-3"><a class="header" href="#rust-3">Rust</a></h4>
+<pre><code class="language-rust ignore">use bonanca::defi::ZeroX;
+use bonanca::wallets::evm::EvmWallet;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    let wallet = EvmWallet::new(
+        "private_key",
+        "https://polygon-rpc.com",
+        137
+    )?;
+
+    // Initialize 0x with API key (get from 0x.org)
+    let zerox = ZeroX::new("your_api_key".to_string(), 137);
+
+    let weth = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726";
+    let usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+
+    // Example 1: Check for swap issues
+    let issues = zerox.check_swap(
+        &amp;wallet,
+        weth,
+        usdc,
+        0.1  // 0.1 WETH
+    ).await?;
+
+    if issues.allowance.is_some() {
+        println!("Token approval required");
+    }
+    if issues.balance.is_some() {
+        println!("Insufficient balance");
+    }
+
+    // Example 2: Get swap quote
+    let quote = zerox.get_swap_quote(
+        &amp;wallet,
+        weth,
+        usdc,
+        0.1
+    ).await?;
+
+    println!("Buy Amount: {}", quote.buy_amount);
+    println!("Min Buy Amount: {}", quote.min_buy_amount);
+    println!("Liquidity Available: {}", quote.liquidity_available);
+    println!("Allowance Target: {}", quote.allowance_target);
+
+    // Example 3: Execute swap with quote
+    let swap_receipt = zerox.swap(
+        &amp;wallet,
+        quote
+    ).await?;
+    println!("Swap tx: {:?}", swap_receipt.transaction_hash);
+
+    // Example 4: Quick swap (get quote and swap in one call)
+    // This is more convenient for simpler scenarios
+    let receipt = zerox.quick_swap(
+        &amp;wallet,
+        weth,
+        usdc,
+        0.1
+    ).await?;
+    println!("Quick swap tx: {:?}", receipt.transaction_hash);
+
+    Ok(())
+}</code></pre>
+<h4 id="python-3"><a class="header" href="#python-3">Python</a></h4>
+<pre><code class="language-python">import bonanca
+
+wallet = bonanca.wallets.EvmWallet(
+    "private_key",
+    "https://polygon-rpc.com",
+    137
+)
+
+# Initialize 0x (replace with actual API key from 0x.org)
+zerox = bonanca.defi.ZeroX("api_key", 137)
+
+weth = "0x7ceB23fD6bC0adD59E27f9EA9d0231e0f01cc726"
+usdc = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+
+# Check for swap issues (allowance, balance)
+issues = zerox.check_swap(wallet, weth, usdc, 0.1)
+print(f"Issues: {issues}")
+
+# Get detailed quote
+quote = zerox.get_swap_quote(wallet, weth, usdc, 0.1)
+print(f"Buy Amount: {quote.buy_amount}")
+print(f"Min Buy Amount: {quote.min_buy_amount}")
+print(f"Liquidity Available: {quote.liquidity_available}")
+
+# Execute swap with quote
+swap_receipt = zerox.swap(wallet, quote)
+print(f"Swap tx: {swap_receipt['transaction_hash']}")
+
+# Quick swap (recommended for simple swaps)
+quick_receipt = zerox.quick_swap(wallet, weth, usdc, 0.1)
+print(f"Quick swap tx: {quick_receipt['transaction_hash']}")
+</code></pre>
+<h3 id="supported-chains-1"><a class="header" href="#supported-chains-1">Supported Chains</a></h3>
+<ul>
+<li>Ethereum</li>
+<li>Polygon</li>
+<li>Arbitrum</li>
+<li>Optimism</li>
+<li>Base</li>
+<li>Avalanche</li>
+<li>BNB Chain</li>
+<li>Linea</li>
+<li>Scroll</li>
+</ul>
+<h3 id="quote-information"><a class="header" href="#quote-information">Quote Information</a></h3>
+<p>The swap quote returns:</p>
+<ul>
+<li><strong>buy_amount</strong>: Exact amount of output tokens</li>
+<li><strong>min_buy_amount</strong>: Minimum considering slippage</li>
+<li><strong>sell_amount</strong>: Amount of input tokens</li>
+<li><strong>allowance_target</strong>: Address to approve for token spending</li>
+<li><strong>liquidity_available</strong>: Whether sufficient liquidity exists</li>
+</ul>
+<h3 id="important-notes-3"><a class="header" href="#important-notes-3">Important Notes</a></h3>
+<ul>
+<li>Requires 0x API key (free tier available)</li>
+<li>Always check issues before executing trades</li>
+<li>Slippage is automatically handled</li>
+<li>Gas estimates included in quotes</li>
+<li>Quote validity is typically 1 minute</li>
+<li>Quick swaps are simpler but less flexible than manual swap flow</li>
+</ul>
+<hr />
+<h2 id="general-best-practices"><a class="header" href="#general-best-practices">General Best Practices</a></h2>
+<h3 id="security"><a class="header" href="#security">Security</a></h3>
+<ol>
+<li>
+<p><strong>Private Key Management</strong></p>
+<ul>
+<li>Never hardcode private keys</li>
+<li>Use environment variables or secure vaults</li>
+<li>Rotate keys regularly</li>
+</ul>
+</li>
+<li>
+<p><strong>Token Approval</strong></p>
+<ul>
+<li>Check allowances before transactions</li>
+<li>Use minimal necessary amounts</li>
+<li>Revoke approvals when done</li>
+</ul>
+</li>
+<li>
+<p><strong>Position Management</strong></p>
+<ul>
+<li>Monitor health factors in lending protocols</li>
+<li>Set alerts for liquidation risk</li>
+<li>Rebalance positions regularly</li>
+</ul>
+</li>
+</ol>
+<h3 id="gas-optimization"><a class="header" href="#gas-optimization">Gas Optimization</a></h3>
+<ul>
+<li>Batch multiple operations when possible</li>
+<li>Use limit orders for time-insensitive trades</li>
+<li>Monitor gas prices before executing</li>
+<li>Consider network congestion</li>
+</ul>
+<h3 id="testing"><a class="header" href="#testing">Testing</a></h3>
+<ul>
+<li>Test on testnet before mainnet</li>
+<li>Start with small amounts</li>
+<li>Verify transactions before committing funds</li>
+<li>Use price impact slippage limits</li>
+</ul>
+<h3 id="transaction-confirmation"><a class="header" href="#transaction-confirmation">Transaction Confirmation</a></h3>
+<p>All operations return transaction receipts containing:</p>
+<ul>
+<li>Transaction hash</li>
+<li>Block number</li>
+<li>Gas used</li>
+<li>Transaction status</li>
+</ul>
+<p>Always verify successful execution before relying on results.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../defi/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../defi/solana.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../defi/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../defi/solana.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

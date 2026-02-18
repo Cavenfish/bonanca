@@ -5,7 +5,7 @@ I welcome contributions from the community to help improve Bonança! Whether it'
 ## Getting Started
 
 1. **Fork the Repository**: Start by forking the Bonança repository on GitHub to create your own copy of the project.
-2. **Create a Branch**: Create a new branch for your feature or bug fix. Use a descriptive name for your branch, such as `feature/add-new-bot` or `bugfix/fix-index-calculation`.
+2. **Create a Branch**: Create a new branch for your feature or bug fix. Use a descriptive name for your branch, such as `add-new-bot` or `fix-index-calculation`.
 3. **Make Changes**: Make your changes in the new branch. Ensure that your code follows the existing coding style and conventions used in the project.
 4. **Test Your Changes**: Write tests for your changes to ensure they work as expected and do not introduce new issues. Run existing tests to verify that everything is still functioning correctly.
 5. **Commit Your Changes**: Commit your changes with clear and concise commit messages that describe the purpose of the changes.

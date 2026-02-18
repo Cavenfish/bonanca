@@ -1,6 +1,6 @@
 # Bonança
 
-Bonança :brazil: (pronounced boh-nahn-sah) is an open-source library for
+Bonança (pronounced boh-nahn-sah) is an open-source library for
 creating crypto defi bots on various blockchains. It provides functionalities
 for creating HD wallets, private key encryption, executing trades, lending
 and borrow crypto, and more.
@@ -12,6 +12,13 @@ Bonança is fully free and completely open source. You can find the source code 
 - Create and manage wallets using secure `KeyVaults`.
 - Connect to multiple blockchains (e.g., Solana, EVM-compatible chains).
 - Integrate with various exchanges and oracles for trading and price data.
+- Python wrapper
+
+## Disclaimer
+
+This documentation has been largely written by AI, so it is likely there are
+some inaccuracies in the code examples. I occasionally look over the docs to
+fix them, but some might still be out there.
 
 ## Getting Started
 

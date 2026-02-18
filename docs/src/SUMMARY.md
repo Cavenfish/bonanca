@@ -2,20 +2,19 @@
 
 - [Introduction](./introduction.md)
 - [Installation](./install.md)
-- [Wallets]
+- [Wallets](./wallets/index.md)
   - [Manage KeyVault](./wallets/create.md)
   - [View vs Load](./wallets/view_vs_load.md)
   - [EVM Wallet](./wallets/evm.md)
   - [Solana Wallet](./wallets/solana.md)
-- [DeFi]
+- [DeFi](./defi/index.md)
   - [EVM](./defi/evm.md)
   - [Solana](./defi/solana.md)
-- [Examples]
+- [Examples](./examples/index.md)
   - [Index Fund](./examples/index_fund.md)
   - [Grid Bot](./examples/grid_bot.md)
   - [Scalper](./examples/scalper.md)
-- [Technical]
-  - [KeyVault](./keyvault.md)
+- [Technical](./keyvault.md)
 - [Contributing](./contributing.md)
 - [Support](./support.md)
 - [Security](./security.md)

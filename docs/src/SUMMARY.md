@@ -8,8 +8,8 @@
   - [EVM Wallet](./wallets/evm.md)
   - [Solana Wallet](./wallets/solana.md)
 - [DeFi]
-  - [EVM]
-  - [Solana]
+  - [EVM](./defi/evm.md)
+  - [Solana](./defi/solana.md)
 - [Examples]
   - [Index Fund](./examples/index_fund.md)
   - [Grid Bot](./examples/grid_bot.md)

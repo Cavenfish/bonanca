@@ -1,23 +1,15 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use alloy::signers::local::PrivateKeySigner;
-use alloy_primitives::FixedBytes;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
+use bip32::XPrv;
 use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
-use hdwallet::{ExtendedPrivKey, KeyIndex};
-use solana_sdk::signer::{Signer, keypair::Keypair};
 use zeroize::ZeroizeOnDrop;
 
 use crate::keyvault::{CipherParams, KdfParams, KeyVault, Vault};
 use crate::utils::{encrypt_seed, hash_password};
-
-pub enum ChildKey {
-    Sol(Keypair),
-    Evm(PrivateKeySigner),
-}
 
 #[derive(ZeroizeOnDrop)]
 pub struct HDkeys {
@@ -81,54 +73,30 @@ impl HDkeys {
         Ok(key_vault)
     }
 
-    pub fn get_child_key(&self, chain: &str, child: u32) -> Result<ChildKey> {
-        match chain {
-            "Solana" => {
-                let master_key = ExtendedSigningKey::from_seed(&self.seed)?;
+    pub fn derive_ed25519_child_prvkey(&self, slip: u64, child: u32) -> Result<[u8; 32]> {
+        let master_key = ExtendedSigningKey::from_seed(&self.seed)?;
 
-                let derivation_path: DerivationPath =
-                    format!("m/44'/501'/{}'/0'/0'", child).parse()?;
+        let derivation_path: DerivationPath = format!("m/44'/{slip}'/{child}'/0'/0'").parse()?;
 
-                let child_key = master_key.derive(&derivation_path)?;
-                let secret_key = child_key.signing_key;
-                let keypair = Keypair::new_from_array(secret_key.to_bytes());
+        let child_key = master_key.derive(&derivation_path)?;
+        let secret_key = child_key.signing_key;
 
-                Ok(ChildKey::Sol(keypair))
-            }
-            "EVM" => {
-                let master_key =
-                    ExtendedPrivKey::with_seed(&self.seed).expect("Failed to generate master key");
-
-                let key_index = KeyIndex::Normal(child);
-                let child_key = master_key.derive_private_key(key_index)?;
-                let key_bytes = FixedBytes::new(child_key.private_key.secret_bytes());
-                let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
-
-                Ok(ChildKey::Evm(signer))
-            }
-            _ => Err(anyhow::anyhow!("Chain not supported")),
-        }
+        Ok(secret_key.to_bytes())
     }
 
-    pub fn get_child_pubkey(&self, chain: &str, child: u32) -> Result<String> {
-        let child = self.get_child_key(chain, child)?;
+    pub fn derive_secp256k1_child_prvkey(&self, slip: u64, child: u32) -> Result<[u8; 32]> {
+        let path = format!("m/44'/{slip}'/{child}'/0'/0'");
+        let child_key = XPrv::derive_from_path(&self.seed, &path.parse()?)?;
 
-        let addy = match child {
-            ChildKey::Sol(kp) => kp.pubkey().to_string(),
-            ChildKey::Evm(sig) => sig.address().to_string(),
-        };
-
-        Ok(addy)
+        Ok(child_key.to_bytes())
     }
 
-    fn create_chain_keys(&self) -> Result<HashMap<String, Vec<String>>> {
-        let sol_addy = self.get_child_pubkey("Solana", 0)?;
-        let evm_addy = self.get_child_pubkey("EVM", 0)?;
+    fn create_chain_keys(&self) -> Result<HashMap<String, HashMap<u32, String>>> {
+        let mut chain_keys: HashMap<String, HashMap<u32, String>> = HashMap::new();
+        let empty: HashMap<u32, String> = HashMap::new();
 
-        let mut chain_keys: HashMap<String, Vec<String>> = HashMap::new();
-
-        chain_keys.insert("Solana".to_string(), vec![sol_addy]);
-        chain_keys.insert("EVM".to_string(), vec![evm_addy]);
+        chain_keys.insert("Solana".to_string(), empty.clone());
+        chain_keys.insert("EVM".to_string(), empty);
 
         Ok(chain_keys)
     }

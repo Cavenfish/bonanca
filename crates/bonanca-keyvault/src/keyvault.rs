@@ -12,13 +12,13 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use zeroize::Zeroize;
 
-use crate::hd_keys::{ChildKey, HDkeys};
+use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
     pub vault: Vault,
-    pub chain_keys: HashMap<String, Vec<String>>,
+    pub chain_keys: HashMap<String, HashMap<u32, String>>,
 }
 
 impl KeyVault {
@@ -117,7 +117,13 @@ impl KeyVault {
         serde_json::to_writer(writer, &self).unwrap();
     }
 
-    fn decrypt_vault(&self) -> Result<HDkeys> {
+    pub fn add_pubkey(&mut self, chain: &str, child: u32, pubkey: &str) {
+        let chain_keys = self.chain_keys.get_mut(chain).unwrap();
+
+        chain_keys.insert(child, pubkey.to_string()).unwrap();
+    }
+
+    pub fn decrypt_vault(&self) -> Result<HDkeys> {
         let mut password = prompt_password("Keyvault Password: ")?;
 
         if !verify_password(&self.vault.mac, &password) {
@@ -135,41 +141,6 @@ impl KeyVault {
         password.zeroize();
 
         Ok(HDkeys { seed })
-    }
-
-    pub fn get_child_key(&self, chain: &str, child: u32) -> Result<ChildKey> {
-        let hd_key = self.decrypt_vault()?;
-
-        hd_key.get_child_key(chain, child)
-    }
-
-    pub fn make_new_child(&mut self, chain: &str) -> Result<()> {
-        let hd_key = self.decrypt_vault()?;
-
-        let keys = self.chain_keys.get_mut(chain).unwrap();
-
-        let child = keys.len() as u32;
-
-        let pubkey = hd_key.get_child_pubkey(chain, child)?;
-
-        keys.push(pubkey);
-
-        Ok(())
-    }
-
-    pub fn make_new_children(&mut self, chain: &str, num_kids: u32) -> Result<()> {
-        let hd_key = self.decrypt_vault()?;
-
-        let keys = self.chain_keys.get_mut(chain).unwrap();
-
-        let child_zero = keys.len() as u32;
-
-        for i in 0..num_kids {
-            let pubkey = hd_key.get_child_pubkey(chain, child_zero + i)?;
-            keys.push(pubkey);
-        }
-
-        Ok(())
     }
 }
 

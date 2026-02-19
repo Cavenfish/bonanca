@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
+use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
 use solana_client::{
     nonblocking::rpc_client::RpcClient,
     rpc_config::{CommitmentConfig, RpcTransactionConfig, UiTransactionEncoding},
@@ -18,8 +18,18 @@ use solana_sdk::{
 use solana_system_interface::instruction::transfer;
 use std::{path::Path, str::FromStr};
 
+use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletView};
+
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+
+impl HdWallets<Keypair> for HDkeys {
+    fn get_child_keypair(&self, child: u32) -> Result<Keypair> {
+        let secret = self.derive_ed25519_child_prvkey(501, child)?;
+        let keypair = Keypair::new_from_array(secret);
+        Ok(keypair)
+    }
+}
 
 pub struct SolWallet {
     pub key_pair: Option<Keypair>,
@@ -27,38 +37,56 @@ pub struct SolWallet {
     pub pubkey: Pubkey,
 }
 
-impl SolWallet {
-    pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
+impl WalletView<&str, &str> for SolWallet {
+    fn view(pubkey: &str, rpc: &str) -> Self {
+        Self {
+            key_pair: None,
+            client: RpcClient::new(rpc.to_string()),
+            pubkey: Pubkey::from_str(pubkey).expect("Could not parse pubkey"),
+        }
+    }
+}
+
+impl HdWalletView<&Path, &str> for SolWallet {
+    fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
         let key_vault = KeyVault::load(keyvault);
-        let child_key = key_vault.get_child_key("Solana", child).unwrap();
+        let sol_keys = key_vault.chain_keys.get("Solana").unwrap();
+        let pubkey = sol_keys.get(&child).expect("Child does not exist");
+        Self {
+            key_pair: None,
+            client: RpcClient::new(rpc.to_string()),
+            pubkey: Pubkey::from_str(&pubkey).expect("Could not parse pubkey"),
+        }
+    }
+}
 
-        let kp = match child_key {
-            ChildKey::Sol(kp) => kp,
-            _ => panic!(),
-        };
-
+impl HdWalletLoad<&Path, &str> for SolWallet {
+    fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let mut key_vault = KeyVault::load(keyvault);
+        let chain_keys = key_vault.chain_keys.get("Solana").unwrap();
+        let hd_keys = key_vault.decrypt_vault().unwrap();
+        let kp: Keypair = hd_keys.get_child_keypair(child).unwrap();
         let client = RpcClient::new(rpc.to_string());
         let pubkey = kp.pubkey();
+
+        // Add pubkey to keyvault if not already in it
+        match chain_keys.get(&child) {
+            Some(_) => {}
+            None => {
+                key_vault.add_pubkey("Solana", child, &pubkey.to_string());
+                key_vault.write(keyvault);
+            }
+        }
+
         Self {
             key_pair: Some(kp),
             client,
             pubkey,
         }
     }
+}
 
-    pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let key_vault = KeyVault::load(keyvault);
-        let sol_keys = key_vault.chain_keys.get("Solana").unwrap();
-        let pubkey = sol_keys.get(child as usize).unwrap();
-        let client = RpcClient::new(rpc.to_string());
-        let pubkey = Pubkey::from_str_const(pubkey);
-        Self {
-            key_pair: None,
-            client,
-            pubkey,
-        }
-    }
-
+impl SolWallet {
     async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
         let kp = self.key_pair.as_ref().unwrap();
 

@@ -120,7 +120,7 @@ impl KeyVault {
     pub fn add_pubkey(&mut self, chain: &str, child: u32, pubkey: &str) {
         let chain_keys = self.chain_keys.get_mut(chain).unwrap();
 
-        chain_keys.insert(child, pubkey.to_string()).unwrap();
+        chain_keys.insert(child, pubkey.to_string());
     }
 
     pub fn decrypt_vault(&self) -> Result<HDkeys> {

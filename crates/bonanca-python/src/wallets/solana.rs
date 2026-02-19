@@ -1,4 +1,4 @@
-use bonanca_wallets::wallets::solana::SolWallet;
+use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::solana::SolWallet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::path::PathBuf;

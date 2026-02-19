@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bonanca::defi::{Jupiter, ZeroX};
-use bonanca::wallets::{EvmWallet, SolWallet};
+use bonanca::wallets::{EvmWallet, HdWalletLoad, SolWallet};
 
 use crate::args::{BalArgs, RebalArgs};
 use crate::index_fund::{IndexFund, RebalTrade};

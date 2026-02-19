@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Ok, Result};
 use bonanca::{
     oracle::{CoinMarketCap, DefiLlama},
-    wallets::{EvmWallet, SolWallet},
+    wallets::{EvmWallet, HdWalletView, SolWallet},
 };
 use serde::{Deserialize, Serialize};
 

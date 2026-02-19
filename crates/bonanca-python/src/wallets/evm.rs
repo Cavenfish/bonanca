@@ -1,5 +1,5 @@
 use alloy::rpc::types::TransactionReceipt;
-use bonanca_wallets::wallets::evm::EvmWallet;
+use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::evm::EvmWallet};
 use pyo3::prelude::*;
 use pyo3::{exceptions::PyRuntimeError, types::PyDict};
 use std::path::PathBuf;

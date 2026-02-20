@@ -18,7 +18,7 @@ use crate::utils::{decrypt_seed, verify_password};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
     pub vault: Vault,
-    pub chain_keys: HashMap<String, HashMap<u32, String>>,
+    pub chain_keys: HashMap<String, String>,
 }
 
 impl KeyVault {
@@ -117,10 +117,8 @@ impl KeyVault {
         serde_json::to_writer(writer, &self).unwrap();
     }
 
-    pub fn add_pubkey(&mut self, chain: &str, child: u32, pubkey: &str) {
-        let chain_keys = self.chain_keys.get_mut(chain).unwrap();
-
-        chain_keys.insert(child, pubkey.to_string());
+    pub fn add_pubkey(&mut self, path: &str, pubkey: &str) {
+        self.chain_keys.insert(path.to_string(), pubkey.to_string());
     }
 
     pub fn decrypt_vault(&self) -> Result<HDkeys> {

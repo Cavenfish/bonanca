@@ -66,7 +66,7 @@ impl HDkeys {
             salt: salt.as_str().to_string(),
         };
 
-        let chain_keys = self.create_chain_keys()?;
+        let chain_keys: HashMap<String, String> = HashMap::new();
 
         let key_vault = KeyVault { vault, chain_keys };
 
@@ -88,15 +88,5 @@ impl HDkeys {
         let child_key = XPrv::derive_from_path(&self.seed, &path.parse()?)?;
 
         Ok(child_key.to_bytes())
-    }
-
-    fn create_chain_keys(&self) -> Result<HashMap<String, HashMap<u32, String>>> {
-        let mut chain_keys: HashMap<String, HashMap<u32, String>> = HashMap::new();
-        let empty: HashMap<u32, String> = HashMap::new();
-
-        chain_keys.insert("Solana".to_string(), empty.clone());
-        chain_keys.insert("EVM".to_string(), empty);
-
-        Ok(chain_keys)
     }
 }

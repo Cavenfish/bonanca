@@ -9,22 +9,22 @@ pub enum TransactionData {
     Sol(VersionedTransaction),
 }
 
-pub trait WalletView<T, U> {
-    fn view(value: T, rpc: U) -> Self;
+pub trait WalletView<T> {
+    fn view(value: T, rpc: &str) -> Self;
 }
 
-pub trait WalletLoad<T, U> {
-    fn load(value: T, rpc: U) -> Self;
+pub trait WalletLoad<T> {
+    fn load(value: T, rpc: &str) -> Self;
 }
 
 pub trait HdWalletView<T, U> {
-    fn view(value: T, rpc: U, child: u32) -> Self;
+    fn view(value: T, rpc: &str, child: U) -> Self;
 }
 
 pub trait HdWalletLoad<T, U> {
-    fn load(value: T, rpc: U, child: u32) -> Self;
+    fn load(value: T, rpc: &str, child: U) -> Self;
 }
 
-pub trait HdWallets<T> {
-    fn get_child_keypair(&self, child: u32) -> Result<T>;
+pub trait HdWallets<T, U> {
+    fn get_child_keypair(&self, child: U) -> Result<T>;
 }

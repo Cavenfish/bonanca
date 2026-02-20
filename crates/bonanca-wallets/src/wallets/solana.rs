@@ -18,14 +18,15 @@ use solana_sdk::{
 use solana_system_interface::instruction::transfer;
 use std::{path::Path, str::FromStr};
 
-use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletView};
+use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 
 impl HdWallets<Keypair> for HDkeys {
     fn get_child_keypair(&self, child: u32) -> Result<Keypair> {
-        let secret = self.derive_ed25519_child_prvkey(501, child)?;
+        let path = format!("m/44'/501'/{child}'/0'");
+        let secret = self.derive_ed25519_child_prvkey(path)?;
         let keypair = Keypair::new_from_array(secret);
         Ok(keypair)
     }
@@ -43,6 +44,20 @@ impl WalletView<&str, &str> for SolWallet {
             key_pair: None,
             client: RpcClient::new(rpc.to_string()),
             pubkey: Pubkey::from_str(pubkey).expect("Could not parse pubkey"),
+        }
+    }
+}
+
+impl WalletLoad<[u8; 32], &str> for SolWallet {
+    fn load(pkey: [u8; 32], rpc: &str) -> Self {
+        let kp = Keypair::new_from_array(pkey);
+        let client = RpcClient::new(rpc.to_string());
+        let pubkey = kp.pubkey();
+
+        Self {
+            key_pair: Some(kp),
+            client,
+            pubkey,
         }
     }
 }

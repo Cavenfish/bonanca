@@ -73,10 +73,10 @@ impl HDkeys {
         Ok(key_vault)
     }
 
-    pub fn derive_ed25519_child_prvkey(&self, slip: u64, child: u32) -> Result<[u8; 32]> {
+    pub fn derive_ed25519_child_prvkey(&self, path: String) -> Result<[u8; 32]> {
         let master_key = ExtendedSigningKey::from_seed(&self.seed)?;
 
-        let derivation_path: DerivationPath = format!("m/44'/{slip}'/{child}'/0'/0'").parse()?;
+        let derivation_path: DerivationPath = path.parse()?;
 
         let child_key = master_key.derive(&derivation_path)?;
         let secret_key = child_key.signing_key;
@@ -84,8 +84,7 @@ impl HDkeys {
         Ok(secret_key.to_bytes())
     }
 
-    pub fn derive_secp256k1_child_prvkey(&self, slip: u64, child: u32) -> Result<[u8; 32]> {
-        let path = format!("m/44'/{slip}'/{child}'/0'/0'");
+    pub fn derive_secp256k1_child_prvkey(&self, path: String) -> Result<[u8; 32]> {
         let child_key = XPrv::derive_from_path(&self.seed, &path.parse()?)?;
 
         Ok(child_key.to_bytes())

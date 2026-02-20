@@ -19,11 +19,12 @@ use alloy_primitives::{
 use anyhow::Result;
 use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
 
-use crate::{HdWalletLoad, HdWalletView, HdWallets};
+use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad};
 
 impl HdWallets<LocalSigner<SigningKey>> for HDkeys {
     fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>> {
-        let secret = self.derive_secp256k1_child_prvkey(60, child)?;
+        let path = format!("m/44'/60'/{child}'/0/0");
+        let secret = self.derive_secp256k1_child_prvkey(path)?;
         let key_bytes = FixedBytes::new(secret);
         let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
         Ok(signer)
@@ -42,6 +43,25 @@ pub struct EvmWallet {
     pub signer: Option<LocalSigner<SigningKey>>,
     pub client: DynProvider,
     pub pubkey: Address,
+}
+
+impl WalletLoad<[u8; 32], &str> for EvmWallet {
+    fn load(pkey: [u8; 32], rpc: &str) -> Self {
+        let key_bytes = FixedBytes::new(pkey);
+        let signer = PrivateKeySigner::from_bytes(&key_bytes).unwrap();
+        let rpc_url = Url::parse(rpc).unwrap();
+        let pubkey = signer.address();
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer.clone())
+            .connect_http(rpc_url)
+            .erased();
+
+        Self {
+            signer: Some(signer),
+            client,
+            pubkey,
+        }
+    }
 }
 
 impl HdWalletView<&Path, &str> for EvmWallet {

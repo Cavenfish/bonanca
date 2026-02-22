@@ -1,5 +1,5 @@
 use alloy::rpc::types::TransactionReceipt;
-use bonanca_wallets::wallets::evm::EvmWallet;
+use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::evm::EvmWallet};
 use pyo3::prelude::*;
 use pyo3::{exceptions::PyRuntimeError, types::PyDict};
 use std::path::PathBuf;
@@ -34,64 +34,6 @@ pub fn parse_txn_receipt<'py>(
     Ok(dict.into())
 }
 
-#[pyclass(name = "EvmWalletView")]
-pub struct PyEvmWalletView {
-    inner: EvmWallet,
-    rt: Runtime,
-}
-
-#[pymethods]
-impl PyEvmWalletView {
-    #[new]
-    fn view(keyvault: PathBuf, rpc: &str, child: u32) -> Self {
-        let inner = EvmWallet::view(&keyvault, rpc, child);
-        let rt = Runtime::new().unwrap();
-        Self { inner, rt }
-    }
-
-    fn get_pubkey(&self) -> String {
-        self.inner.get_pubkey().unwrap()
-    }
-
-    fn balance(&self) -> f64 {
-        self.rt.block_on(self.inner.balance()).unwrap()
-    }
-
-    fn token_balance(&self, token: &str) -> f64 {
-        self.rt.block_on(self.inner.token_balance(token)).unwrap()
-    }
-
-    fn get_token_allowance(&self, token: &str, spender: &str) -> PyResult<f64> {
-        self.rt
-            .block_on(self.inner.get_token_allowance(token, spender))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-
-    fn format_native(&self, amount: f64) -> PyResult<u64> {
-        self.inner
-            .format_native(amount)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-
-    fn parse_native(&self, amount: u64) -> PyResult<f64> {
-        self.inner
-            .parse_native(amount)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-
-    fn format_token(&self, amount: f64, token: &str) -> PyResult<u64> {
-        self.rt
-            .block_on(self.inner.format_token(amount, token))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-
-    fn parse_token(&self, amount: u64, token: &str) -> PyResult<f64> {
-        self.rt
-            .block_on(self.inner.parse_token(amount, token))
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-}
-
 #[pyclass(name = "EvmWallet")]
 pub struct PyEvmWallet {
     pub inner: EvmWallet,
@@ -100,11 +42,18 @@ pub struct PyEvmWallet {
 
 #[pymethods]
 impl PyEvmWallet {
-    #[new]
-    fn load(keyvault: PathBuf, rpc: &str, child: u32) -> Self {
+    #[staticmethod]
+    fn view(keyvault: PathBuf, rpc: &str, child: u32) -> PyResult<Self> {
+        let inner = EvmWallet::view(&keyvault, rpc, child);
+        let rt = Runtime::new().unwrap();
+        Ok(Self { inner, rt })
+    }
+
+    #[staticmethod]
+    fn load(keyvault: PathBuf, rpc: &str, child: u32) -> PyResult<Self> {
         let inner = EvmWallet::load(&keyvault, rpc, child);
         let rt = Runtime::new().unwrap();
-        Self { inner, rt }
+        Ok(Self { inner, rt })
     }
 
     fn get_pubkey(&self) -> String {

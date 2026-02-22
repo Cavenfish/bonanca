@@ -3,7 +3,10 @@ pub mod keyvault {
 }
 
 pub mod wallets {
-    pub use bonanca_wallets::wallets::{evm::EvmWallet, solana::SolWallet};
+    pub use bonanca_wallets::{
+        HdWalletLoad, HdWalletView, WalletLoad, WalletView,
+        wallets::{evm::EvmWallet, solana::SolWallet},
+    };
 }
 
 #[cfg(feature = "defi")]

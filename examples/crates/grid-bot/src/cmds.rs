@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use anyhow::{Result, bail};
-use bonanca::{defi::CoW, wallets::EvmWallet};
+use bonanca::{
+    defi::CoW,
+    wallets::{EvmWallet, HdWalletLoad, HdWalletView},
+};
 
 use crate::{
     args::{BalArgs, RunArgs},

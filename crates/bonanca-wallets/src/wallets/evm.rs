@@ -1,8 +1,14 @@
+use std::{path::Path, str::FromStr};
+
 use alloy::{
     network::TransactionBuilder,
     providers::{DynProvider, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
-    signers::{Signer, k256::ecdsa::SigningKey, local::LocalSigner},
+    signers::{
+        Signer,
+        k256::ecdsa::SigningKey,
+        local::{LocalSigner, PrivateKeySigner},
+    },
     sol,
     transports::http::reqwest::Url,
 };
@@ -11,9 +17,28 @@ use alloy_primitives::{
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
-use bonanca_keyvault::{hd_keys::ChildKey, keyvault::KeyVault};
-use core::panic;
-use std::{path::Path, str::FromStr};
+use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
+
+use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
+
+impl HdWallets<LocalSigner<SigningKey>, u32> for HDkeys {
+    fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>> {
+        let path = format!("m/44'/60'/{child}'/0/0");
+        let secret = self.derive_secp256k1_child_prvkey(path)?;
+        let key_bytes = FixedBytes::new(secret);
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
+        Ok(signer)
+    }
+}
+
+impl HdWallets<LocalSigner<SigningKey>, &str> for HDkeys {
+    fn get_child_keypair(&self, path: &str) -> Result<LocalSigner<SigningKey>> {
+        let secret = self.derive_secp256k1_child_prvkey(path.to_string())?;
+        let key_bytes = FixedBytes::new(secret);
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
+        Ok(signer)
+    }
+}
 
 // ABI for smart contracts
 sol! {
@@ -29,19 +54,25 @@ pub struct EvmWallet {
     pub pubkey: Address,
 }
 
-impl EvmWallet {
-    pub fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let key_vault = KeyVault::load(keyvault);
-        let child_key = key_vault.get_child_key("EVM", child).unwrap();
+impl WalletView<&str> for EvmWallet {
+    fn view(pubkey: &str, rpc: &str) -> Self {
+        let rpc_url = Url::parse(rpc).unwrap();
+        let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        let signer = match child_key {
-            ChildKey::Evm(sig) => sig,
-            _ => panic!(),
-        };
+        Self {
+            signer: None,
+            client,
+            pubkey: Address::from_str(pubkey).unwrap(),
+        }
+    }
+}
 
+impl WalletLoad<[u8; 32]> for EvmWallet {
+    fn load(pkey: [u8; 32], rpc: &str) -> Self {
+        let key_bytes = FixedBytes::new(pkey);
+        let signer = PrivateKeySigner::from_bytes(&key_bytes).unwrap();
         let rpc_url = Url::parse(rpc).unwrap();
         let pubkey = signer.address();
-
         let client: DynProvider = ProviderBuilder::new()
             .wallet(signer.clone())
             .connect_http(rpc_url)
@@ -53,11 +84,13 @@ impl EvmWallet {
             pubkey,
         }
     }
+}
 
-    pub fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
+impl HdWalletView<&Path, u32> for EvmWallet {
+    fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
         let key_vault = KeyVault::load(keyvault);
-        let evm_keys = key_vault.chain_keys.get("EVM").unwrap();
-        let pubkey = evm_keys.get(child as usize).unwrap();
+        let path = format!("m/44'/60'/{child}'/0/0");
+        let pubkey = key_vault.chain_keys.get(&path).unwrap();
         let rpc_url = Url::parse(rpc).unwrap();
         let addy = Address::from_str(pubkey).unwrap();
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
@@ -68,7 +101,84 @@ impl EvmWallet {
             pubkey: addy,
         }
     }
+}
 
+impl HdWalletView<&Path, &str> for EvmWallet {
+    fn view(keyvault: &Path, rpc: &str, path: &str) -> Self {
+        let key_vault = KeyVault::load(keyvault);
+        let pubkey = key_vault.chain_keys.get(path).unwrap();
+        let rpc_url = Url::parse(rpc).unwrap();
+        let addy = Address::from_str(pubkey).unwrap();
+        let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
+
+        Self {
+            signer: None,
+            client,
+            pubkey: addy,
+        }
+    }
+}
+
+impl HdWalletLoad<&Path, u32> for EvmWallet {
+    fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
+        let mut key_vault = KeyVault::load(keyvault);
+        let path = format!("m/44'/60'/{child}'/0/0");
+        let hd_keys = key_vault.decrypt_vault().unwrap();
+        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child).unwrap();
+        let rpc_url = Url::parse(rpc).unwrap();
+        let pubkey = signer.address();
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer.clone())
+            .connect_http(rpc_url)
+            .erased();
+
+        // Add pubkey to keyvault if not already in it
+        match key_vault.chain_keys.get(&path) {
+            Some(_) => {}
+            None => {
+                key_vault.add_pubkey(&path, &pubkey.to_string());
+                key_vault.write(keyvault);
+            }
+        }
+
+        Self {
+            signer: Some(signer),
+            client,
+            pubkey,
+        }
+    }
+}
+
+impl HdWalletLoad<&Path, &str> for EvmWallet {
+    fn load(keyvault: &Path, rpc: &str, path: &str) -> Self {
+        let mut key_vault = KeyVault::load(keyvault);
+        let hd_keys = key_vault.decrypt_vault().unwrap();
+        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path).unwrap();
+        let rpc_url = Url::parse(rpc).unwrap();
+        let pubkey = signer.address();
+        let client: DynProvider = ProviderBuilder::new()
+            .wallet(signer.clone())
+            .connect_http(rpc_url)
+            .erased();
+
+        // Add pubkey to keyvault if not already in it
+        match key_vault.chain_keys.get(path) {
+            Some(_) => {}
+            None => {
+                key_vault.add_pubkey(&path, &pubkey.to_string());
+                key_vault.write(keyvault);
+            }
+        }
+
+        Self {
+            signer: Some(signer),
+            client,
+            pubkey,
+        }
+    }
+}
+
+impl EvmWallet {
     pub async fn sign_hash(&self, hash: &FixedBytes<32>) -> Result<Signature> {
         let sig = self.signer.as_ref().unwrap().sign_hash(&hash).await?;
 

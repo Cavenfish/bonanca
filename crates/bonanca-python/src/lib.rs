@@ -23,10 +23,7 @@ mod bonanca {
 #[pymodule(name = "wallets", submodule)]
 mod pywallets {
     #[pymodule_export]
-    use crate::wallets::{
-        evm::{PyEvmWallet, PyEvmWalletView},
-        solana::{PySolWallet, PySolWalletView},
-    };
+    use crate::wallets::{evm::PyEvmWallet, solana::PySolWallet};
 }
 
 #[pymodule(name = "defi", submodule)]

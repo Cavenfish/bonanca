@@ -200,9 +200,8 @@ impl SolWallet {
     pub async fn close(&self, to: &str) -> Result<()> {
         let bal = self.balance().await?;
 
-        // Subtract rent and fee buffer
-        // TODO: find out how to not leave rent behind
-        let amount = bal - 0.00205;
+        // Subtract fee
+        let amount = bal - 0.000005;
 
         let _ = self.transfer(to, amount).await?;
 

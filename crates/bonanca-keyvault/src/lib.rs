@@ -62,8 +62,7 @@ mod tests {
                     "salt": "M6lWvNAGuZBSp9fBGAUEqw"
                 },
                 "chain_keys": {
-                    "Solana": ["AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG"],
-                    "EVM": ["0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"]
+                    "PATH": "ADDRESS"
                 }
             }
             "#,

@@ -70,9 +70,9 @@ impl WalletLoad<[u8; 32]> for SolWallet {
     }
 }
 
-impl HdWalletView<&Path, u32> for SolWallet {
-    fn view(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let key_vault = KeyVault::load(keyvault);
+impl<T: AsRef<Path>> HdWalletView<T, u32> for SolWallet {
+    fn view(keyvault: T, rpc: &str, child: u32) -> Self {
+        let key_vault = KeyVault::load(keyvault.as_ref());
         let path = format!("m/44'/501'/{child}'/0'");
         let pubkey = key_vault
             .chain_keys
@@ -86,9 +86,9 @@ impl HdWalletView<&Path, u32> for SolWallet {
     }
 }
 
-impl HdWalletView<&Path, &str> for SolWallet {
-    fn view(keyvault: &Path, rpc: &str, path: &str) -> Self {
-        let key_vault = KeyVault::load(keyvault);
+impl<T: AsRef<Path>> HdWalletView<T, &str> for SolWallet {
+    fn view(keyvault: T, rpc: &str, path: &str) -> Self {
+        let key_vault = KeyVault::load(keyvault.as_ref());
         let pubkey = key_vault
             .chain_keys
             .get(path)
@@ -101,9 +101,9 @@ impl HdWalletView<&Path, &str> for SolWallet {
     }
 }
 
-impl HdWalletLoad<&Path, u32> for SolWallet {
-    fn load(keyvault: &Path, rpc: &str, child: u32) -> Self {
-        let mut key_vault = KeyVault::load(keyvault);
+impl<T: AsRef<Path>> HdWalletLoad<T, u32> for SolWallet {
+    fn load(keyvault: T, rpc: &str, child: u32) -> Self {
+        let mut key_vault = KeyVault::load(keyvault.as_ref());
         let path = format!("m/44'/501'/{child}'/0'");
         let hd_keys = key_vault.decrypt_vault().unwrap();
         let kp: Keypair = hd_keys.get_child_keypair(child).unwrap();
@@ -115,7 +115,7 @@ impl HdWalletLoad<&Path, u32> for SolWallet {
             Some(_) => {}
             None => {
                 key_vault.add_pubkey(&path, &pubkey.to_string());
-                key_vault.write(keyvault);
+                key_vault.write(keyvault.as_ref());
             }
         }
 
@@ -127,9 +127,9 @@ impl HdWalletLoad<&Path, u32> for SolWallet {
     }
 }
 
-impl HdWalletLoad<&Path, &str> for SolWallet {
-    fn load(keyvault: &Path, rpc: &str, path: &str) -> Self {
-        let mut key_vault = KeyVault::load(keyvault);
+impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
+    fn load(keyvault: T, rpc: &str, path: &str) -> Self {
+        let mut key_vault = KeyVault::load(keyvault.as_ref());
         let hd_keys = key_vault.decrypt_vault().unwrap();
         let kp: Keypair = hd_keys.get_child_keypair(path).unwrap();
         let client = RpcClient::new(rpc.to_string());
@@ -140,7 +140,7 @@ impl HdWalletLoad<&Path, &str> for SolWallet {
             Some(_) => {}
             None => {
                 key_vault.add_pubkey(&path, &pubkey.to_string());
-                key_vault.write(keyvault);
+                key_vault.write(keyvault.as_ref());
             }
         }
 

@@ -44,13 +44,11 @@ class Log:
     """Logging for the scalper bot"""
 
     active_orders: list[str]
-    profit: float
     buy_history: Dict
     sell_history: Dict
 
     def __init__(self, log: Dict):
         self.active_orders = log["active_orders"]
-        self.profit = log["profit"]
         self.buy_history = log["buy_history"]
         self.sell_history = log["sell_history"]
 
@@ -73,7 +71,6 @@ class Log:
     def to_dict(self):
         return {
             "active_orders": self.active_orders,
-            "profit": self.profit,
             "buy_history": self.buy_history,
             "sell_history": self.sell_history,
         }
@@ -120,7 +117,6 @@ class Scalper:
         if not self.config.log_file.exists():
             init = {
                 "active_orders": [],
-                "profit": 0.0,
                 "buy_history": {
                     "bought": 0.0,
                     "avg_price": 0.0,
@@ -140,11 +136,11 @@ class Scalper:
 
     def load_wallet(self, dry=True):
         if dry:
-            self.wallet = bonanca.wallets.EvmWalletView(
+            self.wallet = bonanca.wallets.EvmWallet.view(
                 self.config.keyvault, self.config.rpc_url, self.config.child
             )
         else:
-            self.wallet = bonanca.wallets.EvmWallet(
+            self.wallet = bonanca.wallets.EvmWallet.load(
                 self.config.keyvault, self.config.rpc_url, self.config.child
             )
 
@@ -345,7 +341,6 @@ class Scalper:
             price = buy_amount / sold
 
             self.log.add_sell(sold, price)
-            self.log.profit += buy_amount - self.config.trade_settings.size
 
         self.log.active_orders.remove(trade["uid"])
         self.log.save(self.config.log_file)

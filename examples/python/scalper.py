@@ -246,6 +246,16 @@ class Scalper:
             order = self.dex.get_order_info(uid)
 
             if (
+                order["status"] == "open"
+                and order["sell_token"] == self.config.target.address.lower()
+            ):
+                got = float(order["executed_sell_amount"])
+                want = float(order["sell_amount"])
+
+                if got / want > 0.98:
+                    self.log_trade(order)
+
+            if (
                 order["status"] == "fulfilled"
                 and order["sell_token"] == self.config.target.address.lower()
             ):

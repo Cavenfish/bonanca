@@ -14,5 +14,5 @@ bonanca-defi = { path = "../bonanca-defi" }
 bonanca-keyvault = { path = "../bonanca-keyvault" }
 bonanca-oracle = { path = "../bonanca-oracle" }
 bonanca-wallets = { path = "../bonanca-wallets" }
-pyo3 = { version = "0.27.0" }
+pyo3 = { version = "0.28.3" }
 tokio.workspace = true

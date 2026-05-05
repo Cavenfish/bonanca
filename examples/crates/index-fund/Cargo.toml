@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow.workspace = true
 bonanca = { path = "../../../", features = ["defi", "oracle"] }
-clap = { version = "4.5.41", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

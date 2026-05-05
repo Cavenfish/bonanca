@@ -9,6 +9,6 @@ alloy-primitives.workspace = true
 anyhow.workspace = true
 bonanca-api-lib.workspace = true
 bonanca-keyvault.workspace = true
-solana-client = "3.0.2"
+solana-client = "3.1.14"
 solana-sdk.workspace = true
 solana-system-interface = "2.0.0"

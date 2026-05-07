@@ -193,7 +193,10 @@ class Scalper:
                 )
                 base_bal -= amount - executed
 
-            if order["status"] == "expired":
+            if (
+                order["status"] == "expired"
+                and order["sell_token"] == self.config.base.address.lower()
+            ):
                 expired.append(uid)
 
         self.prune_expired_orders(expired)
@@ -242,6 +245,7 @@ class Scalper:
 
         trades: list[Dict] = []
         tp_uids: list[str] = []
+        expired: list[str] = []
         for uid in self.log.active_orders:
             order = self.dex.get_order_info(uid)
 
@@ -268,6 +272,12 @@ class Scalper:
                 self.set_sell(price, order, trades, tp_uids, dry=dry)
 
             if (
+                order["status"] == "expired"
+                and order["sell_token"] == self.config.target.address.lower()
+            ):
+                self.renew_sell(price, order, tp_uids, expired, dry=dry)
+
+            if (
                 order["status"] == "open"
                 and order["sell_token"] == self.config.base.address.lower()
             ):
@@ -279,6 +289,7 @@ class Scalper:
 
         self.log_trades(trades)
         self.log_orders(tp_uids)
+        self.prune_expired_orders(expired)
 
     def set_sell(
         self,
@@ -314,6 +325,39 @@ class Scalper:
                 self.config.trade_settings.expiry,
             )
             tp_uids.append(tp_uid)
+
+    def renew_sell(
+        self,
+        price: float,
+        order: Dict,
+        tp_uids: list[str],
+        expired: list[str],
+        dry=True,
+    ):
+        sell_amount = float(order["sell_amount"]) / (10**self.config.target.decimals)
+        buy_amount = (
+            float(order["buy_amount"])
+            / (10**self.config.base.decimals)
+            * (1 + self.config.trade_settings.profit)
+        )
+
+        sell_price = buy_amount / sell_amount
+
+        if sell_price < price:
+            sell_price = price
+
+        print(f"Sell level: ${sell_price:.4f}")
+        if not dry:
+            tp_uid = self.dex.limit_order_by_price(
+                self.wallet,
+                self.config.target.address,
+                self.config.base.address,
+                sell_amount,
+                1 / sell_price,
+                self.config.trade_settings.expiry,
+            )
+            tp_uids.append(tp_uid)
+            expired.append(order["uid"])
 
     def log_orders(self, orders: list[str]):
         if not orders:

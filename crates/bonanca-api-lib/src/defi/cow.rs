@@ -1,3 +1,4 @@
+use alloy_primitives::U256;
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -100,7 +101,7 @@ pub struct CowSwapData {
     pub sell_token: String,
     pub buy_token: String,
     #[serde_as(as = "DisplayFromStr")]
-    pub sell_amount_before_fee: u64,
+    pub sell_amount_before_fee: U256,
     pub kind: String,
     pub from: String,
     pub receiver: String,
@@ -150,9 +151,9 @@ pub struct CowQuote {
     pub buy_token: String,
     pub receiver: Option<String>,
     #[serde_as(as = "DisplayFromStr")]
-    pub sell_amount: u64,
+    pub sell_amount: U256,
     #[serde_as(as = "DisplayFromStr")]
-    pub buy_amount: u64,
+    pub buy_amount: U256,
     pub valid_to: u32,
     pub app_data: String,
     pub app_data_hash: String,
@@ -170,8 +171,8 @@ impl CowQuote {
         sell_token: &str,
         buy_token: &str,
         receiver: Option<String>,
-        sell_amount: u64,
-        buy_amount: u64,
+        sell_amount: U256,
+        buy_amount: U256,
         valid_to: u32,
     ) -> Self {
         Self {
@@ -223,9 +224,9 @@ pub struct CowOrder {
     pub buy_token: String,
     pub receiver: Option<String>,
     #[serde_as(as = "DisplayFromStr")]
-    pub sell_amount: u64,
+    pub sell_amount: U256,
     #[serde_as(as = "DisplayFromStr")]
-    pub buy_amount: u64,
+    pub buy_amount: U256,
     pub valid_to: u32,
     pub app_data: String,
     pub app_data_hash: String,

@@ -84,10 +84,10 @@ impl AaveV3 {
     ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
-        let amnt = wallet.format_token(amount, token).await?;
+        let amnt = wallet.parse_token(amount, token).await?;
 
         let sig = poolv3
-            .supply(asset, U256::from(amnt), wallet.pubkey, 0)
+            .supply(asset, amnt, wallet.pubkey, 0)
             .send()
             .await?
             .get_receipt()
@@ -105,16 +105,10 @@ impl AaveV3 {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
-        let amnt = wallet.format_token(amount, token).await?;
+        let amnt = wallet.parse_token(amount, token).await?;
 
         let sig = poolv3
-            .borrow(
-                asset,
-                U256::from(amnt),
-                variable_interest_rate,
-                0,
-                wallet.pubkey,
-            )
+            .borrow(asset, amnt, variable_interest_rate, 0, wallet.pubkey)
             .send()
             .await?
             .get_receipt()
@@ -132,15 +126,10 @@ impl AaveV3 {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
         let variable_interest_rate = U256::from(2);
-        let amnt = wallet.format_token(amount, token).await?;
+        let amnt = wallet.parse_token(amount, token).await?;
 
         let sig = poolv3
-            .repay(
-                asset,
-                U256::from(amnt),
-                variable_interest_rate,
-                wallet.pubkey,
-            )
+            .repay(asset, amnt, variable_interest_rate, wallet.pubkey)
             .send()
             .await?
             .get_receipt()
@@ -157,10 +146,10 @@ impl AaveV3 {
     ) -> Result<TransactionReceipt> {
         let poolv3 = PoolV3::new(self.pool, &wallet.client);
         let asset = Address::from_str(token)?;
-        let amnt = wallet.format_token(amount, token).await?;
+        let amnt = wallet.parse_token(amount, token).await?;
 
         let sig = poolv3
-            .withdraw(asset, U256::from(amnt), wallet.pubkey)
+            .withdraw(asset, amnt, wallet.pubkey)
             .send()
             .await?
             .get_receipt()

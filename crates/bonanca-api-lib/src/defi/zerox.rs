@@ -23,7 +23,7 @@ impl ZeroXApi {
         &self,
         sell: &str,
         buy: &str,
-        amount: u64,
+        amount: &str,
     ) -> Result<ZeroXPriceQuote> {
         let url = format!(
             "{}/swap/allowance-holder/price?chainId={}&sellToken={}&sellAmount={}&buyToken={}",
@@ -48,7 +48,7 @@ impl ZeroXApi {
         &self,
         sell: &str,
         buy: &str,
-        amount: u64,
+        amount: &str,
         taker: &str,
     ) -> Result<ZeroXSwapQuote> {
         let url = format!(

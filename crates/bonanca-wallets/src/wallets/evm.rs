@@ -13,7 +13,7 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use alloy_primitives::{
-    Address, FixedBytes, Signature, Uint,
+    Address, FixedBytes, Signature, U256, Uint,
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::Result;
@@ -227,32 +227,36 @@ impl EvmWallet {
         Ok(self.pubkey.to_string())
     }
 
-    pub fn format_native(&self, amount: f64) -> Result<u64> {
-        let amt = (amount * 1e18) as u64;
+    pub fn parse_native(&self, amount: f64) -> Result<U256> {
+        let amt: U256 = parse_ether(&amount.to_string())?;
 
         Ok(amt)
     }
 
-    pub fn parse_native(&self, amount: u64) -> Result<f64> {
-        Ok((amount as f64) / 1.0e18)
+    pub fn format_native(&self, amount: U256) -> Result<f64> {
+        let amnt = format_ether(amount).parse()?;
+
+        Ok(amnt)
     }
 
-    pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64> {
+    pub async fn parse_token(&self, amount: f64, token: &str) -> Result<U256> {
         let token_addy = Address::from_str(token)?;
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
-        let amt = (amount * 10.0_f64.powi(deci.into())) as u64;
+        let amt = parse_units(&amount.to_string(), deci)?.into();
 
         Ok(amt)
     }
 
-    pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64> {
+    pub async fn format_token(&self, amount: U256, token: &str) -> Result<f64> {
         let token_addy = Address::from_str(token)?;
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
 
-        Ok((amount as f64) / 10.0_f64.powi(deci.into()))
+        let amt = format_units(amount, deci)?.parse()?;
+
+        Ok(amt)
     }
 
     pub async fn close(&self, to: &str) -> Result<()> {

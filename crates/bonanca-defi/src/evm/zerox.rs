@@ -2,7 +2,7 @@ use alloy::{
     network::TransactionBuilder,
     rpc::types::{TransactionInput, TransactionReceipt, TransactionRequest},
 };
-use alloy_primitives::{Address, Bytes, Uint, hex::decode};
+use alloy_primitives::{Address, Bytes, U256, Uint, hex::decode};
 use anyhow::Result;
 use bonanca_api_lib::defi::zerox::{Issues, ZeroXApi, ZeroXSwapQuote};
 use bonanca_wallets::wallets::evm::EvmWallet;
@@ -27,11 +27,11 @@ impl ZeroX {
     ) -> Result<Issues> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.format_token(amount, sell).await?;
+        let big_amount = wallet.parse_token(amount, sell).await?;
 
         let quote = self
             .api
-            .get_swap_quote(sell, buy, big_amount, &taker)
+            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
             .await?;
 
         Ok(quote.issues)
@@ -46,9 +46,11 @@ impl ZeroX {
     ) -> Result<ZeroXSwapQuote> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.format_token(amount, sell).await?;
+        let big_amount = wallet.parse_token(amount, sell).await?;
 
-        self.api.get_swap_quote(sell, buy, big_amount, &taker).await
+        self.api
+            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
+            .await
     }
 
     pub async fn swap(
@@ -97,11 +99,11 @@ impl ZeroX {
     ) -> Result<TransactionReceipt> {
         let taker = wallet.get_pubkey()?;
 
-        let big_amount = wallet.format_token(amount, sell).await?;
+        let big_amount = wallet.parse_token(amount, sell).await?;
 
         let quote = self
             .api
-            .get_swap_quote(sell, buy, big_amount, &taker)
+            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
             .await?;
 
         if let Some(issues) = quote.issues.allowance {
@@ -116,7 +118,7 @@ impl ZeroX {
         let to_addy = Address::from_str(&quote.transaction.to)?;
         let tmp = decode(quote.transaction.data)?;
         let data = Bytes::copy_from_slice(&tmp);
-        let value: Uint<256, 4> = quote.transaction.value.parse()?;
+        let value: U256 = quote.transaction.value.parse()?;
         let gas_limit: u64 = quote.transaction.gas.parse()?;
         let gas_price: u128 = quote.transaction.gas_price.parse()?;
 

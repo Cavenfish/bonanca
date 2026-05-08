@@ -1,8 +1,4 @@
-use alloy::{
-    primitives::{Address, U256},
-    rpc::types::TransactionReceipt,
-    sol,
-};
+use alloy::{primitives::Address, rpc::types::TransactionReceipt, sol};
 use anyhow::Result;
 use bonanca_api_lib::defi::morpho::{
     MorphoApi, user_data_query::UserDataQueryUserByAddressVaultPositions,
@@ -58,10 +54,10 @@ impl MorphoVaultV1 {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
-        let amnt = wallet.format_token(amount, &token.to_string()).await?;
+        let amnt = wallet.parse_token(amount, &token.to_string()).await?;
 
         let sig = vault
-            .deposit(U256::from(amnt), wallet.pubkey)
+            .deposit(amnt, wallet.pubkey)
             .send()
             .await?
             .get_receipt()
@@ -79,10 +75,10 @@ impl MorphoVaultV1 {
         let addy = Address::from_str(vault_address).unwrap();
         let vault = VaultV1::new(addy, &wallet.client);
         let token = vault.asset().call().await?;
-        let amnt = wallet.format_token(amount, &token.to_string()).await?;
+        let amnt = wallet.parse_token(amount, &token.to_string()).await?;
 
         let sig = vault
-            .withdraw(U256::from(amnt), wallet.pubkey, wallet.pubkey)
+            .withdraw(amnt, wallet.pubkey, wallet.pubkey)
             .send()
             .await?
             .get_receipt()

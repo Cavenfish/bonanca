@@ -11,4 +11,4 @@ Requirements for the structs:
 
 - Include the `Debug` and `Clone` derive implementations for all structs
 - Use serde `rename_all` if multiple fields need to be renamed
--
+- Assume `use serde::{Serialize, Deserialize}` is already included in the code

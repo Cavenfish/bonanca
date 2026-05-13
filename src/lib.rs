@@ -19,5 +19,7 @@ pub mod defi {
 
 #[cfg(feature = "oracle")]
 pub mod oracle {
-    pub use bonanca_oracle::prices::{CoinMarketCap, DefiLlama, DexScreener};
+    pub use bonanca_oracle::prices::{
+        CoinGecko, CoinGeckoDays, CoinMarketCap, DefiLlama, DexScreener,
+    };
 }

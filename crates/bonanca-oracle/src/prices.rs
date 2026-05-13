@@ -1,9 +1,53 @@
 use anyhow::Result;
 use bonanca_api_lib::price_feeds::{
     cmc::CoinMarketCapApi,
+    coin_gecko::{CoinGeckoApi, TokenOhlcData},
     defi_llama::DefiLlamaApi,
     dexscreener::{DexScreenerApi, DexScreenerPairData},
 };
+
+pub enum CoinGeckoDays {
+    Day,
+    Week,
+    TwoWeeks,
+    Month,
+    ThreeMonths,
+    HalfYear,
+    Year,
+}
+
+pub struct CoinGecko {
+    api: CoinGeckoApi,
+}
+
+impl CoinGecko {
+    pub fn new(api_key: String) -> Self {
+        let api = CoinGeckoApi::new(api_key);
+        Self { api }
+    }
+
+    pub async fn get_ohlc_by_id(
+        &self,
+        currency: &str,
+        id: &str,
+        days: CoinGeckoDays,
+        precision: &str,
+    ) -> Result<Vec<TokenOhlcData>> {
+        let gecko_days = match days {
+            CoinGeckoDays::Day => "1",
+            CoinGeckoDays::Week => "7",
+            CoinGeckoDays::TwoWeeks => "14",
+            CoinGeckoDays::Month => "30",
+            CoinGeckoDays::ThreeMonths => "90",
+            CoinGeckoDays::HalfYear => "180",
+            CoinGeckoDays::Year => "365",
+        };
+
+        self.api
+            .get_ohlc_by_id(currency, id, gecko_days, precision)
+            .await
+    }
+}
 
 pub struct CoinMarketCap {
     api: CoinMarketCapApi,

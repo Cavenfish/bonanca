@@ -34,6 +34,34 @@ impl CoinGeckoApi {
         Ok(resp)
     }
 
+    pub async fn get_token_price(
+        &self,
+        currency: &str,
+        id: &str,
+        precision: &str,
+    ) -> Result<CoinPriceData> {
+        let url = format!(
+            "{}/simple/price?vs_currencies={currency}&ids={id}&precision={precision}&include_market_cap=true",
+            &self.base_url
+        );
+
+        let resp: Value = self
+            .client
+            .get(&url)
+            .header("x-cg-demo-api-key", &self.api_key)
+            .header("Accept", "application/json")
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let mc_string = format!("{currency}_market_cap");
+        let price = resp[id][currency].as_f64().unwrap();
+        let market_cap = resp[id][mc_string].as_f64().unwrap();
+
+        Ok(CoinPriceData { price, market_cap })
+    }
+
     pub async fn get_ohlc_by_id(
         &self,
         currency: &str,
@@ -101,4 +129,10 @@ pub struct Nft {
     pub name: String,
     pub symbol: String,
     pub thumb: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CoinPriceData {
+    pub price: f64,
+    pub market_cap: f64,
 }

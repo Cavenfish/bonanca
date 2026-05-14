@@ -26,6 +26,12 @@ impl CoinGecko {
         Self { api }
     }
 
+    pub async fn get_token_price(&self, symbol: &str, amount: f64) -> Result<f64> {
+        let data = self.api.get_token_price(symbol, "usd", "4").await?;
+
+        Ok(data.price * amount)
+    }
+
     pub async fn get_ohlc_by_id(
         &self,
         currency: &str,

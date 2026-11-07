@@ -4,7 +4,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use argon2::password_hash::SaltString;
 use bip39::Language;
 use rpassword::prompt_password;
@@ -14,6 +14,19 @@ use zeroize::Zeroize;
 
 use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
+
+fn ask_password() -> Result<String> {
+    let password = prompt_password("Set Keyvault Password: ")?;
+    let mut confirm = prompt_password("Confirm Password: ")?;
+
+    if password != confirm {
+        bail!("Passwords do not match");
+    }
+
+    confirm.zeroize();
+
+    Ok(password)
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
@@ -43,7 +56,7 @@ impl KeyVault {
 
         let hd_key = HDkeys::new(language, word_count);
 
-        let mut password = prompt_password("Set Keyvault Password: ").unwrap();
+        let mut password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
 
@@ -59,7 +72,7 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let mut password = prompt_password("Set Keyvault Password: ").unwrap();
+        let mut password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
 
@@ -75,7 +88,7 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let mut password = prompt_password("Set Keyvault Password: ").unwrap();
+        let mut password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
 

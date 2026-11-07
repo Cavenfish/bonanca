@@ -6,14 +6,13 @@ use argon2::password_hash::SaltString;
 use bip32::XPrv;
 use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
-use zeroize::ZeroizeOnDrop;
+use zeroize::Zeroizing;
 
 use crate::keyvault::{CipherParams, KdfParams, KeyVault, Vault};
 use crate::utils::{encrypt_seed, hash_password};
 
-#[derive(ZeroizeOnDrop)]
 pub struct HDkeys {
-    pub seed: [u8; 64],
+    pub seed: Zeroizing<[u8; 64]>,
 }
 
 impl HDkeys {
@@ -28,7 +27,7 @@ impl HDkeys {
         println!("\t{}\n", mnemonic);
         println!("Safely store this offline, then clear the terminal");
 
-        let seed = mnemonic.to_seed_normalized("");
+        let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
 
         Self { seed }
     }
@@ -36,7 +35,7 @@ impl HDkeys {
     pub fn from_mnemonic(mnemonic_str: &str) -> Self {
         let mnemonic = Mnemonic::from_str(mnemonic_str).unwrap();
 
-        let seed = mnemonic.to_seed_normalized("");
+        let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
 
         Self { seed }
     }
@@ -50,7 +49,7 @@ impl HDkeys {
             salt: salt.as_str().to_string(),
         };
 
-        let cipher_text = encrypt_seed(self.seed, &password, nonce, &kdf_params)?;
+        let cipher_text = encrypt_seed(&self.seed, &password, nonce, &kdf_params)?;
 
         let cipher_params = CipherParams {
             nonce: nonce.to_string(),
@@ -74,7 +73,7 @@ impl HDkeys {
     }
 
     pub fn derive_ed25519_child_prvkey(&self, path: String) -> Result<[u8; 32]> {
-        let master_key = ExtendedSigningKey::from_seed(&self.seed)?;
+        let master_key = ExtendedSigningKey::from_seed(&*self.seed)?;
 
         let derivation_path: DerivationPath = path.parse()?;
 

@@ -10,6 +10,7 @@ use argon2::{
 use hex::ToHex;
 use pbkdf2::pbkdf2_hmac;
 use sha2::Sha256;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::keyvault::KdfParams;
 
@@ -32,7 +33,7 @@ pub fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
 }
 
 pub fn encrypt_seed(
-    seed: [u8; 64],
+    seed: &Zeroizing<[u8; 64]>,
     password: &str,
     nonce: &str,
     kdf_params: &KdfParams,
@@ -55,6 +56,8 @@ pub fn encrypt_seed(
 
     let text = ciphertext.encode_hex();
 
+    key.zeroize();
+
     Ok(text)
 }
 
@@ -63,7 +66,7 @@ pub fn decrypt_seed(
     password: &str,
     nonce: &str,
     kdf_params: &KdfParams,
-) -> Result<[u8; 64]> {
+) -> Result<Zeroizing<[u8; 64]>> {
     let mut key = [0u8; 32];
     pbkdf2_hmac::<Sha256>(
         password.as_bytes(),
@@ -77,11 +80,13 @@ pub fn decrypt_seed(
     let non = GenericArray::from_slice(&noncebytes);
 
     let ciphertext = hex::decode(cipher_text)?;
-    let vec_seed = cipher
+    let mut vec_seed = cipher
         .decrypt(non, &*ciphertext)
         .expect("Failed to decrypt master key");
 
     let seed: [u8; 64] = vec_seed.as_slice().try_into()?;
 
-    Ok(seed)
+    vec_seed.zeroize();
+
+    Ok(Zeroizing::new(seed))
 }

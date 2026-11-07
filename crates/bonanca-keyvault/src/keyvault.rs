@@ -10,7 +10,7 @@ use bip39::Language;
 use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
@@ -82,7 +82,9 @@ impl KeyVault {
     }
 
     pub fn from_seed(seed: [u8; 64]) -> Self {
-        let hd_key = HDkeys { seed };
+        let hd_key = HDkeys {
+            seed: Zeroizing::new(seed),
+        };
 
         let salt = SaltString::generate(&mut OsRng);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
@@ -97,7 +99,7 @@ impl KeyVault {
         key_vault
     }
 
-    pub fn get_seed(&self) -> Result<[u8; 64]> {
+    pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
         let mut password = prompt_password("Keyvault Password: ")?;
 
         if !verify_password(&self.vault.mac, &password) {

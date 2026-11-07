@@ -15,17 +15,13 @@ use zeroize::{Zeroize, Zeroizing};
 use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
 
-fn ask_password() -> Result<String> {
-    let mut password = prompt_password("Set Keyvault Password: ")?;
-    let mut confirm = prompt_password("Confirm Password: ")?;
+fn ask_password() -> Result<Zeroizing<String>> {
+    let password = Zeroizing::new(prompt_password("Set Keyvault Password: ")?);
+    let confirm = Zeroizing::new(prompt_password("Confirm Password: ")?);
 
     if password != confirm {
-        password.zeroize();
-        confirm.zeroize();
         bail!("Passwords do not match");
     }
-
-    confirm.zeroize();
 
     Ok(password)
 }
@@ -58,11 +54,9 @@ impl KeyVault {
 
         let hd_key = HDkeys::new(language, word_count);
 
-        let mut password = ask_password().expect("Failed to get password");
+        let password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
-
-        password.zeroize();
 
         key_vault
     }
@@ -74,11 +68,9 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let mut password = ask_password().expect("Failed to get password");
+        let password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
-
-        password.zeroize();
 
         key_vault
     }
@@ -92,17 +84,15 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let mut password = ask_password().expect("Failed to get password");
+        let password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
-
-        password.zeroize();
 
         key_vault
     }
 
     pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
-        let mut password = prompt_password("Keyvault Password: ")?;
+        let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
         if !verify_password(&self.vault.mac, &password) {
             println!("Wrong Password");
@@ -115,8 +105,6 @@ impl KeyVault {
             &self.vault.cipher_params.nonce,
             &self.vault.kdf_params,
         )?;
-
-        password.zeroize();
 
         Ok(seed)
     }
@@ -139,7 +127,7 @@ impl KeyVault {
     }
 
     pub fn decrypt_vault(&self) -> Result<HDkeys> {
-        let mut password = prompt_password("Keyvault Password: ")?;
+        let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
         if !verify_password(&self.vault.mac, &password) {
             println!("Wrong Password");
@@ -152,8 +140,6 @@ impl KeyVault {
             &self.vault.cipher_params.nonce,
             &self.vault.kdf_params,
         )?;
-
-        password.zeroize();
 
         Ok(HDkeys { seed })
     }

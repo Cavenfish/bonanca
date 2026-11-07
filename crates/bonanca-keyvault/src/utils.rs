@@ -2,7 +2,7 @@ use aes_gcm::{
     Aes256Gcm, Key,
     aead::{Aead, KeyInit, generic_array::GenericArray},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -10,7 +10,7 @@ use argon2::{
 use hex::ToHex;
 use pbkdf2::pbkdf2_hmac;
 use sha2::Sha256;
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 use crate::keyvault::KdfParams;
 
@@ -38,16 +38,16 @@ pub fn encrypt_seed(
     nonce: &str,
     kdf_params: &KdfParams,
 ) -> Result<String> {
-    let mut key = [0u8; 32];
+    let mut key = Zeroizing::new([0u8; 32]);
     pbkdf2_hmac::<Sha256>(
         password.as_bytes(),
         kdf_params.salt.as_bytes(),
         kdf_params.n,
-        &mut key,
+        &mut *key,
     );
 
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
-    let noncebytes = hex::decode(nonce)?;
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&*key));
+    let noncebytes = hex::decode(nonce).context("Failed to decode nonce")?;
     let non = GenericArray::from_slice(&noncebytes);
 
     let ciphertext = cipher
@@ -55,8 +55,6 @@ pub fn encrypt_seed(
         .expect("Failed to encrypt master key");
 
     let text = ciphertext.encode_hex();
-
-    key.zeroize();
 
     Ok(text)
 }
@@ -67,26 +65,26 @@ pub fn decrypt_seed(
     nonce: &str,
     kdf_params: &KdfParams,
 ) -> Result<Zeroizing<[u8; 64]>> {
-    let mut key = [0u8; 32];
+    let mut key = Zeroizing::new([0u8; 32]);
     pbkdf2_hmac::<Sha256>(
         password.as_bytes(),
         kdf_params.salt.as_bytes(),
         kdf_params.n,
-        &mut key,
+        &mut *key,
     );
 
-    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
-    let noncebytes = hex::decode(nonce)?;
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&*key));
+    let noncebytes = hex::decode(nonce).context("Failed to decode nonce")?;
     let non = GenericArray::from_slice(&noncebytes);
 
     let ciphertext = hex::decode(cipher_text)?;
-    let mut vec_seed = cipher
-        .decrypt(non, &*ciphertext)
-        .expect("Failed to decrypt master key");
+    let vec_seed = Zeroizing::new(
+        cipher
+            .decrypt(non, &*ciphertext)
+            .expect("Failed to decrypt master key"),
+    );
 
-    let seed: [u8; 64] = vec_seed.as_slice().try_into()?;
+    let seed = Zeroizing::new(vec_seed.as_slice().try_into()?);
 
-    vec_seed.zeroize();
-
-    Ok(Zeroizing::new(seed))
+    Ok(seed)
 }

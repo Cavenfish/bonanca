@@ -16,10 +16,12 @@ use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
 
 fn ask_password() -> Result<String> {
-    let password = prompt_password("Set Keyvault Password: ")?;
+    let mut password = prompt_password("Set Keyvault Password: ")?;
     let mut confirm = prompt_password("Confirm Password: ")?;
 
     if password != confirm {
+        password.zeroize();
+        confirm.zeroize();
         bail!("Passwords do not match");
     }
 

@@ -25,7 +25,7 @@ impl HdWallets<LocalSigner<SigningKey>, u32> for HDkeys {
     fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>> {
         let path = format!("m/44'/60'/{child}'/0/0");
         let secret = self.derive_secp256k1_child_prvkey(path)?;
-        let key_bytes = FixedBytes::new(secret);
+        let key_bytes = FixedBytes::new(*secret);
         let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
         Ok(signer)
     }
@@ -34,7 +34,7 @@ impl HdWallets<LocalSigner<SigningKey>, u32> for HDkeys {
 impl HdWallets<LocalSigner<SigningKey>, &str> for HDkeys {
     fn get_child_keypair(&self, path: &str) -> Result<LocalSigner<SigningKey>> {
         let secret = self.derive_secp256k1_child_prvkey(path.to_string())?;
-        let key_bytes = FixedBytes::new(secret);
+        let key_bytes = FixedBytes::new(*secret);
         let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
         Ok(signer)
     }

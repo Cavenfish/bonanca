@@ -10,7 +10,7 @@ use bip39::Language;
 use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroizing;
 
 use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};

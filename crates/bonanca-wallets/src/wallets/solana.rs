@@ -27,7 +27,7 @@ impl HdWallets<Keypair, u32> for HDkeys {
     fn get_child_keypair(&self, child: u32) -> Result<Keypair> {
         let path = format!("m/44'/501'/{child}'/0'");
         let secret = self.derive_ed25519_child_prvkey(path)?;
-        let keypair = Keypair::new_from_array(secret);
+        let keypair = Keypair::new_from_array(*secret);
         Ok(keypair)
     }
 }
@@ -35,7 +35,7 @@ impl HdWallets<Keypair, u32> for HDkeys {
 impl HdWallets<Keypair, &str> for HDkeys {
     fn get_child_keypair(&self, path: &str) -> Result<Keypair> {
         let secret = self.derive_ed25519_child_prvkey(path.to_string())?;
-        let keypair = Keypair::new_from_array(secret);
+        let keypair = Keypair::new_from_array(*secret);
         Ok(keypair)
     }
 }

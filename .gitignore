@@ -1,7 +1,6 @@
 /*.redb
 /*.json
 bonanca.*
-Cargo.lock
 target/
 docs/book/
 todo.md

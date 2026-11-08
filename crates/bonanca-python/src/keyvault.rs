@@ -10,9 +10,10 @@ pub struct PyKeyVault {
 #[pymethods]
 impl PyKeyVault {
     #[staticmethod]
-    fn new(lang: String) -> PyResult<Self> {
-        let inner = KeyVault::new(&lang);
-        Ok(Self { inner })
+    fn new(lang: String) -> PyResult<(Self, String)> {
+        let (inner, mnemonic) = KeyVault::new(&lang);
+
+        Ok((Self { inner }, mnemonic.as_str().to_owned()))
     }
 
     #[staticmethod]

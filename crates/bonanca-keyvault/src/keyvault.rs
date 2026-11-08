@@ -33,7 +33,7 @@ pub struct KeyVault {
 }
 
 impl KeyVault {
-    pub fn new(lang: &str) -> Self {
+    pub fn new(lang: &str) -> (Self, Zeroizing<String>) {
         let language = match lang {
             "English" => Ok(Language::English),
             "Simplified Chinese" => Ok(Language::SimplifiedChinese),
@@ -52,13 +52,13 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let hd_key = HDkeys::new(language, word_count);
+        let (hd_key, mneomonic) = HDkeys::new(language, word_count);
 
         let password = ask_password().expect("Failed to get password");
 
         let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
 
-        key_vault
+        (key_vault, mneomonic)
     }
 
     pub fn from_mnemonic(mnemonic: &str) -> Self {

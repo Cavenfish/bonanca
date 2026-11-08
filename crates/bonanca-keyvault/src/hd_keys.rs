@@ -16,20 +16,15 @@ pub struct HDkeys {
 }
 
 impl HDkeys {
-    pub fn new(language: Language, word_count: usize) -> Self {
+    pub fn new(language: Language, word_count: usize) -> (Self, Zeroizing<String>) {
         let mut rng = bip39::rand::thread_rng();
         let mnemonic = Mnemonic::generate_in_with(&mut rng, language, word_count)
             .expect("Failed to generate mnemonic");
 
-        // TODO: Ensure this is safest way of 1-time
-        // display of mnemonic
-        println!("Your mnemonic is:\n");
-        println!("\t{}\n", mnemonic);
-        println!("Safely store this offline, then clear the terminal");
-
         let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
+        let mnemonic_str = Zeroizing::new(mnemonic.to_string());
 
-        Self { seed }
+        (Self { seed }, mnemonic_str)
     }
 
     pub fn from_mnemonic(mnemonic_str: &str) -> Self {

@@ -14,7 +14,7 @@ mod tests {
     fn test_encrypt_and_decrypt() {
         let password = "password";
         let mnemonic = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong";
-        let hd_keys = HDkeys::from_mnemonic(mnemonic);
+        let hd_keys = HDkeys::from_mnemonic(mnemonic).unwrap();
 
         let seed_hex = "b6a6d8921942dd9806607ebc2750416b289adea669198769f2e15ed926c3aa92bf88ece232317b4ea463e84b0fcd3b53577812ee449ccc448eb45e6f544e25b6";
         let seed: [u8; 64] = hex::decode(seed_hex)
@@ -32,7 +32,7 @@ mod tests {
 
         let keyvault = hd_keys.get_keyvault(&salt, nonce, password).unwrap();
 
-        assert!(verify_password(&keyvault.vault.mac, password));
+        assert!(verify_password(&keyvault.vault.mac, password).unwrap());
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,
@@ -78,7 +78,7 @@ mod tests {
             .try_into()
             .unwrap();
 
-        assert!(verify_password(&keyvault.vault.mac, password));
+        assert!(verify_password(&keyvault.vault.mac, password).unwrap());
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,

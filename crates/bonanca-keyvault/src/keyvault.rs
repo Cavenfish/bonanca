@@ -4,7 +4,7 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use argon2::password_hash::SaltString;
 use bip39::Language;
 use rpassword::prompt_password;
@@ -33,7 +33,7 @@ pub struct KeyVault {
 }
 
 impl KeyVault {
-    pub fn new(lang: &str) -> (Self, Zeroizing<String>) {
+    pub fn new(lang: &str) -> Result<(Self, Zeroizing<String>)> {
         let language = match lang {
             "English" => Ok(Language::English),
             "Simplified Chinese" => Ok(Language::SimplifiedChinese),
@@ -44,38 +44,37 @@ impl KeyVault {
             "Korean" => Ok(Language::Korean),
             "Spanish" => Ok(Language::Spanish),
             _ => Err(anyhow!("Language not supported")),
-        }
-        .unwrap();
+        }?;
 
         let word_count: usize = 24;
         let salt = SaltString::generate(&mut OsRng);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let (hd_key, mneomonic) = HDkeys::new(language, word_count);
+        let (hd_key, mneomonic) = HDkeys::new(language, word_count)?;
 
-        let password = ask_password().expect("Failed to get password");
+        let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
+        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
 
-        (key_vault, mneomonic)
+        Ok((key_vault, mneomonic))
     }
 
-    pub fn from_mnemonic(mnemonic: &str) -> Self {
-        let hd_key = HDkeys::from_mnemonic(mnemonic);
+    pub fn from_mnemonic(mnemonic: &str) -> Result<Self> {
+        let hd_key = HDkeys::from_mnemonic(mnemonic)?;
 
         let salt = SaltString::generate(&mut OsRng);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let password = ask_password().expect("Failed to get password");
+        let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
+        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
 
-        key_vault
+        Ok(key_vault)
     }
 
-    pub fn from_seed(seed: [u8; 64]) -> Self {
+    pub fn from_seed(seed: [u8; 64]) -> Result<Self> {
         let hd_key = HDkeys {
             seed: Zeroizing::new(seed),
         };
@@ -84,19 +83,18 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let password = ask_password().expect("Failed to get password");
+        let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password).unwrap();
+        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
 
-        key_vault
+        Ok(key_vault)
     }
 
     pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
-        if !verify_password(&self.vault.mac, &password) {
-            println!("Wrong Password");
-            panic!();
+        if !verify_password(&self.vault.mac, &password)? {
+            bail!("Wrong password");
         };
 
         let seed = decrypt_seed(
@@ -109,17 +107,18 @@ impl KeyVault {
         Ok(seed)
     }
 
-    pub fn load(filename: &Path) -> Self {
-        let f = File::open(filename).unwrap();
+    pub fn load(filename: &Path) -> Result<Self> {
+        let f = File::open(filename)?;
         let rdr = BufReader::new(f);
 
-        serde_json::from_reader(rdr).unwrap()
+        serde_json::from_reader(rdr).context("Failed to parse json file")
     }
 
-    pub fn write(&self, fname: &Path) {
-        let file = File::create(fname).unwrap();
+    pub fn write(&self, fname: &Path) -> Result<()> {
+        let file = File::create(fname)?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer(writer, &self).unwrap();
+
+        serde_json::to_writer(writer, &self).context("Failed to write json file")
     }
 
     pub fn add_pubkey(&mut self, path: &str, pubkey: &str) {
@@ -129,9 +128,8 @@ impl KeyVault {
     pub fn decrypt_vault(&self) -> Result<HDkeys> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
-        if !verify_password(&self.vault.mac, &password) {
-            println!("Wrong Password");
-            panic!();
+        if !verify_password(&self.vault.mac, &password)? {
+            bail!("Wrong password");
         };
 
         let seed = decrypt_seed(

@@ -14,7 +14,7 @@ use crate::{
 
 pub async fn balance(cmds: BalArgs) -> Result<()> {
     let settings = GridBotSettings::load(&cmds.json);
-    let wallet = EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child);
+    let wallet = EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)?;
 
     let bal_a = wallet
         .token_balance(&settings.trading_pair.token_a.address)
@@ -38,9 +38,9 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
 
     let settings = GridBotSettings::load(&cmds.json);
     let wallet = if cmds.dry {
-        EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)
+        EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)?
     } else {
-        EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child)
+        EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child)?
     };
     let cow = CoW::new(&settings.chain)?;
 

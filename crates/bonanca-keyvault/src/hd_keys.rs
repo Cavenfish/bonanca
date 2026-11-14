@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use argon2::password_hash::SaltString;
 use bip32::XPrv;
 use bip39::{Language, Mnemonic};
@@ -16,23 +16,23 @@ pub struct HDkeys {
 }
 
 impl HDkeys {
-    pub fn new(language: Language, word_count: usize) -> (Self, Zeroizing<String>) {
+    pub fn new(language: Language, word_count: usize) -> Result<(Self, Zeroizing<String>)> {
         let mut rng = bip39::rand::thread_rng();
         let mnemonic = Mnemonic::generate_in_with(&mut rng, language, word_count)
-            .expect("Failed to generate mnemonic");
+            .context("Failed to generate mnemonic")?;
 
         let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
         let mnemonic_str = Zeroizing::new(mnemonic.to_string());
 
-        (Self { seed }, mnemonic_str)
+        Ok((Self { seed }, mnemonic_str))
     }
 
-    pub fn from_mnemonic(mnemonic_str: &str) -> Self {
-        let mnemonic = Mnemonic::from_str(mnemonic_str).unwrap();
+    pub fn from_mnemonic(mnemonic_str: &str) -> Result<Self> {
+        let mnemonic = Mnemonic::from_str(mnemonic_str)?;
 
         let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
 
-        Self { seed }
+        Ok(Self { seed })
     }
 
     pub fn get_keyvault(&self, salt: &SaltString, nonce: &str, password: &str) -> Result<KeyVault> {

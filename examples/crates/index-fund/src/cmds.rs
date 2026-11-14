@@ -79,7 +79,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
 
     match (chain, fund.aggregator.name.as_str()) {
         ("EVM", "0x") => {
-            let wallet = EvmWallet::load(&fund.keyvault, &fund.rpc_url, fund.child);
+            let wallet = EvmWallet::load(&fund.keyvault, &fund.rpc_url, fund.child)?;
             let dex = ZeroX::new(fund.aggregator.api_key.clone(), fund.chain_id.unwrap());
 
             for trade in trades.iter() {
@@ -103,7 +103,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
             }
         }
         ("Solana", "Jupiter") => {
-            let wallet = SolWallet::load(&fund.keyvault, &fund.rpc_url, fund.child);
+            let wallet = SolWallet::load(&fund.keyvault, &fund.rpc_url, fund.child)?;
             let dex = Jupiter::new(fund.aggregator.api_key.clone());
 
             for trade in trades.iter() {

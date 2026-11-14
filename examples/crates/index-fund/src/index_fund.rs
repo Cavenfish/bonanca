@@ -51,11 +51,11 @@ impl IndexFund {
 
         match chain {
             "EVM" => {
-                let wallet = EvmWallet::view(&self.keyvault, &self.rpc_url, self.child);
+                let wallet = EvmWallet::view(&self.keyvault, &self.rpc_url, self.child)?;
                 wallet.balance().await
             }
             "Solana" => {
-                let wallet = SolWallet::view(&self.keyvault, &self.rpc_url, self.child);
+                let wallet = SolWallet::view(&self.keyvault, &self.rpc_url, self.child)?;
                 wallet.balance().await
             }
             _ => panic!(),
@@ -71,11 +71,11 @@ impl IndexFund {
 
         match chain {
             "EVM" => {
-                let wallet = EvmWallet::view(&self.keyvault, &self.rpc_url, self.child);
+                let wallet = EvmWallet::view(&self.keyvault, &self.rpc_url, self.child)?;
                 wallet.token_balance(&asset.address).await
             }
             "Solana" => {
-                let wallet = SolWallet::view(&self.keyvault, &self.rpc_url, self.child);
+                let wallet = SolWallet::view(&self.keyvault, &self.rpc_url, self.child)?;
                 wallet.token_balance(&asset.address).await
             }
             _ => panic!(),

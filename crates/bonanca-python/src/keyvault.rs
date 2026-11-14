@@ -11,27 +11,35 @@ pub struct PyKeyVault {
 impl PyKeyVault {
     #[staticmethod]
     fn new(lang: String) -> PyResult<(Self, String)> {
-        let (inner, mnemonic) = KeyVault::new(&lang);
+        let (inner, mnemonic) = KeyVault::new(&lang)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
         Ok((Self { inner }, mnemonic.as_str().to_owned()))
     }
 
     #[staticmethod]
     fn from_mnemonic(mnemonic: String) -> PyResult<Self> {
-        let inner = KeyVault::from_mnemonic(&mnemonic);
+        let inner = KeyVault::from_mnemonic(&mnemonic)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
         Ok(Self { inner })
     }
 
     #[staticmethod]
     fn load(path: String) -> PyResult<Self> {
         let filepath = PathBuf::from(path);
-        let inner = KeyVault::load(&filepath);
+        let inner = KeyVault::load(&filepath)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
         Ok(Self { inner })
     }
 
     fn write(&self, path: String) -> PyResult<()> {
         let filepath = PathBuf::from(path);
-        self.inner.write(&filepath);
+        self.inner
+            .write(&filepath)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+
         Ok(())
     }
 

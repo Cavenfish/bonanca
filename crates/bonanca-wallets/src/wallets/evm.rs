@@ -16,7 +16,7 @@ use alloy_primitives::{
     Address, FixedBytes, Signature, U256, Uint,
     utils::{format_ether, format_units, parse_ether, parse_units},
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
 
 use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
@@ -55,77 +55,83 @@ pub struct EvmWallet {
 }
 
 impl WalletView<&str> for EvmWallet {
-    fn view(pubkey: &str, rpc: &str) -> Self {
-        let rpc_url = Url::parse(rpc).unwrap();
+    fn view(pubkey: &str, rpc: &str) -> Result<Self> {
+        let rpc_url = Url::parse(rpc)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Self {
+        Ok(Self {
             signer: None,
             client,
-            pubkey: Address::from_str(pubkey).unwrap(),
-        }
+            pubkey: Address::from_str(pubkey)?,
+        })
     }
 }
 
 impl WalletLoad<[u8; 32]> for EvmWallet {
-    fn load(pkey: [u8; 32], rpc: &str) -> Self {
+    fn load(pkey: [u8; 32], rpc: &str) -> Result<Self> {
         let key_bytes = FixedBytes::new(pkey);
-        let signer = PrivateKeySigner::from_bytes(&key_bytes).unwrap();
-        let rpc_url = Url::parse(rpc).unwrap();
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
+        let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
         let client: DynProvider = ProviderBuilder::new()
             .wallet(signer.clone())
             .connect_http(rpc_url)
             .erased();
 
-        Self {
+        Ok(Self {
             signer: Some(signer),
             client,
             pubkey,
-        }
+        })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, u32> for EvmWallet {
-    fn view(keyvault: T, rpc: &str, child: u32) -> Self {
-        let key_vault = KeyVault::load(keyvault.as_ref());
+    fn view(keyvault: T, rpc: &str, child: u32) -> Result<Self> {
+        let key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/60'/{child}'/0/0");
-        let pubkey = key_vault.chain_keys.get(&path).unwrap();
-        let rpc_url = Url::parse(rpc).unwrap();
-        let addy = Address::from_str(pubkey).unwrap();
+        let pubkey = key_vault
+            .chain_keys
+            .get(&path)
+            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
+        let rpc_url = Url::parse(rpc)?;
+        let addy = Address::from_str(pubkey)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Self {
+        Ok(Self {
             signer: None,
             client,
             pubkey: addy,
-        }
+        })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, &str> for EvmWallet {
-    fn view(keyvault: T, rpc: &str, path: &str) -> Self {
-        let key_vault = KeyVault::load(keyvault.as_ref());
-        let pubkey = key_vault.chain_keys.get(path).unwrap();
-        let rpc_url = Url::parse(rpc).unwrap();
-        let addy = Address::from_str(pubkey).unwrap();
+    fn view(keyvault: T, rpc: &str, path: &str) -> Result<Self> {
+        let key_vault = KeyVault::load(keyvault.as_ref())?;
+        let pubkey = key_vault
+            .chain_keys
+            .get(path)
+            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
+        let rpc_url = Url::parse(rpc)?;
+        let addy = Address::from_str(pubkey)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Self {
+        Ok(Self {
             signer: None,
             client,
             pubkey: addy,
-        }
+        })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, child: u32) -> Self {
-        let mut key_vault = KeyVault::load(keyvault.as_ref());
+    fn load(keyvault: T, rpc: &str, child: u32) -> Result<Self> {
+        let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/60'/{child}'/0/0");
-        let hd_keys = key_vault.decrypt_vault().unwrap();
-        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child).unwrap();
-        let rpc_url = Url::parse(rpc).unwrap();
+        let hd_keys = key_vault.decrypt_vault()?;
+        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child)?;
+        let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
         let client: DynProvider = ProviderBuilder::new()
             .wallet(signer.clone())
@@ -137,24 +143,24 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
             Some(_) => {}
             None => {
                 key_vault.add_pubkey(&path, &pubkey.to_string());
-                key_vault.write(keyvault.as_ref());
+                key_vault.write(keyvault.as_ref())?;
             }
         }
 
-        Self {
+        Ok(Self {
             signer: Some(signer),
             client,
             pubkey,
-        }
+        })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, path: &str) -> Self {
-        let mut key_vault = KeyVault::load(keyvault.as_ref());
-        let hd_keys = key_vault.decrypt_vault().unwrap();
-        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path).unwrap();
-        let rpc_url = Url::parse(rpc).unwrap();
+    fn load(keyvault: T, rpc: &str, path: &str) -> Result<Self> {
+        let mut key_vault = KeyVault::load(keyvault.as_ref())?;
+        let hd_keys = key_vault.decrypt_vault()?;
+        let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path)?;
+        let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
         let client: DynProvider = ProviderBuilder::new()
             .wallet(signer.clone())
@@ -165,16 +171,16 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
         match key_vault.chain_keys.get(path) {
             Some(_) => {}
             None => {
-                key_vault.add_pubkey(&path, &pubkey.to_string());
-                key_vault.write(keyvault.as_ref());
+                key_vault.add_pubkey(path, &pubkey.to_string());
+                key_vault.write(keyvault.as_ref())?;
             }
         }
 
-        Self {
+        Ok(Self {
             signer: Some(signer),
             client,
             pubkey,
-        }
+        })
     }
 }
 

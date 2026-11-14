@@ -9,20 +9,20 @@ pub enum TransactionData {
     Sol(VersionedTransaction),
 }
 
-pub trait WalletView<T> {
-    fn view(value: T, rpc: &str) -> Self;
+pub trait WalletView<T>: Sized {
+    fn view(value: T, rpc: &str) -> Result<Self>;
 }
 
-pub trait WalletLoad<T> {
-    fn load(value: T, rpc: &str) -> Self;
+pub trait WalletLoad<T>: Sized {
+    fn load(value: T, rpc: &str) -> Result<Self>;
 }
 
-pub trait HdWalletView<T, U> {
-    fn view(value: T, rpc: &str, child: U) -> Self;
+pub trait HdWalletView<T, U>: Sized {
+    fn view(value: T, rpc: &str, child: U) -> Result<Self>;
 }
 
-pub trait HdWalletLoad<T, U> {
-    fn load(value: T, rpc: &str, child: U) -> Self;
+pub trait HdWalletLoad<T, U>: Sized {
+    fn load(value: T, rpc: &str, child: U) -> Result<Self>;
 }
 
 pub trait HdWallets<T, U> {

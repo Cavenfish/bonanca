@@ -29,4 +29,3 @@ bonanca-keyvault.workspace = true
 bonanca-oracle = { path = "./crates/bonanca-oracle", optional = true }
 bonanca-wallets = { path = "./crates/bonanca-wallets" }
 tokio.workspace = true
-

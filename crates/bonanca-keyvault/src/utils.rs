@@ -14,14 +14,16 @@ use zeroize::Zeroizing;
 
 use crate::keyvault::KdfParams;
 
-pub fn verify_password(mac: &str, password: &str) -> bool {
-    let hash = PasswordHash::new(mac).expect("Failed to parse MAC");
+pub(crate) fn verify_password(mac: &str, password: &str) -> Result<bool> {
+    let hash = PasswordHash::new(mac)
+        .map_err(|e| anyhow::Error::msg(e.to_string()))
+        .context("Failed to parse MAC")?;
     let argon2 = Argon2::default();
 
-    argon2.verify_password(password.as_bytes(), &hash).is_ok()
+    Ok(argon2.verify_password(password.as_bytes(), &hash).is_ok())
 }
 
-pub fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
+pub(crate) fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
     let argon2 = Argon2::default();
 
     let password_hash = argon2
@@ -32,7 +34,7 @@ pub fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
     Ok(password_hash)
 }
 
-pub fn encrypt_seed(
+pub(crate) fn encrypt_seed(
     seed: &Zeroizing<[u8; 64]>,
     password: &str,
     nonce: &str,
@@ -52,14 +54,15 @@ pub fn encrypt_seed(
 
     let ciphertext = cipher
         .encrypt(non, seed.as_ref())
-        .expect("Failed to encrypt master key");
+        .map_err(|e| anyhow::Error::msg(e.to_string()))
+        .context("Failed to encrypt master key")?;
 
     let text = ciphertext.encode_hex();
 
     Ok(text)
 }
 
-pub fn decrypt_seed(
+pub(crate) fn decrypt_seed(
     cipher_text: &str,
     password: &str,
     nonce: &str,
@@ -81,7 +84,8 @@ pub fn decrypt_seed(
     let vec_seed = Zeroizing::new(
         cipher
             .decrypt(non, &*ciphertext)
-            .expect("Failed to decrypt master key"),
+            .map_err(|e| anyhow::Error::msg(e.to_string()))
+            .context("Failed to decrypt master key")?,
     );
 
     let seed = Zeroizing::new(vec_seed.as_slice().try_into()?);

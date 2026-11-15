@@ -16,4 +16,5 @@ rpassword = "7.5.2"
 serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.10.9"
+tempfile = "3.27.0"
 zeroize = "1.8.2"

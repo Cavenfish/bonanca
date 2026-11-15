@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::fs::{self, File};
+use std::io::{BufReader, Write};
 use std::path::Path;
 
 use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
@@ -10,6 +10,7 @@ use bip39::Language;
 use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use tempfile::NamedTempFile;
 use zeroize::Zeroizing;
 
 use crate::hd_keys::HDkeys;
@@ -115,10 +116,17 @@ impl KeyVault {
     }
 
     pub fn write(&self, fname: &Path) -> Result<()> {
-        let file = File::create(fname)?;
-        let writer = BufWriter::new(file);
+        let mut tmpfile = NamedTempFile::new()?;
 
-        serde_json::to_writer(writer, &self).context("Failed to write json file")
+        let content =
+            serde_json::to_string_pretty(&self).context("Failed to serialize keyvault")?;
+
+        tmpfile
+            .write_all(content.as_bytes())
+            .context("Failed to write json to tmp file")?;
+
+        fs::rename(tmpfile.path(), fname)?;
+        Ok(())
     }
 
     pub fn add_pubkey(&mut self, path: &str, pubkey: &str) {

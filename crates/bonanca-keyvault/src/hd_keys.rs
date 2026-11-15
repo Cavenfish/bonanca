@@ -56,10 +56,10 @@ impl HDkeys {
     /// Encrypts the seed into a new [`KeyVault`] protected by `password`.
     ///
     /// The key used for AES-256-GCM encryption is derived from `password` and
-    /// the PBKDF2 salt stored in the generated [`KdfParams`]; `salt` is that
-    /// salt as a string and `nonce` is the hex-encoded GCM nonce. The vault
-    /// keeps no password verifier: decrypting the ciphertext is what checks the
-    /// password. The returned vault has no chain keys recorded yet.
+    /// the PBKDF2 salt stored in the generated [`KdfParams`]; `salt` is the
+    /// salt as a string and `nonce` is the hex-encoded GCM nonce. Decrypting the
+    /// ciphertext is what checks the password. The returned vault has no
+    /// chain keys recorded yet.
     pub fn get_keyvault(&self, salt: String, nonce: &str, password: &str) -> Result<KeyVault> {
         let kdf_params = KdfParams {
             key_length: 32,

@@ -36,6 +36,7 @@ fn ask_password() -> Result<Zeroizing<String>> {
     Ok(password)
 }
 
+/// Generates a random 16-byte salt string
 fn get_salt_string() -> String {
     let mut salt = [0u8; 16];
     OsRng.fill_bytes(&mut salt);

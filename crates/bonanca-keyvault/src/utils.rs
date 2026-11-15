@@ -1,51 +1,20 @@
 //! Cryptographic helpers backing [`crate::keyvault`].
 //!
-//! Password hashing uses Argon2id (via [`argon2`]), while the seed itself is
-//! encrypted with AES-256-GCM under a PBKDF2-HMAC-SHA256 derived key.
+//! The seed is encrypted with AES-256-GCM under a key derived with
+//! PBKDF2-HMAC-SHA256. The GCM tag is the only integrity check and also serves
+//! as the password check.
 
 use aes_gcm::{
     Aes256Gcm, Key,
     aead::{Aead, KeyInit, generic_array::GenericArray},
 };
 use anyhow::{Context, Result};
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-};
 use hex::ToHex;
 use pbkdf2::pbkdf2_hmac;
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
 use crate::keyvault::KdfParams;
-
-/// Checks `password` against the Argon2id password hash stored in `mac`.
-///
-/// Returns `Ok(false)` when the password does not match, and an error only when
-/// `mac` cannot be parsed as a PHC password hash string.
-pub(crate) fn verify_password(mac: &str, password: &str) -> Result<bool> {
-    let hash = PasswordHash::new(mac)
-        .map_err(|e| anyhow::Error::msg(e.to_string()))
-        .context("Failed to parse MAC")?;
-    let argon2 = Argon2::default();
-
-    Ok(argon2.verify_password(password.as_bytes(), &hash).is_ok())
-}
-
-/// Hashes `password` with Argon2id using `salt` and returns the PHC string.
-///
-/// The result is stored as the vault MAC and later checked by
-/// [`verify_password`].
-pub(crate) fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
-    let argon2 = Argon2::default();
-
-    let password_hash = argon2
-        .hash_password(password.as_bytes(), salt)
-        .expect("Failed to hash password")
-        .to_string();
-
-    Ok(password_hash)
-}
 
 /// Encrypts the 64-byte `seed` with AES-256-GCM and returns it hex-encoded.
 ///

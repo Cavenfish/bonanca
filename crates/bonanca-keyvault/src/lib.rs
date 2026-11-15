@@ -8,8 +8,10 @@
 //! - [`keyvault::KeyVault`] is the serializable, encrypted container that is
 //!   written to disk and read back by the wallet crates.
 //!
-//! The seed is encrypted with AES-256-GCM using a key derived from the user's
-//! password via PBKDF2, and the password is checked with an Argon2id MAC.
+//! The seed is encrypted with AES-256-GCM under a key derived from the user's
+//! password via PBKDF2. There is no separate password verifier: the GCM
+//! authentication tag doubles as the password check, so a wrong password and a
+//! tampered ciphertext are deliberately indistinguishable.
 
 pub mod hd_keys;
 pub mod keyvault;
@@ -19,7 +21,7 @@ mod utils;
 mod tests {
     use super::hd_keys::HDkeys;
     use super::keyvault::KeyVault;
-    use super::utils::{decrypt_seed, verify_password};
+    use super::utils::decrypt_seed;
     use argon2::password_hash::SaltString;
     use zeroize::Zeroizing;
 
@@ -44,8 +46,6 @@ mod tests {
         let nonce = "287189f34a1433d2de201d08";
 
         let keyvault = hd_keys.get_keyvault(&salt, nonce, password).unwrap();
-
-        assert!(verify_password(&keyvault.vault.mac, password).unwrap());
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,
@@ -90,8 +90,6 @@ mod tests {
             .as_slice()
             .try_into()
             .unwrap();
-
-        assert!(verify_password(&keyvault.vault.mac, password).unwrap());
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,

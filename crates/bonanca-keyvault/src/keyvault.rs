@@ -20,7 +20,7 @@ use tempfile::NamedTempFile;
 use zeroize::Zeroizing;
 
 use crate::hd_keys::HDkeys;
-use crate::utils::{decrypt_seed, verify_password};
+use crate::utils::decrypt_seed;
 
 /// Interactively prompts twice for a new vault password and checks they match.
 fn ask_password() -> Result<Zeroizing<String>> {
@@ -118,14 +118,10 @@ impl KeyVault {
 
     /// Prompts for the vault password and returns the decrypted seed.
     ///
-    /// Fails with `"Wrong password"` if the password does not match the stored
-    /// Argon2id MAC.
+    /// Fails if the password is wrong or the ciphertext was tampered with;
+    /// AES-GCM authentication cannot tell the two apart.
     pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
-
-        if !verify_password(&self.vault.mac, &password)? {
-            bail!("Wrong password");
-        };
 
         let seed = decrypt_seed(
             &self.vault.cipher_text,
@@ -175,14 +171,10 @@ impl KeyVault {
 
     /// Prompts for the vault password and returns the seed wrapped in [`HDkeys`].
     ///
-    /// Fails with `"Wrong password"` if the password does not match the stored
-    /// Argon2id MAC.
+    /// Fails if the password is wrong or the ciphertext was tampered with;
+    /// AES-GCM authentication cannot tell the two apart.
     pub fn decrypt_vault(&self) -> Result<HDkeys> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
-
-        if !verify_password(&self.vault.mac, &password)? {
-            bail!("Wrong password");
-        };
 
         let seed = decrypt_seed(
             &self.vault.cipher_text,
@@ -198,7 +190,8 @@ impl KeyVault {
 /// The encrypted master seed and the parameters required to decrypt it.
 ///
 /// `cipher`/`kdf` name the algorithms (currently `"aes256-gcm"` and
-/// `"pbkdf2"`), and `mac` is the Argon2id hash used to verify the password.
+/// `"pbkdf2"`); the vault carries no separate password verifier, because the
+/// AES-GCM tag already fails on a wrong key.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Vault {
     /// Identifier of the symmetric cipher used for `cipher_text`.
@@ -211,10 +204,6 @@ pub struct Vault {
     pub kdf: String,
     /// Key derivation parameters, such as the salt and iteration count.
     pub kdf_params: KdfParams,
-    /// Argon2id PHC string used to verify the vault password.
-    pub mac: String,
-    /// Salt shared by the KDF and the password MAC.
-    pub salt: String,
 }
 
 /// Parameters for the PBKDF2 key derivation function.
@@ -224,7 +213,7 @@ pub struct KdfParams {
     pub key_length: u8,
     /// Number of PBKDF2 iterations.
     pub n: u32,
-    /// Salt used for key derivation, base64-encoded.
+    /// Salt used for key derivation; its string bytes are fed to PBKDF2 as-is.
     pub salt: String,
 }
 

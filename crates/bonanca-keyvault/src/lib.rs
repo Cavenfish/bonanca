@@ -22,7 +22,6 @@ mod tests {
     use super::hd_keys::HDkeys;
     use super::keyvault::KeyVault;
     use super::utils::decrypt_seed;
-    use argon2::password_hash::SaltString;
     use zeroize::Zeroizing;
 
     #[test]
@@ -42,10 +41,10 @@ mod tests {
         assert_eq!(hd_keys.seed, seed);
         assert_eq!(hex::encode(*hd_keys.seed), seed_hex);
 
-        let salt = SaltString::from_b64("M6lWvNAGuZBSp9fBGAUEqw").unwrap();
+        let salt = "M6lWvNAGuZBSp9fBGAUEqw".to_string();
         let nonce = "287189f34a1433d2de201d08";
 
-        let keyvault = hd_keys.get_keyvault(&salt, nonce, password).unwrap();
+        let keyvault = hd_keys.get_keyvault(salt, nonce, password).unwrap();
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,

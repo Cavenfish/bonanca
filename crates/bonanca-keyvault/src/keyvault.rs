@@ -9,9 +9,11 @@ use std::fs::{self, File};
 use std::io::{BufReader, Write};
 use std::path::Path;
 
-use aes_gcm::{AeadCore, Aes256Gcm, aead::OsRng};
+use aes_gcm::{
+    AeadCore, Aes256Gcm,
+    aead::{OsRng, rand_core::RngCore},
+};
 use anyhow::{Context, Result, anyhow, bail};
-use argon2::password_hash::SaltString;
 use bip39::Language;
 use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
@@ -32,6 +34,12 @@ fn ask_password() -> Result<Zeroizing<String>> {
     }
 
     Ok(password)
+}
+
+fn get_salt_string() -> String {
+    let mut salt = [0u8; 16];
+    OsRng.fill_bytes(&mut salt);
+    hex::encode(salt)
 }
 
 /// An encrypted master seed plus the public keys derived from it.
@@ -67,7 +75,7 @@ impl KeyVault {
         }?;
 
         let word_count: usize = 24;
-        let salt = SaltString::generate(&mut OsRng);
+        let salt = get_salt_string();
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
@@ -75,7 +83,7 @@ impl KeyVault {
 
         let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
+        let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
         Ok((key_vault, mneomonic))
     }
@@ -86,13 +94,13 @@ impl KeyVault {
     pub fn from_mnemonic(mnemonic: &str) -> Result<Self> {
         let hd_key = HDkeys::from_mnemonic(mnemonic)?;
 
-        let salt = SaltString::generate(&mut OsRng);
+        let salt = get_salt_string();
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
         let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
+        let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
         Ok(key_vault)
     }
@@ -105,13 +113,13 @@ impl KeyVault {
             seed: Zeroizing::new(seed),
         };
 
-        let salt = SaltString::generate(&mut OsRng);
+        let salt = get_salt_string();
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
         let password = ask_password().context("Failed to get password")?;
 
-        let key_vault = hd_key.get_keyvault(&salt, &nonce, &password)?;
+        let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
         Ok(key_vault)
     }

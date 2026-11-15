@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
-use argon2::password_hash::SaltString;
 use bip32::XPrv;
 use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
@@ -61,11 +60,11 @@ impl HDkeys {
     /// salt as a string and `nonce` is the hex-encoded GCM nonce. The vault
     /// keeps no password verifier: decrypting the ciphertext is what checks the
     /// password. The returned vault has no chain keys recorded yet.
-    pub fn get_keyvault(&self, salt: &SaltString, nonce: &str, password: &str) -> Result<KeyVault> {
+    pub fn get_keyvault(&self, salt: String, nonce: &str, password: &str) -> Result<KeyVault> {
         let kdf_params = KdfParams {
             key_length: 32,
             n: 600_000, // OWASP recommendation
-            salt: salt.as_str().to_string(),
+            salt,
         };
 
         let cipher_text = encrypt_seed(&self.seed, &password, nonce, &kdf_params)?;

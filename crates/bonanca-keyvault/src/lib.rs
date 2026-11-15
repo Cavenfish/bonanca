@@ -1,3 +1,16 @@
+//! Hierarchical deterministic (HD) key generation and encrypted seed storage.
+//!
+//! This crate provides the primitives used by Bonanca to keep a wallet's master
+//! seed at rest and to derive per-chain private keys from it:
+//!
+//! - [`hd_keys::HDkeys`] wraps a BIP-39 seed and derives Ed25519 (Solana) and
+//!   secp256k1 (EVM) child keys from derivation paths.
+//! - [`keyvault::KeyVault`] is the serializable, encrypted container that is
+//!   written to disk and read back by the wallet crates.
+//!
+//! The seed is encrypted with AES-256-GCM using a key derived from the user's
+//! password via PBKDF2, and the password is checked with an Argon2id MAC.
+
 pub mod hd_keys;
 pub mod keyvault;
 mod utils;

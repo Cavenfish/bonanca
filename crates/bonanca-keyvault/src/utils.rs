@@ -1,3 +1,8 @@
+//! Cryptographic helpers backing [`crate::keyvault`].
+//!
+//! Password hashing uses Argon2id (via [`argon2`]), while the seed itself is
+//! encrypted with AES-256-GCM under a PBKDF2-HMAC-SHA256 derived key.
+
 use aes_gcm::{
     Aes256Gcm, Key,
     aead::{Aead, KeyInit, generic_array::GenericArray},
@@ -14,6 +19,10 @@ use zeroize::Zeroizing;
 
 use crate::keyvault::KdfParams;
 
+/// Checks `password` against the Argon2id password hash stored in `mac`.
+///
+/// Returns `Ok(false)` when the password does not match, and an error only when
+/// `mac` cannot be parsed as a PHC password hash string.
 pub(crate) fn verify_password(mac: &str, password: &str) -> Result<bool> {
     let hash = PasswordHash::new(mac)
         .map_err(|e| anyhow::Error::msg(e.to_string()))
@@ -23,6 +32,10 @@ pub(crate) fn verify_password(mac: &str, password: &str) -> Result<bool> {
     Ok(argon2.verify_password(password.as_bytes(), &hash).is_ok())
 }
 
+/// Hashes `password` with Argon2id using `salt` and returns the PHC string.
+///
+/// The result is stored as the vault MAC and later checked by
+/// [`verify_password`].
 pub(crate) fn hash_password(password: &str, salt: &SaltString) -> Result<String> {
     let argon2 = Argon2::default();
 
@@ -34,6 +47,11 @@ pub(crate) fn hash_password(password: &str, salt: &SaltString) -> Result<String>
     Ok(password_hash)
 }
 
+/// Encrypts the 64-byte `seed` with AES-256-GCM and returns it hex-encoded.
+///
+/// The 32-byte AES key is derived from `password` and the salt/iteration count
+/// in `kdf_params` using PBKDF2-HMAC-SHA256; `nonce` is the hex-encoded GCM
+/// nonce.
 pub(crate) fn encrypt_seed(
     seed: &Zeroizing<[u8; 64]>,
     password: &str,
@@ -62,6 +80,11 @@ pub(crate) fn encrypt_seed(
     Ok(text)
 }
 
+/// Decrypts a hex-encoded seed produced by [`encrypt_seed`].
+///
+/// The key is re-derived from `password` and `kdf_params`; `nonce` must be the
+/// same hex-encoded nonce used during encryption. The returned 64-byte seed is
+/// zeroized on drop.
 pub(crate) fn decrypt_seed(
     cipher_text: &str,
     password: &str,

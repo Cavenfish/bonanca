@@ -1,3 +1,9 @@
+//! The on-disk keyvault format and its password-protected lifecycle.
+//!
+//! A [`KeyVault`] bundles an encrypted master seed ([`Vault`]) with a map of
+//! already-derived public keys, and is serialized to JSON. Creating a vault (or
+//! decrypting it) prompts for the password interactively via `rpassword`.
+
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, Write};
@@ -16,6 +22,7 @@ use zeroize::Zeroizing;
 use crate::hd_keys::HDkeys;
 use crate::utils::{decrypt_seed, verify_password};
 
+/// Interactively prompts twice for a new vault password and checks they match.
 fn ask_password() -> Result<Zeroizing<String>> {
     let password = Zeroizing::new(prompt_password("Set Keyvault Password: ")?);
     let confirm = Zeroizing::new(prompt_password("Confirm Password: ")?);
@@ -27,13 +34,25 @@ fn ask_password() -> Result<Zeroizing<String>> {
     Ok(password)
 }
 
+/// An encrypted master seed plus the public keys derived from it.
+///
+/// This is the serializable form of a wallet, typically stored as a JSON file
+/// and loaded with [`KeyVault::load`].
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyVault {
+    /// The encrypted seed and the parameters needed to decrypt it.
     pub vault: Vault,
+    /// Mapping from derivation path to the hex-encoded public key at that path.
     pub chain_keys: HashMap<String, String>,
 }
 
 impl KeyVault {
+    /// Generates a fresh mnemonic and encrypts it into a new vault.
+    ///
+    /// `lang` is the mnemonic language name (e.g. `"English"`); unsupported
+    /// languages return an error. The password is read from stdin. Returns the
+    /// vault together with the mnemonic, which must be shown to the user for
+    /// backup before it is discarded.
     pub fn new(lang: &str) -> Result<(Self, Zeroizing<String>)> {
         let language = match lang {
             "English" => Ok(Language::English),
@@ -61,6 +80,9 @@ impl KeyVault {
         Ok((key_vault, mneomonic))
     }
 
+    /// Builds and encrypts a vault from an existing mnemonic phrase.
+    ///
+    /// The password is read from stdin.
     pub fn from_mnemonic(mnemonic: &str) -> Result<Self> {
         let hd_key = HDkeys::from_mnemonic(mnemonic)?;
 
@@ -75,6 +97,9 @@ impl KeyVault {
         Ok(key_vault)
     }
 
+    /// Builds and encrypts a vault from a raw 64-byte seed.
+    ///
+    /// The password is read from stdin.
     pub fn from_seed(seed: [u8; 64]) -> Result<Self> {
         let hd_key = HDkeys {
             seed: Zeroizing::new(seed),
@@ -91,6 +116,10 @@ impl KeyVault {
         Ok(key_vault)
     }
 
+    /// Prompts for the vault password and returns the decrypted seed.
+    ///
+    /// Fails with `"Wrong password"` if the password does not match the stored
+    /// Argon2id MAC.
     pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
@@ -108,6 +137,10 @@ impl KeyVault {
         Ok(seed)
     }
 
+    /// Reads a vault from the JSON file at `filename`.
+    ///
+    /// No decryption happens here; use [`KeyVault::get_seed`] or
+    /// [`KeyVault::decrypt_vault`] for that.
     pub fn load(filename: &Path) -> Result<Self> {
         let f = File::open(filename)?;
         let rdr = BufReader::new(f);
@@ -115,6 +148,10 @@ impl KeyVault {
         serde_json::from_reader(rdr).context("Failed to parse json file")
     }
 
+    /// Serializes the vault as pretty-printed JSON to `fname`.
+    ///
+    /// The content is first written to a temporary file in the same directory
+    /// and then renamed, so an existing vault is never left partially written.
     pub fn write(&self, fname: &Path) -> Result<()> {
         let mut tmpfile = NamedTempFile::new()?;
 
@@ -129,10 +166,17 @@ impl KeyVault {
         Ok(())
     }
 
+    /// Records `pubkey` as the public key for derivation `path`.
+    ///
+    /// Any existing entry for the same path is overwritten.
     pub fn add_pubkey(&mut self, path: &str, pubkey: &str) {
         self.chain_keys.insert(path.to_string(), pubkey.to_string());
     }
 
+    /// Prompts for the vault password and returns the seed wrapped in [`HDkeys`].
+    ///
+    /// Fails with `"Wrong password"` if the password does not match the stored
+    /// Argon2id MAC.
     pub fn decrypt_vault(&self) -> Result<HDkeys> {
         let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
 
@@ -151,25 +195,42 @@ impl KeyVault {
     }
 }
 
+/// The encrypted master seed and the parameters required to decrypt it.
+///
+/// `cipher`/`kdf` name the algorithms (currently `"aes256-gcm"` and
+/// `"pbkdf2"`), and `mac` is the Argon2id hash used to verify the password.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Vault {
+    /// Identifier of the symmetric cipher used for `cipher_text`.
     pub cipher: String,
+    /// Cipher-specific parameters, such as the GCM nonce.
     pub cipher_params: CipherParams,
+    /// Hex-encoded ciphertext of the master seed.
     pub cipher_text: String,
+    /// Identifier of the key derivation function used to derive the AES key.
     pub kdf: String,
+    /// Key derivation parameters, such as the salt and iteration count.
     pub kdf_params: KdfParams,
+    /// Argon2id PHC string used to verify the vault password.
     pub mac: String,
+    /// Salt shared by the KDF and the password MAC.
     pub salt: String,
 }
 
+/// Parameters for the PBKDF2 key derivation function.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KdfParams {
+    /// Length in bytes of the derived AES key.
     pub key_length: u8,
+    /// Number of PBKDF2 iterations.
     pub n: u32,
+    /// Salt used for key derivation, base64-encoded.
     pub salt: String,
 }
 
+/// Parameters for the AES-256-GCM cipher.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CipherParams {
+    /// Hex-encoded GCM nonce; must be unique per encryption.
     pub nonce: String,
 }

@@ -10,16 +10,16 @@ pub struct PyKeyVault {
 #[pymethods]
 impl PyKeyVault {
     #[staticmethod]
-    fn new(lang: String) -> PyResult<(Self, String)> {
-        let (inner, mnemonic) = KeyVault::new(&lang)
+    fn new(lang: String, password: String) -> PyResult<(Self, String)> {
+        let (inner, mnemonic) = KeyVault::new(&lang, &password)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
         Ok((Self { inner }, mnemonic.as_str().to_owned()))
     }
 
     #[staticmethod]
-    fn from_mnemonic(mnemonic: String) -> PyResult<Self> {
-        let inner = KeyVault::from_mnemonic(&mnemonic)
+    fn from_mnemonic(mnemonic: String, password: String) -> PyResult<Self> {
+        let inner = KeyVault::from_mnemonic(&mnemonic, &password)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
         Ok(Self { inner })
@@ -43,9 +43,9 @@ impl PyKeyVault {
         Ok(())
     }
 
-    fn get_seed(&self) -> PyResult<Vec<u8>> {
+    fn get_seed(&self, password: String) -> PyResult<Vec<u8>> {
         self.inner
-            .get_seed()
+            .get_seed(&password)
             .map(|seed| seed.to_vec())
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     }

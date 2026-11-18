@@ -126,10 +126,10 @@ impl<T: AsRef<Path>> HdWalletView<T, &str> for EvmWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, child: u32) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, child: u32, password: &str) -> Result<Self> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/60'/{child}'/0/0");
-        let hd_keys = key_vault.decrypt_vault()?;
+        let hd_keys = key_vault.decrypt_vault(password)?;
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child)?;
         let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
@@ -156,9 +156,9 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, path: &str) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, path: &str, password: &str) -> Result<Self> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
-        let hd_keys = key_vault.decrypt_vault()?;
+        let hd_keys = key_vault.decrypt_vault(password)?;
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path)?;
         let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();

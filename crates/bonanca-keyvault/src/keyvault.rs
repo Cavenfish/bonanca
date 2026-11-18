@@ -13,9 +13,8 @@ use aes_gcm::{
     AeadCore, Aes256Gcm,
     aead::{OsRng, rand_core::RngCore},
 };
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use bip39::Language;
-use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use tempfile::NamedTempFile;
@@ -23,18 +22,6 @@ use zeroize::Zeroizing;
 
 use crate::hd_keys::HDkeys;
 use crate::utils::decrypt_seed;
-
-/// Interactively prompts twice for a new vault password and checks they match.
-fn ask_password() -> Result<Zeroizing<String>> {
-    let password = Zeroizing::new(prompt_password("Set Keyvault Password: ")?);
-    let confirm = Zeroizing::new(prompt_password("Confirm Password: ")?);
-
-    if password != confirm {
-        bail!("Passwords do not match");
-    }
-
-    Ok(password)
-}
 
 /// Generates a random 16-byte salt string
 fn get_salt_string() -> String {
@@ -59,10 +46,9 @@ impl KeyVault {
     /// Generates a fresh mnemonic and encrypts it into a new vault.
     ///
     /// `lang` is the mnemonic language name (e.g. `"English"`); unsupported
-    /// languages return an error. The password is read from stdin. Returns the
-    /// vault together with the mnemonic, which must be shown to the user for
-    /// backup before it is discarded.
-    pub fn new(lang: &str) -> Result<(Self, Zeroizing<String>)> {
+    /// languages return an error. `password` is the encryption password.
+    /// Returns the vault and mneomonic.
+    pub fn new(lang: &str, password: &str) -> Result<(Self, Zeroizing<String>)> {
         let language = match lang {
             "English" => Ok(Language::English),
             "Simplified Chinese" => Ok(Language::SimplifiedChinese),
@@ -82,8 +68,6 @@ impl KeyVault {
 
         let (hd_key, mneomonic) = HDkeys::new(language, word_count)?;
 
-        let password = ask_password().context("Failed to get password")?;
-
         let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
         Ok((key_vault, mneomonic))
@@ -91,15 +75,13 @@ impl KeyVault {
 
     /// Builds and encrypts a vault from an existing mnemonic phrase.
     ///
-    /// The password is read from stdin.
-    pub fn from_mnemonic(mnemonic: &str) -> Result<Self> {
+    /// Takes in mnemonic and password.
+    pub fn from_mnemonic(mnemonic: &str, password: &str) -> Result<Self> {
         let hd_key = HDkeys::from_mnemonic(mnemonic)?;
 
         let salt = get_salt_string();
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
-
-        let password = ask_password().context("Failed to get password")?;
 
         let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
@@ -108,8 +90,8 @@ impl KeyVault {
 
     /// Builds and encrypts a vault from a raw 64-byte seed.
     ///
-    /// The password is read from stdin.
-    pub fn from_seed(seed: [u8; 64]) -> Result<Self> {
+    /// Takes in a 64-byte seed and the password
+    pub fn from_seed(seed: [u8; 64], password: &str) -> Result<Self> {
         let hd_key = HDkeys {
             seed: Zeroizing::new(seed),
         };
@@ -118,20 +100,16 @@ impl KeyVault {
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let nonce = hex::encode(nonce);
 
-        let password = ask_password().context("Failed to get password")?;
-
         let key_vault = hd_key.get_keyvault(salt, &nonce, &password)?;
 
         Ok(key_vault)
     }
 
-    /// Prompts for the vault password and returns the decrypted seed.
+    /// Retrieves the decrypted seed.
     ///
     /// Fails if the password is wrong or the ciphertext was tampered with;
     /// AES-GCM authentication cannot tell the two apart.
-    pub fn get_seed(&self) -> Result<Zeroizing<[u8; 64]>> {
-        let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
-
+    pub fn get_seed(&self, password: &str) -> Result<Zeroizing<[u8; 64]>> {
         let seed = decrypt_seed(
             &self.vault.cipher_text,
             &password,
@@ -178,13 +156,11 @@ impl KeyVault {
         self.chain_keys.insert(path.to_string(), pubkey.to_string());
     }
 
-    /// Prompts for the vault password and returns the seed wrapped in [`HDkeys`].
+    /// Retrieves the seed wrapped in [`HDkeys`].
     ///
     /// Fails if the password is wrong or the ciphertext was tampered with;
     /// AES-GCM authentication cannot tell the two apart.
-    pub fn decrypt_vault(&self) -> Result<HDkeys> {
-        let password = Zeroizing::new(prompt_password("Keyvault Password: ")?);
-
+    pub fn decrypt_vault(&self, password: &str) -> Result<HDkeys> {
         let seed = decrypt_seed(
             &self.vault.cipher_text,
             &password,

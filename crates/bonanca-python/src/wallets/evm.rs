@@ -51,8 +51,8 @@ impl PyEvmWallet {
     }
 
     #[staticmethod]
-    fn load(keyvault: PathBuf, rpc: &str, child: u32) -> PyResult<Self> {
-        let inner = EvmWallet::load(&keyvault, rpc, child)
+    fn load(keyvault: PathBuf, rpc: &str, child: u32, password: &str) -> PyResult<Self> {
+        let inner = EvmWallet::load(&keyvault, rpc, child, password)
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
         let rt = Runtime::new().unwrap();
         Ok(Self { inner, rt })

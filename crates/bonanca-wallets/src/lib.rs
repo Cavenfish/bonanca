@@ -22,9 +22,9 @@ pub trait HdWalletView<T, U>: Sized {
 }
 
 pub trait HdWalletLoad<T, U>: Sized {
-    fn load(value: T, rpc: &str, child: U) -> Result<Self>;
+    fn load(value: T, rpc: &str, child: U, password: &str) -> Result<Self>;
 }
 
-pub trait HdWallets<T, U> {
+pub(crate) trait HdWallets<T, U> {
     fn get_child_keypair(&self, child: U) -> Result<T>;
 }

@@ -41,4 +41,12 @@ pub struct RebalArgs {
     /// Preview rebalance trades
     #[arg(short, long, action)]
     pub preview: bool,
+
+    /// Keyvault password.
+    ///
+    /// NOTE: Passing passwords via command-line arguments is not a secure way to
+    /// handle secrets (they may be exposed in shell history/process listings).
+    /// This is included here for demo purposes only.
+    #[arg(long)]
+    pub password: Option<String>,
 }

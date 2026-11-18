@@ -21,11 +21,19 @@ cargo build --release
 
 ## Basic Usage
 
-This example project build a CLI which includes help docs that cover basic usage.
+This example project builds a CLI which includes help docs that cover basic usage.
 
 ```bash
 grid-bot --help
 ```
+
+When running the bot (non-dry mode), provide the keyvault password via `--password`:
+
+```bash
+grid-bot run -j ./grid_bot.json --password "$KEYVAULT_PASSWORD"
+```
+
+> **Note:** Passing passwords via command-line arguments is not a secure way to handle secrets (they may be exposed in shell history or process listings). This is included here for demo purposes only. For real applications, use a safer secret-handling mechanism.
 
 ## Configuration
 

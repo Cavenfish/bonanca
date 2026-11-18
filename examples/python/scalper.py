@@ -134,14 +134,19 @@ class Scalper:
             with open(self.config.log_file, "r") as f:
                 self.log = Log(json.load(f))
 
-    def load_wallet(self, dry=True):
+    def load_wallet(self, dry=True, password=None):
         if dry:
             self.wallet = bonanca.wallets.EvmWallet.view(
                 self.config.keyvault, self.config.rpc_url, self.config.child
             )
         else:
+            # NOTE: Passing passwords via command-line arguments is not a secure way
+            # to handle secrets in real applications. This is done here for demo
+            # purposes only.
+            if password is None:
+                raise ValueError("--password is required unless running with --dry")
             self.wallet = bonanca.wallets.EvmWallet.load(
-                self.config.keyvault, self.config.rpc_url, self.config.child
+                self.config.keyvault, self.config.rpc_url, self.config.child, password
             )
 
     def load_dex(self, chain: str):
@@ -159,7 +164,7 @@ class Scalper:
             raise
 
     def print_balances(self):
-        self.load_wallet(self.config.chain)
+        self.load_wallet(dry=True)
 
         base_bal = self.wallet.token_balance(self.config.base.address)
         target_bal = self.wallet.token_balance(self.config.target.address)
@@ -405,12 +410,34 @@ class Scalper:
 
         self.log.save(self.config.log_file)
 
-    def run(self, dry=True):
-        self.load_wallet(dry=dry)
+    def run(self, dry=True, password=None):
+        self.load_wallet(dry=dry, password=password)
         self.set_buy_levels(dry=dry)
         self.set_sell_levels(dry=dry)
 
 
 if __name__ == "__main__":
-    scalper = Scalper(Path("./scalper.toml"))
-    scalper.run(dry=True)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run the scalper example bot.")
+    parser.add_argument(
+        "--config",
+        default="./scalper.toml",
+        help="Path to the scalper configuration TOML file.",
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Place real trades (default is dry-run mode).",
+    )
+    # NOTE: Passing passwords via command-line arguments is not a secure way to
+    # handle secrets (they may be exposed in shell history/process listings).
+    # This is included here for demo purposes only.
+    parser.add_argument(
+        "--password",
+        help="Keyvault password (required for --live; demo only, not secure).",
+    )
+    args = parser.parse_args()
+
+    scalper = Scalper(Path(args.config))
+    scalper.run(dry=not args.live, password=args.password)

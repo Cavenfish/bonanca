@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bonanca::defi::{Jupiter, ZeroX};
 use bonanca::wallets::{EvmWallet, HdWalletLoad, SolWallet};
 
@@ -65,12 +65,19 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
         return Ok(());
     }
 
-    let _ = make_trades(&fund, trades).await?;
+    // NOTE: Using a password from a CLI argument is not a secure way to handle
+    // secrets in real applications. This is done here for demo purposes only.
+    let password = cmd
+        .password
+        .as_deref()
+        .context("--password is required unless --preview is set")?;
+
+    let _ = make_trades(&fund, trades, password).await?;
 
     Ok(())
 }
 
-async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
+async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>, password: &str) -> Result<()> {
     let chain = if fund.chain.contains(":") {
         fund.chain.split(":").next().unwrap()
     } else {
@@ -79,7 +86,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
 
     match (chain, fund.aggregator.name.as_str()) {
         ("EVM", "0x") => {
-            let wallet = EvmWallet::load(&fund.keyvault, &fund.rpc_url, fund.child)?;
+            let wallet = EvmWallet::load(&fund.keyvault, &fund.rpc_url, fund.child, password)?;
             let dex = ZeroX::new(fund.aggregator.api_key.clone(), fund.chain_id.unwrap());
 
             for trade in trades.iter() {
@@ -103,7 +110,7 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>) -> Result<()> {
             }
         }
         ("Solana", "Jupiter") => {
-            let wallet = SolWallet::load(&fund.keyvault, &fund.rpc_url, fund.child)?;
+            let wallet = SolWallet::load(&fund.keyvault, &fund.rpc_url, fund.child, password)?;
             let dex = Jupiter::new(fund.aggregator.api_key.clone());
 
             for trade in trades.iter() {

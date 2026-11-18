@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use bonanca::{
     defi::CoW,
     wallets::{EvmWallet, HdWalletLoad, HdWalletView},
@@ -40,7 +40,13 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
     let wallet = if cmds.dry {
         EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)?
     } else {
-        EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child)?
+        // NOTE: Using a password from a CLI argument is not a secure way to handle
+        // secrets in real applications. This is done here for demo purposes only.
+        let password = cmds
+            .password
+            .as_deref()
+            .context("--password is required unless --dry is set")?;
+        EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child, password)?
     };
     let cow = CoW::new(&settings.chain)?;
 

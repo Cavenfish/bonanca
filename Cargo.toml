@@ -11,12 +11,12 @@ members = ["crates/*", "examples/crates/*"]
 alloy = "2.0.4"
 alloy-primitives = "1.5.7"
 anyhow = "1.0.102"
-bincode = "2.0.1"
 bonanca-api-lib = { path = "./crates/bonanca-api-lib" }
 bonanca-keyvault = { path = "./crates/bonanca-keyvault" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 solana-sdk = "3.0.0"
+thiserror = "2.0.21"
 tokio = { version = "1.52.2", features = ["full"] }
 
 [features]

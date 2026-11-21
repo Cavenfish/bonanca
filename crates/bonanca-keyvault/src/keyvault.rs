@@ -13,13 +13,13 @@ use aes_gcm::{
     AeadCore, Aes256Gcm,
     aead::{OsRng, rand_core::RngCore},
 };
-use anyhow::{Context, Result, anyhow};
 use bip39::Language;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use tempfile::NamedTempFile;
 use zeroize::Zeroizing;
 
+use crate::KeyVaultErrors;
 use crate::hd_keys::HDkeys;
 use crate::utils::decrypt_seed;
 
@@ -48,18 +48,27 @@ impl KeyVault {
     /// `lang` is the mnemonic language name (e.g. `"English"`); unsupported
     /// languages return an error. `password` is the encryption password.
     /// Returns the vault and mneomonic.
-    pub fn new(lang: &str, password: &str) -> Result<(Self, Zeroizing<String>)> {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyVaultErrors::UnsupportedLanguage`] if `lang` is not one of
+    /// the supported names. Generation and encryption errors from
+    /// [`HDkeys::new`] and [`HDkeys::get_keyvault`] are propagated unchanged.
+    pub fn new(
+        lang: &str,
+        password: &str,
+    ) -> Result<(Self, Zeroizing<String>), KeyVaultErrors> {
         let language = match lang {
-            "English" => Ok(Language::English),
-            "Simplified Chinese" => Ok(Language::SimplifiedChinese),
-            "Traditional Chinese" => Ok(Language::TraditionalChinese),
-            "French" => Ok(Language::French),
-            "Italian" => Ok(Language::Italian),
-            "Japanese" => Ok(Language::Japanese),
-            "Korean" => Ok(Language::Korean),
-            "Spanish" => Ok(Language::Spanish),
-            _ => Err(anyhow!("Language not supported")),
-        }?;
+            "English" => Language::English,
+            "Simplified Chinese" => Language::SimplifiedChinese,
+            "Traditional Chinese" => Language::TraditionalChinese,
+            "French" => Language::French,
+            "Italian" => Language::Italian,
+            "Japanese" => Language::Japanese,
+            "Korean" => Language::Korean,
+            "Spanish" => Language::Spanish,
+            _ => return Err(KeyVaultErrors::UnsupportedLanguage(lang.to_string())),
+        };
 
         let word_count: usize = 24;
         let salt = get_salt_string();
@@ -76,7 +85,13 @@ impl KeyVault {
     /// Builds and encrypts a vault from an existing mnemonic phrase.
     ///
     /// Takes in mnemonic and password.
-    pub fn from_mnemonic(mnemonic: &str, password: &str) -> Result<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Propagates [`KeyVaultErrors::InvalidMnemonic`] from
+    /// [`HDkeys::from_mnemonic`] and encryption failures from
+    /// [`HDkeys::get_keyvault`].
+    pub fn from_mnemonic(mnemonic: &str, password: &str) -> Result<Self, KeyVaultErrors> {
         let hd_key = HDkeys::from_mnemonic(mnemonic)?;
 
         let salt = get_salt_string();
@@ -91,7 +106,12 @@ impl KeyVault {
     /// Builds and encrypts a vault from a raw 64-byte seed.
     ///
     /// Takes in a 64-byte seed and the password
-    pub fn from_seed(seed: [u8; 64], password: &str) -> Result<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Propagates the errors from [`HDkeys::get_keyvault`], including
+    /// [`KeyVaultErrors::EncryptionFailed`] if encryption fails.
+    pub fn from_seed(seed: [u8; 64], password: &str) -> Result<Self, KeyVaultErrors> {
         let hd_key = HDkeys {
             seed: Zeroizing::new(seed),
         };
@@ -109,7 +129,18 @@ impl KeyVault {
     ///
     /// Fails if the password is wrong or the ciphertext was tampered with;
     /// AES-GCM authentication cannot tell the two apart.
-    pub fn get_seed(&self, password: &str) -> Result<Zeroizing<[u8; 64]>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyVaultErrors::UnsupportedCipher`],
+    /// [`KeyVaultErrors::UnsupportedKdf`], or
+    /// [`KeyVaultErrors::InvalidKdfParams`] if the vault header describes
+    /// algorithms or parameters this crate cannot use. Otherwise propagates
+    /// the errors from the internal decryption helper, including
+    /// [`KeyVaultErrors::DecryptionFailed`].
+    pub fn get_seed(&self, password: &str) -> Result<Zeroizing<[u8; 64]>, KeyVaultErrors> {
+        self.vault.validate()?;
+
         let seed = decrypt_seed(
             &self.vault.cipher_text,
             &password,
@@ -124,28 +155,53 @@ impl KeyVault {
     ///
     /// No decryption happens here; use [`KeyVault::get_seed`] or
     /// [`KeyVault::decrypt_vault`] for that.
-    pub fn load(filename: &Path) -> Result<Self> {
-        let f = File::open(filename)?;
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyVaultErrors::ReadFailed`] if the file cannot be opened, or
+    /// [`KeyVaultErrors::InvalidJson`] if its contents are not a valid
+    /// [`KeyVault`]. Algorithm and parameter checks happen on first decryption,
+    /// not here.
+    pub fn load(filename: &Path) -> Result<Self, KeyVaultErrors> {
+        let f = File::open(filename).map_err(|source| KeyVaultErrors::ReadFailed {
+            path: filename.to_path_buf(),
+            source,
+        })?;
         let rdr = BufReader::new(f);
 
-        serde_json::from_reader(rdr).context("Failed to parse json file")
+        serde_json::from_reader(rdr).map_err(KeyVaultErrors::InvalidJson)
     }
 
     /// Serializes the vault as pretty-printed JSON to `fname`.
     ///
     /// The content is first written to a temporary file in the same directory
     /// and then renamed, so an existing vault is never left partially written.
-    pub fn write(&self, fname: &Path) -> Result<()> {
-        let mut tmpfile = NamedTempFile::new()?;
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyVaultErrors::InvalidJson`] if serialization fails, or
+    /// [`KeyVaultErrors::WriteFailed`] with `fname` if the temporary file
+    /// cannot be created, written, or renamed into place.
+    pub fn write(&self, fname: &Path) -> Result<(), KeyVaultErrors> {
+        let mut tmpfile =
+            NamedTempFile::new().map_err(|source| KeyVaultErrors::WriteFailed {
+                path: fname.to_path_buf(),
+                source,
+            })?;
 
-        let content =
-            serde_json::to_string_pretty(&self).context("Failed to serialize keyvault")?;
+        let content = serde_json::to_string_pretty(&self).map_err(KeyVaultErrors::InvalidJson)?;
 
         tmpfile
             .write_all(content.as_bytes())
-            .context("Failed to write json to tmp file")?;
+            .map_err(|source| KeyVaultErrors::WriteFailed {
+                path: fname.to_path_buf(),
+                source,
+            })?;
 
-        fs::rename(tmpfile.path(), fname)?;
+        fs::rename(tmpfile.path(), fname).map_err(|source| KeyVaultErrors::WriteFailed {
+            path: fname.to_path_buf(),
+            source,
+        })?;
         Ok(())
     }
 
@@ -156,11 +212,31 @@ impl KeyVault {
         self.chain_keys.insert(path.to_string(), pubkey.to_string());
     }
 
+    /// Retrieves the public key previously recorded for `path`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyVaultErrors::MissingPublicKey`] if no key has been recorded
+    /// for `path`.
+    pub fn get_pubkey(&self, path: &str) -> Result<&str, KeyVaultErrors> {
+        self.chain_keys
+            .get(path)
+            .map(String::as_str)
+            .ok_or_else(|| KeyVaultErrors::MissingPublicKey(path.to_string()))
+    }
+
     /// Retrieves the seed wrapped in [`HDkeys`].
     ///
     /// Fails if the password is wrong or the ciphertext was tampered with;
     /// AES-GCM authentication cannot tell the two apart.
-    pub fn decrypt_vault(&self, password: &str) -> Result<HDkeys> {
+    ///
+    /// # Errors
+    ///
+    /// Same as [`KeyVault::get_seed`]: vault header validation errors followed
+    /// by the errors from the internal decryption helper.
+    pub fn decrypt_vault(&self, password: &str) -> Result<HDkeys, KeyVaultErrors> {
+        self.vault.validate()?;
+
         let seed = decrypt_seed(
             &self.vault.cipher_text,
             &password,
@@ -169,6 +245,35 @@ impl KeyVault {
         )?;
 
         Ok(HDkeys { seed })
+    }
+}
+
+impl Vault {
+    /// Rejects vaults whose header names unsupported algorithms or unusable
+    /// KDF parameters before any key derivation or decryption is attempted.
+    fn validate(&self) -> Result<(), KeyVaultErrors> {
+        if self.cipher != "aes256-gcm" {
+            return Err(KeyVaultErrors::UnsupportedCipher(self.cipher.clone()));
+        }
+        if self.kdf != "pbkdf2" {
+            return Err(KeyVaultErrors::UnsupportedKdf(self.kdf.clone()));
+        }
+        if self.kdf_params.key_length != 32 {
+            return Err(KeyVaultErrors::InvalidKdfParams(
+                "key_length must be 32 bytes for AES-256",
+            ));
+        }
+        if self.kdf_params.n == 0 {
+            return Err(KeyVaultErrors::InvalidKdfParams(
+                "PBKDF2 iteration count must be greater than zero",
+            ));
+        }
+        if self.kdf_params.salt.is_empty() {
+            return Err(KeyVaultErrors::InvalidKdfParams(
+                "PBKDF2 salt must not be empty",
+            ));
+        }
+        Ok(())
     }
 }
 

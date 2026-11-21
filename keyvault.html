@@ -192,13 +192,11 @@ define. An example key vault <code>json</code> file structure is as follows:</p>
       "key_length": 32,
       "n": 600000,
       "salt": "M6lWvNAGuZBSp9fBGAUEqw"
-    },
-    "mac": "$argon2id$v=19$m=19456,t=2,p=1$M6lWvNAGuZBSp9fBGAUEqw$/U5VYPmg3+BQj0ttOyPnOUjH7bP23V9/tgvBpovna/8",
-    "salt": "M6lWvNAGuZBSp9fBGAUEqw"
+    }
   },
   "chain_keys": {
-    "Solana": ["AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG"],
-    "EVM": ["0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"]
+    "m/44'/501'/0'/0'": "AbwHhAquPXvDfxvWEh1b4mG969DQF9wJQSK5k8XKSKtG",
+    "m/44'/60'/0'/0/0": "0x50940F0C5779BE15F7ACB12E9b75128e1415BFec"
   }
 }
 </code></pre>
@@ -206,37 +204,39 @@ define. An example key vault <code>json</code> file structure is as follows:</p>
 <ul>
 <li><code>cipher</code> is the encryption algorithm used to encrypt your HD wallet
 seed</li>
-<li>Within <code>cipher_params</code> you find <code>nonce</code> which is an initialization
+<li>Within <code>cipher_params</code> you find <code>nonce</code>, a unique initialization
 vector for the AES-256-GCM algorithm</li>
 <li><code>cipher_text</code> is your encrypted seed</li>
 <li><code>kdf</code> is the key derivation function used (PBKDF2)</li>
 <li><code>kdf_params</code> are the parameters used in the key derivation function
 <ul>
-<li><code>key_length</code> is the length in bytes of the key</li>
-<li><code>n</code> is the number of cycles in the algorithm, where 600,000
+<li><code>key_length</code> is the length in bytes of the derived key</li>
+<li><code>n</code> is the number of iterations in the algorithm, where 600,000
 is used to make encrypting/decrypting time consuming to
-prevent brute force attacks</li>
-<li><code>salt</code> is the password salt</li>
+slow down brute force attacks</li>
+<li><code>salt</code> is the salt used for key derivation</li>
 </ul>
 </li>
-<li><code>mac</code> is your hashed and salted password using Argon2 (its parameters
-are included in the mac string)</li>
-<li><code>salt</code> again the password salt</li>
-<li><code>chain_keys</code> these are your public keys for various blockchains</li>
+<li><code>chain_keys</code> maps derivation paths to the public keys derived for
+those paths (for example, Solana and EVM addresses)</li>
 </ul>
+<p>There is no separate password verifier stored in the file. The AES-GCM
+authentication tag on <code>cipher_text</code> is used to detect a wrong password or
+tampered ciphertext (the two cannot be distinguished).</p>
 <p>Changes to any of these fields can result in failure to decrypt the seed,
-and possibly permanent loss of all funds.</p>
+and possibly permanent loss of access to funds derived from it.</p>
 <p>The only point of weakness within the <code>KeyVault</code> encryption is your choice
 of password. If a malicious actor were to get a hold of your <code>json</code> file,
-they could try to decrypt it by either guessing the password or the seed.
-Guessing the seed is extremely difficult and unlikely, whereas guessing
-a password is more doable. This means picking a good password is crucial.</p>
+they could try to decrypt it by guessing the password or the seed. Guessing
+the seed is extremely difficult and unlikely, whereas guessing a password is
+more feasible. This means picking a strong password is crucial.</p>
 <p><code>KeyVault</code> includes your public keys within the <code>chain_keys</code> field, which
 allows you to view your accounts without having to decrypt your <code>KeyVault</code>.
 There are positives and negatives to this approach, with the main benefit
 being that you can check wallet balances without supplying your password.
 The main drawback is that if a malicious actor were to get this file, they
-would know how valuable breaking the encryption is.</p>
+would know which addresses are associated with it and how valuable breaking
+the encryption may be.</p>
 
                     </main>
 

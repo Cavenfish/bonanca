@@ -224,6 +224,16 @@ expiry = "0-30-300"
 <li><strong>profit</strong>: Minimum profit target for sell orders (percentage)</li>
 <li><strong>expiry</strong>: Order expiration time format "DAYS-HOURS-MINUTES"</li>
 </ul>
+<h2 id="running-the-example"><a class="header" href="#running-the-example">Running the Example</a></h2>
+<pre><code class="language-bash"># Dry run (default): prints actions without placing trades
+python examples/python/scalper.py --config ./scalper.toml
+
+# Live mode: places trades and requires keyvault password
+python examples/python/scalper.py --config ./scalper.toml --live --password "$KEYVAULT_PASSWORD"
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Passing passwords via command-line arguments is not a secure way to handle secrets (they may be exposed in shell history or process listings). This is included here for demo purposes only. For real applications, use a safer secret-handling mechanism.</p>
+</blockquote>
 <h2 id="output-files"><a class="header" href="#output-files">Output Files</a></h2>
 <ul>
 <li><strong>log_file</strong>: JSON file containing:

@@ -189,9 +189,15 @@
 cargo build --release
 </code></pre>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
-<p>This example project build a CLI which includes help docs that cover basic usage.</p>
+<p>This example project builds a CLI which includes help docs that cover basic usage.</p>
 <pre><code class="language-bash">index --help
 </code></pre>
+<p>When rebalancing (non-preview mode), provide the keyvault password via <code>--password</code>:</p>
+<pre><code class="language-bash">index rebalance -i ./index.json --password "$KEYVAULT_PASSWORD"
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Passing passwords via command-line arguments is not a secure way to handle secrets (they may be exposed in shell history or process listings). This is included here for demo purposes only. For real applications, use a safer secret-handling mechanism.</p>
+</blockquote>
 <h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>Create an index fund configuration file:</p>
 <pre><code class="language-json">{

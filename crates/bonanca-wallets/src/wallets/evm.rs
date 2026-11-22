@@ -1,7 +1,8 @@
-use std::{path::Path, str::FromStr};
+use std::{num::ParseFloatError, path::Path, str::FromStr};
 
 use alloy::{
     contract::Error as ContractError,
+    hex::FromHexError,
     network::TransactionBuilder,
     providers::{DynProvider, PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
@@ -17,7 +18,6 @@ use alloy_primitives::{
     Address, AddressError, FixedBytes, Signature, U256, Uint,
     utils::{UnitsError, format_ether, format_units, parse_ether, parse_units},
 };
-use anyhow::{Result, anyhow};
 use bonanca_keyvault::{KeyVaultErrors, hd_keys::HDkeys, keyvault::KeyVault};
 use thiserror::Error;
 
@@ -65,6 +65,18 @@ impl From<KeyVaultErrors> for EvmWalletErrors {
     }
 }
 
+impl From<FromHexError> for EvmWalletErrors {
+    fn from(err: FromHexError) -> Self {
+        Self::InvalidAddress(AddressError::Hex(err))
+    }
+}
+
+impl From<ParseFloatError> for EvmWalletErrors {
+    fn from(err: ParseFloatError) -> Self {
+        Self::General(GeneralWalletErrors::ParseFloat(err))
+    }
+}
+
 impl HdWallets<LocalSigner<SigningKey>, u32> for HDkeys {
     fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>, WalletErrors> {
         let path = format!("m/44'/60'/{child}'/0/0");
@@ -94,26 +106,35 @@ sol! {
     "src/wallets/ABI/ERC20.json"
 }
 
+/// Ethereum Virtual Machine (EVM) wallet instance supporting view-only and transacting modes.
 pub struct EvmWallet {
+    /// Optional local private key signer. Present for loaded wallets, `None` for view-only
+    /// wallets.
     pub signer: Option<LocalSigner<SigningKey>>,
+    /// RPC provider for querying state and broadcasting transactions.
     pub client: DynProvider,
+    /// Public Ethereum address of this wallet.
     pub pubkey: Address,
 }
 
 impl WalletView<&str> for EvmWallet {
-    fn view(pubkey: &str, rpc: &str) -> Result<Self> {
-        let rpc_url = Url::parse(rpc)?;
+    fn view(pubkey: &str, rpc: &str) -> Result<Self, WalletErrors> {
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
+        let pubkey = Address::from_str(pubkey).map_err(|err| EvmWalletErrors::from(err))?;
 
-        Ok(Self { signer: None, client, pubkey: Address::from_str(pubkey)? })
+        Ok(Self { signer: None, client, pubkey })
     }
 }
 
 impl WalletLoad<[u8; 32]> for EvmWallet {
-    fn load(pkey: [u8; 32], rpc: &str) -> Result<Self> {
+    fn load(pkey: [u8; 32], rpc: &str) -> Result<Self, WalletErrors> {
         let key_bytes = FixedBytes::new(pkey);
-        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
-        let rpc_url = Url::parse(rpc)?;
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)
+            .map_err(|_| GeneralWalletErrors::InvalidPrivateKey)?;
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
         let pubkey = signer.address();
         let client: DynProvider =
             ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
@@ -123,43 +144,42 @@ impl WalletLoad<[u8; 32]> for EvmWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, u32> for EvmWallet {
-    fn view(keyvault: T, rpc: &str, child: u32) -> Result<Self> {
+    fn view(keyvault: T, rpc: &str, child: u32) -> Result<Self, WalletErrors> {
         let key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/60'/{child}'/0/0");
-        let pubkey = key_vault
-            .chain_keys
-            .get(&path)
-            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
-        let rpc_url = Url::parse(rpc)?;
-        let addy = Address::from_str(pubkey)?;
+        let pubkey = key_vault.get_pubkey(&path)?;
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
+        let pubkey = Address::from_str(pubkey)
+            .map_err(|err| EvmWalletErrors::InvalidAddress(AddressError::Hex(err)))?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Ok(Self { signer: None, client, pubkey: addy })
+        Ok(Self { signer: None, client, pubkey })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, &str> for EvmWallet {
-    fn view(keyvault: T, rpc: &str, path: &str) -> Result<Self> {
+    fn view(keyvault: T, rpc: &str, path: &str) -> Result<Self, WalletErrors> {
         let key_vault = KeyVault::load(keyvault.as_ref())?;
-        let pubkey = key_vault
-            .chain_keys
-            .get(path)
-            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
-        let rpc_url = Url::parse(rpc)?;
-        let addy = Address::from_str(pubkey)?;
+        let pubkey = key_vault.get_pubkey(&path)?;
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
+        let pubkey = Address::from_str(pubkey)
+            .map_err(|err| EvmWalletErrors::InvalidAddress(AddressError::Hex(err)))?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Ok(Self { signer: None, client, pubkey: addy })
+        Ok(Self { signer: None, client, pubkey })
     }
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, child: u32, password: &str) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, child: u32, password: &str) -> Result<Self, WalletErrors> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/60'/{child}'/0/0");
         let hd_keys = key_vault.decrypt_vault(password)?;
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child)?;
-        let rpc_url = Url::parse(rpc)?;
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
         let pubkey = signer.address();
         let client: DynProvider =
             ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
@@ -178,11 +198,12 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
-    fn load(keyvault: T, rpc: &str, path: &str, password: &str) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, path: &str, password: &str) -> Result<Self, WalletErrors> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let hd_keys = key_vault.decrypt_vault(password)?;
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path)?;
-        let rpc_url = Url::parse(rpc)?;
+        let rpc_url =
+            Url::parse(rpc).map_err(|_| GeneralWalletErrors::InvalidRpcUrl(rpc.into()))?;
         let pubkey = signer.address();
         let client: DynProvider =
             ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
@@ -201,18 +222,22 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
 }
 
 impl EvmWallet {
-    pub async fn sign_hash(&self, hash: &FixedBytes<32>) -> Result<Signature> {
-        let sig = self.signer.as_ref().unwrap().sign_hash(&hash).await?;
+    /// Signs a 32-byte hash using the wallet's private key.
+    pub async fn sign_hash(&self, hash: &FixedBytes<32>) -> Result<Signature, EvmWalletErrors> {
+        let signer = self.signer.as_ref().ok_or(GeneralWalletErrors::MissingSigner)?;
+        let sig = signer.sign_hash(hash).await?;
 
         Ok(sig)
     }
 
+    /// Approves an ERC-20 token allowance for a spender address.
     pub async fn approve_token_spending(
         &self,
         token: &str,
         spender: &str,
         amount: f64,
-    ) -> Result<()> {
+    ) -> Result<(), EvmWalletErrors> {
+        let _signer = self.signer.as_ref().ok_or(GeneralWalletErrors::MissingSigner)?;
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
 
@@ -226,7 +251,12 @@ impl EvmWallet {
         Ok(())
     }
 
-    pub async fn get_token_allowance(&self, token: &str, spender: &str) -> Result<f64> {
+    /// Retrieves the current ERC-20 token allowance approved for a spender.
+    pub async fn get_token_allowance(
+        &self,
+        token: &str,
+        spender: &str,
+    ) -> Result<f64, EvmWalletErrors> {
         let token_addy = Address::from_str(token)?;
         let spender_addy = Address::from_str(spender)?;
 
@@ -236,27 +266,32 @@ impl EvmWallet {
 
         let deci = erc20.decimals().call().await?;
         let allow = format_units(value, deci)?;
+        let allowance = allow.parse()?;
 
-        Ok(allow.parse()?)
+        Ok(allowance)
     }
 
-    pub fn get_pubkey(&self) -> Result<String> {
+    /// Returns the wallet's public Ethereum address as a hex string.
+    pub fn get_pubkey(&self) -> Result<String, EvmWalletErrors> {
         Ok(self.pubkey.to_string())
     }
 
-    pub fn parse_native(&self, amount: f64) -> Result<U256> {
+    /// Parses an ether amount in `f64` into wei `U256`.
+    pub fn parse_native(&self, amount: f64) -> Result<U256, EvmWalletErrors> {
         let amt: U256 = parse_ether(&amount.to_string())?;
 
         Ok(amt)
     }
 
-    pub fn format_native(&self, amount: U256) -> Result<f64> {
+    /// Formats a wei `U256` into an ether `f64`.
+    pub fn format_native(&self, amount: U256) -> Result<f64, EvmWalletErrors> {
         let amnt = format_ether(amount).parse()?;
 
         Ok(amnt)
     }
 
-    pub async fn parse_token(&self, amount: f64, token: &str) -> Result<U256> {
+    /// Parses a token amount in `f64` using the token's on-chain decimal places into `U256`.
+    pub async fn parse_token(&self, amount: f64, token: &str) -> Result<U256, EvmWalletErrors> {
         let token_addy = Address::from_str(token)?;
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
@@ -266,7 +301,8 @@ impl EvmWallet {
         Ok(amt)
     }
 
-    pub async fn format_token(&self, amount: U256, token: &str) -> Result<f64> {
+    /// Formats a token balance in `U256` using the token's on-chain decimal places into `f64`.
+    pub async fn format_token(&self, amount: U256, token: &str) -> Result<f64, EvmWalletErrors> {
         let token_addy = Address::from_str(token)?;
         let erc20 = ERC20::new(token_addy, &self.client);
         let deci = erc20.decimals().call().await?;
@@ -276,7 +312,8 @@ impl EvmWallet {
         Ok(amt)
     }
 
-    pub async fn close(&self, to: &str) -> Result<()> {
+    /// Transfers approximately the entire native balance to `to`, subtracting estimated gas fees.
+    pub async fn close(&self, to: &str) -> Result<(), EvmWalletErrors> {
         let to_addy = Address::from_str(to)?;
         let bal = self.balance().await?;
 
@@ -298,7 +335,8 @@ impl EvmWallet {
         Ok(())
     }
 
-    pub async fn balance(&self) -> Result<f64> {
+    /// Fetches the wallet's native gas token (ETH) balance.
+    pub async fn balance(&self) -> Result<f64, EvmWalletErrors> {
         let bal = self.client.get_balance(self.pubkey).await?;
 
         let fbal = format_ether(bal);
@@ -306,7 +344,13 @@ impl EvmWallet {
         Ok(fbal.parse()?)
     }
 
-    pub async fn transfer(&self, to: &str, amount: f64) -> Result<TransactionReceipt> {
+    /// Transfers native tokens (ETH) to a recipient address.
+    pub async fn transfer(
+        &self,
+        to: &str,
+        amount: f64,
+    ) -> Result<TransactionReceipt, EvmWalletErrors> {
+        let _signer = self.signer.as_ref().ok_or(GeneralWalletErrors::MissingSigner)?;
         let to_addy = Address::from_str(to)?;
         let wei = parse_ether(&amount.to_string())?;
 
@@ -318,7 +362,8 @@ impl EvmWallet {
         Ok(sig)
     }
 
-    pub async fn token_balance(&self, token: &str) -> Result<f64> {
+    /// Fetches the wallet's balance of the specified ERC-20 token.
+    pub async fn token_balance(&self, token: &str) -> Result<f64, EvmWalletErrors> {
         let token_addy = Address::from_str(token)?;
 
         // Instantiate the contract instance
@@ -333,12 +378,14 @@ impl EvmWallet {
         Ok(bal.parse()?)
     }
 
+    /// Transfers an ERC-20 token amount to a recipient address.
     pub async fn transfer_token(
         &self,
         token: &str,
         amount: f64,
         to: &str,
-    ) -> Result<TransactionReceipt> {
+    ) -> Result<TransactionReceipt, EvmWalletErrors> {
+        let _signer = self.signer.as_ref().ok_or(GeneralWalletErrors::MissingSigner)?;
         let to_addy = Address::from_str(to)?;
         let token_addy = Address::from_str(token)?;
 
@@ -352,7 +399,8 @@ impl EvmWallet {
         Ok(sig)
     }
 
-    pub async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<()> {
+    /// Transfers the entire balance of an ERC-20 token to a recipient address.
+    pub async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<(), EvmWalletErrors> {
         let amount = self.token_balance(token).await?;
 
         if amount != 0.0 {
@@ -362,7 +410,12 @@ impl EvmWallet {
         Ok(())
     }
 
-    pub async fn sign_and_send(&self, txn: TransactionRequest) -> Result<TransactionReceipt> {
+    /// Signs and sends a transaction request, returning its receipt.
+    pub async fn sign_and_send(
+        &self,
+        txn: TransactionRequest,
+    ) -> Result<TransactionReceipt, EvmWalletErrors> {
+        let _signer = self.signer.as_ref().ok_or(GeneralWalletErrors::MissingSigner)?;
         let sig = self.client.send_transaction(txn).await?.get_receipt().await?;
 
         Ok(sig)

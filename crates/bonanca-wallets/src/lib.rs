@@ -89,24 +89,35 @@ impl From<KeyVaultErrors> for WalletErrors {
     }
 }
 
+/// Transaction data payload for EVM or Solana networks.
 pub enum TransactionData {
+    /// EVM transaction request.
     Evm(TransactionRequest),
+    /// Solana versioned transaction.
     Sol(VersionedTransaction),
 }
 
+/// Trait for constructing a view-only wallet from an address/public key and RPC URL.
 pub trait WalletView<T>: Sized {
+    /// Views an address/wallet in read-only mode using the given RPC endpoint.
     fn view(value: T, rpc: &str) -> Result<Self, WalletErrors>;
 }
 
+/// Trait for loading a wallet with signing capabilities from a private key and RPC URL.
 pub trait WalletLoad<T>: Sized {
+    /// Loads a wallet with signing capabilities using the given private key and RPC endpoint.
     fn load(value: T, rpc: &str) -> Result<Self, WalletErrors>;
 }
 
+/// Trait for constructing a view-only HD wallet from a KeyVault and child derivation path or index.
 pub trait HdWalletView<T, U>: Sized {
+    /// Views a child address from a KeyVault in read-only mode.
     fn view(value: T, rpc: &str, child: U) -> Result<Self, WalletErrors>;
 }
 
+/// Trait for loading an HD wallet with signing capabilities from an encrypted KeyVault.
 pub trait HdWalletLoad<T, U>: Sized {
+    /// Loads and decrypts a child wallet with signing capabilities using the given password.
     fn load(value: T, rpc: &str, child: U, password: &str) -> Result<Self, WalletErrors>;
 }
 

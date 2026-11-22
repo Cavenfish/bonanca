@@ -1,6 +1,5 @@
 use std::{path::Path, str::FromStr};
 
-use anyhow::{Context, Result, anyhow};
 use bonanca_keyvault::{KeyVaultErrors, hd_keys::HDkeys, keyvault::KeyVault};
 use solana_client::{
     client_error::ClientError as SolanaClientError,
@@ -19,7 +18,16 @@ use solana_sdk::{
 use solana_system_interface::instruction::transfer;
 use thiserror::Error;
 
-use crate::{GeneralWalletErrors, HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
+use crate::{
+    GeneralWalletErrors, HdWalletLoad, HdWalletView, HdWallets, WalletErrors, WalletLoad,
+    WalletView,
+};
+
+impl From<ParsePubkeyError> for WalletErrors {
+    fn from(err: ParsePubkeyError) -> Self {
+        Self::Sol(SolWalletErrors::InvalidPubkey(err))
+    }
+}
 
 /// Errors produced while interacting with a [`SolWallet`].
 #[derive(Error, Debug)]
@@ -68,7 +76,7 @@ const SYSTEM_ID: Pubkey = Pubkey::from_str_const("111111111111111111111111111111
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 
 impl HdWallets<Keypair, u32> for HDkeys {
-    fn get_child_keypair(&self, child: u32) -> Result<Keypair> {
+    fn get_child_keypair(&self, child: u32) -> Result<Keypair, WalletErrors> {
         let path = format!("m/44'/501'/{child}'/0'");
         let secret = self.derive_ed25519_child_prvkey(path)?;
         let keypair = Keypair::new_from_array(*secret);
@@ -77,7 +85,7 @@ impl HdWallets<Keypair, u32> for HDkeys {
 }
 
 impl HdWallets<Keypair, &str> for HDkeys {
-    fn get_child_keypair(&self, path: &str) -> Result<Keypair> {
+    fn get_child_keypair(&self, path: &str) -> Result<Keypair, WalletErrors> {
         let secret = self.derive_ed25519_child_prvkey(path.to_string())?;
         let keypair = Keypair::new_from_array(*secret);
         Ok(keypair)
@@ -91,7 +99,7 @@ pub struct SolWallet {
 }
 
 impl WalletView<&str> for SolWallet {
-    fn view(pubkey: &str, rpc: &str) -> Result<Self> {
+    fn view(pubkey: &str, rpc: &str) -> Result<Self, WalletErrors> {
         Ok(Self {
             key_pair: None,
             client: RpcClient::new(rpc.to_string()),
@@ -101,7 +109,7 @@ impl WalletView<&str> for SolWallet {
 }
 
 impl WalletLoad<[u8; 32]> for SolWallet {
-    fn load(pkey: [u8; 32], rpc: &str) -> Result<Self> {
+    fn load(pkey: [u8; 32], rpc: &str) -> Result<Self, WalletErrors> {
         let kp = Keypair::new_from_array(pkey);
         let client = RpcClient::new(rpc.to_string());
         let pubkey = kp.pubkey();
@@ -111,13 +119,10 @@ impl WalletLoad<[u8; 32]> for SolWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, u32> for SolWallet {
-    fn view(keyvault: T, rpc: &str, child: u32) -> Result<Self> {
+    fn view(keyvault: T, rpc: &str, child: u32) -> Result<Self, WalletErrors> {
         let key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/501'/{child}'/0'");
-        let pubkey = key_vault
-            .chain_keys
-            .get(&path)
-            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
+        let pubkey = key_vault.get_pubkey(&path)?;
         Ok(Self {
             key_pair: None,
             client: RpcClient::new(rpc.to_string()),
@@ -127,12 +132,9 @@ impl<T: AsRef<Path>> HdWalletView<T, u32> for SolWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletView<T, &str> for SolWallet {
-    fn view(keyvault: T, rpc: &str, path: &str) -> Result<Self> {
+    fn view(keyvault: T, rpc: &str, path: &str) -> Result<Self, WalletErrors> {
         let key_vault = KeyVault::load(keyvault.as_ref())?;
-        let pubkey = key_vault
-            .chain_keys
-            .get(path)
-            .ok_or_else(|| anyhow!("No public key found for path {path}"))?;
+        let pubkey = key_vault.get_pubkey(path)?;
         Ok(Self {
             key_pair: None,
             client: RpcClient::new(rpc.to_string()),
@@ -142,7 +144,7 @@ impl<T: AsRef<Path>> HdWalletView<T, &str> for SolWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, u32> for SolWallet {
-    fn load(keyvault: T, rpc: &str, child: u32, password: &str) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, child: u32, password: &str) -> Result<Self, WalletErrors> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let path = format!("m/44'/501'/{child}'/0'");
         let hd_keys = key_vault.decrypt_vault(password)?;
@@ -164,7 +166,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for SolWallet {
 }
 
 impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
-    fn load(keyvault: T, rpc: &str, path: &str, password: &str) -> Result<Self> {
+    fn load(keyvault: T, rpc: &str, path: &str, password: &str) -> Result<Self, WalletErrors> {
         let mut key_vault = KeyVault::load(keyvault.as_ref())?;
         let hd_keys = key_vault.decrypt_vault(password)?;
         let kp: Keypair = hd_keys.get_child_keypair(path)?;
@@ -185,7 +187,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
 }
 
 impl SolWallet {
-    async fn build_sign_and_send(&self, instr: Instruction) -> Result<()> {
+    async fn build_sign_and_send(&self, instr: Instruction) -> Result<(), SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
 
         // Get blockhash and sign transaction
@@ -199,13 +201,13 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn get_timestamp(&self) -> Result<i64> {
+    pub async fn get_timestamp(&self) -> Result<i64, SolWalletErrors> {
         let slot = self.client.get_slot().await?;
         let time = self.client.get_block_time(slot).await?;
         Ok(time)
     }
 
-    pub async fn get_ata(&self, mint: &str) -> Result<Pubkey> {
+    pub async fn get_ata(&self, mint: &str) -> Result<Pubkey, SolWalletErrors> {
         let token = Pubkey::from_str(mint)?;
         let owner = self.client.get_account(&token).await?.owner;
 
@@ -217,7 +219,7 @@ impl SolWallet {
         Ok(token_account)
     }
 
-    pub async fn create_token_account(&self, mint: &str) -> Result<Pubkey> {
+    pub async fn create_token_account(&self, mint: &str) -> Result<Pubkey, SolWalletErrors> {
         let token = Pubkey::from_str(mint)?;
         let owner = self.client.get_account(&token).await?.owner;
 
@@ -244,7 +246,7 @@ impl SolWallet {
         Ok(token_account)
     }
 
-    pub async fn close_token_account(&self, mint_str: &str) -> Result<()> {
+    pub async fn close_token_account(&self, mint_str: &str) -> Result<(), SolWalletErrors> {
         let mint = Pubkey::from_str(mint_str)?;
         let owner = self.client.get_account(&mint).await?.owner;
         let token_account = self.get_token_account(&mint).await?;
@@ -265,32 +267,34 @@ impl SolWallet {
         Ok(())
     }
 
-    async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
+    async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey, SolWalletErrors> {
         // Get token account
         let accounts = self.client.get_token_accounts_by_owner(&self.pubkey, Mint(*mint)).await?;
-        let token = accounts.first().context("Could not find token account")?;
 
-        // Get token account pubkey
-        let addy = Pubkey::from_str_const(&token.pubkey);
-
-        Ok(addy)
+        match accounts.first() {
+            Some(token) => {
+                let addy = Pubkey::from_str_const(&token.pubkey);
+                return Ok(addy);
+            }
+            None => Err(SolWalletErrors::AccountNotFound(mint.to_string())),
+        }
     }
 
-    pub fn get_pubkey(&self) -> Result<String> {
+    pub fn get_pubkey(&self) -> Result<String, SolWalletErrors> {
         Ok(self.pubkey.to_string())
     }
 
-    pub fn format_native(&self, amount: f64) -> Result<u64> {
+    pub fn format_native(&self, amount: f64) -> Result<u64, SolWalletErrors> {
         let amt = (amount * 1e9) as u64;
 
         Ok(amt)
     }
 
-    pub fn parse_native(&self, amount: u64) -> Result<f64> {
+    pub fn parse_native(&self, amount: u64) -> Result<f64, SolWalletErrors> {
         Ok((amount as f64) / 1.0e9)
     }
 
-    pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64> {
+    pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self.client.get_token_account(&token_addy).await?.unwrap();
@@ -302,7 +306,7 @@ impl SolWallet {
         Ok(amt)
     }
 
-    pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64> {
+    pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self.client.get_token_account(&token_addy).await?.unwrap();
@@ -312,7 +316,7 @@ impl SolWallet {
         Ok((amount as f64) / 10.0_f64.powi(deci.into()))
     }
 
-    pub async fn close(&self, to: &str) -> Result<()> {
+    pub async fn close(&self, to: &str) -> Result<(), SolWalletErrors> {
         let bal = self.balance().await?;
 
         // Subtract fee
@@ -323,14 +327,14 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn balance(&self) -> Result<f64> {
+    pub async fn balance(&self) -> Result<f64, SolWalletErrors> {
         let balance = self.client.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
 
         Ok(bal)
     }
 
-    pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt> {
+    pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let lamp = self.format_native(amount)?;
@@ -346,7 +350,7 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
-    pub async fn token_balance(&self, mint: &str) -> Result<f64> {
+    pub async fn token_balance(&self, mint: &str) -> Result<f64, SolWalletErrors> {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let addy_result = self.get_token_account(&mint_pubkey).await;
 
@@ -361,7 +365,11 @@ impl SolWallet {
         Ok(bal)
     }
 
-    pub async fn burn_token(&self, mint: &str, amount: f64) -> Result<SolTxnReceipt> {
+    pub async fn burn_token(
+        &self,
+        mint: &str,
+        amount: f64,
+    ) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
         let mint_pubkey = Pubkey::from_str_const(mint);
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
@@ -391,7 +399,12 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
-    pub async fn transfer_token(&self, mint: &str, amount: f64, to: &str) -> Result<SolTxnReceipt> {
+    pub async fn transfer_token(
+        &self,
+        mint: &str,
+        amount: f64,
+        to: &str,
+    ) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
@@ -428,7 +441,7 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
-    pub async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<()> {
+    pub async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<(), SolWalletErrors> {
         let amount = self.token_balance(mint).await?;
 
         if amount != 0.0 {
@@ -440,7 +453,10 @@ impl SolWallet {
         Ok(())
     }
 
-    pub async fn sign_and_send(&self, mut txn: VersionedTransaction) -> Result<SolTxnReceipt> {
+    pub async fn sign_and_send(
+        &self,
+        mut txn: VersionedTransaction,
+    ) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
         let message = txn.message.serialize();
         let signature = kp.sign_message(&message);

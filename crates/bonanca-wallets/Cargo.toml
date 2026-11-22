@@ -11,3 +11,4 @@ bonanca-keyvault.workspace = true
 solana-client = "3.1.14"
 solana-sdk.workspace = true
 solana-system-interface = "2.0.0"
+thiserror.workspace = true

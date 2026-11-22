@@ -1,8 +1,9 @@
 use std::{path::Path, str::FromStr};
 
 use anyhow::{Context, Result, anyhow};
-use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
+use bonanca_keyvault::{KeyVaultErrors, hd_keys::HDkeys, keyvault::KeyVault};
 use solana_client::{
+    client_error::ClientError as SolanaClientError,
     nonblocking::rpc_client::RpcClient,
     rpc_config::{CommitmentConfig, RpcTransactionConfig, UiTransactionEncoding},
     rpc_request::TokenAccountsFilter::Mint,
@@ -10,14 +11,58 @@ use solana_client::{
 };
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
+    pubkey::{ParsePubkeyError, Pubkey},
     signature::Signature,
-    signer::{Signer, keypair::Keypair},
+    signer::{Signer, SignerError as SolanaSignerError, keypair::Keypair},
     transaction::{Transaction, VersionedTransaction},
 };
 use solana_system_interface::instruction::transfer;
+use thiserror::Error;
 
-use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
+use crate::{GeneralWalletErrors, HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
+
+/// Errors produced while interacting with a [`SolWallet`].
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum SolWalletErrors {
+    /// Errors common to all wallets (keys, vault, signer status, URL parsing).
+    #[error(transparent)]
+    General(#[from] GeneralWalletErrors),
+
+    /// A Solana public key string is invalid or malformed.
+    #[error("invalid Solana public key: {0}")]
+    InvalidPubkey(#[from] ParsePubkeyError),
+
+    /// An RPC or network error occurred when interacting with the Solana cluster.
+    #[error("Solana client error: {0}")]
+    Client(#[from] SolanaClientError),
+
+    /// An error occurred while signing a Solana transaction or message.
+    #[error("Solana signing error: {0}")]
+    Signer(#[from] SolanaSignerError),
+
+    /// The requested SPL token account was not found on chain for the given mint or owner.
+    #[error("token account not found for mint: {0}")]
+    TokenAccountNotFound(String),
+
+    /// The requested on-chain account does not exist or contains no data.
+    #[error("account not found: {0}")]
+    AccountNotFound(String),
+
+    /// The transaction receipt could not be found for the given signature or hash.
+    #[error("transaction not found: {0}")]
+    TransactionNotFound(String),
+
+    /// The confirmed transaction did not include execution metadata or receipt details.
+    #[error("transaction execution metadata is missing")]
+    MissingTransactionMeta,
+}
+
+impl From<KeyVaultErrors> for SolWalletErrors {
+    fn from(err: KeyVaultErrors) -> Self {
+        Self::General(GeneralWalletErrors::KeyVault(err))
+    }
+}
 
 const SYSTEM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 const ATOKEN_ID: Pubkey = Pubkey::from_str_const("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");

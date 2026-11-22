@@ -1,41 +1,87 @@
 use std::{path::Path, str::FromStr};
 
 use alloy::{
+    contract::Error as ContractError,
     network::TransactionBuilder,
-    providers::{DynProvider, Provider, ProviderBuilder},
+    providers::{DynProvider, PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::{
-        Signer,
+        Error as SignerError, Signer,
         k256::ecdsa::SigningKey,
         local::{LocalSigner, PrivateKeySigner},
     },
     sol,
-    transports::http::reqwest::Url,
+    transports::{TransportError, http::reqwest::Url},
 };
 use alloy_primitives::{
-    Address, FixedBytes, Signature, U256, Uint,
-    utils::{format_ether, format_units, parse_ether, parse_units},
+    Address, AddressError, FixedBytes, Signature, U256, Uint,
+    utils::{UnitsError, format_ether, format_units, parse_ether, parse_units},
 };
 use anyhow::{Result, anyhow};
-use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
+use bonanca_keyvault::{KeyVaultErrors, hd_keys::HDkeys, keyvault::KeyVault};
+use thiserror::Error;
 
-use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
+use crate::{
+    GeneralWalletErrors, HdWalletLoad, HdWalletView, HdWallets, WalletErrors, WalletLoad,
+    WalletView,
+};
+
+/// Errors produced while interacting with an [`EvmWallet`].
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum EvmWalletErrors {
+    /// Errors common to all wallets (keys, vault, signer status, URL parsing).
+    #[error(transparent)]
+    General(#[from] GeneralWalletErrors),
+
+    /// An EVM address string is invalid or malformed.
+    #[error("invalid EVM address: {0}")]
+    InvalidAddress(#[from] AddressError),
+
+    /// Parsing or formatting token or native currency units failed.
+    #[error("unit conversion error: {0}")]
+    Units(#[from] UnitsError),
+
+    /// An error occurred during transport or RPC communication with the EVM node.
+    #[error("EVM transport error: {0}")]
+    Transport(#[from] TransportError),
+
+    /// An error occurred while interacting with an EVM smart contract.
+    #[error("contract interaction error: {0}")]
+    Contract(#[from] ContractError),
+
+    /// An error occurred while waiting for an EVM transaction receipt or confirmation.
+    #[error("pending transaction error: {0}")]
+    PendingTransaction(#[from] PendingTransactionError),
+
+    /// An error occurred while signing an EVM hash or transaction.
+    #[error("EVM signing error: {0}")]
+    Signer(#[from] SignerError),
+}
+
+impl From<KeyVaultErrors> for EvmWalletErrors {
+    fn from(err: KeyVaultErrors) -> Self {
+        Self::General(GeneralWalletErrors::KeyVault(err))
+    }
+}
 
 impl HdWallets<LocalSigner<SigningKey>, u32> for HDkeys {
-    fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>> {
+    fn get_child_keypair(&self, child: u32) -> Result<LocalSigner<SigningKey>, WalletErrors> {
         let path = format!("m/44'/60'/{child}'/0/0");
         let secret = self.derive_secp256k1_child_prvkey(path)?;
         let key_bytes = FixedBytes::new(*secret);
-        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)
+            .map_err(|_| GeneralWalletErrors::InvalidPrivateKey)?;
         Ok(signer)
     }
 }
 
 impl HdWallets<LocalSigner<SigningKey>, &str> for HDkeys {
-    fn get_child_keypair(&self, path: &str) -> Result<LocalSigner<SigningKey>> {
+    fn get_child_keypair(&self, path: &str) -> Result<LocalSigner<SigningKey>, WalletErrors> {
         let secret = self.derive_secp256k1_child_prvkey(path.to_string())?;
         let key_bytes = FixedBytes::new(*secret);
-        let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
+        let signer = PrivateKeySigner::from_bytes(&key_bytes)
+            .map_err(|_| GeneralWalletErrors::InvalidPrivateKey)?;
         Ok(signer)
     }
 }

@@ -1,3 +1,10 @@
+//! EVM (Ethereum-compatible) wallet implementation.
+//!
+//! [`EvmWallet`] wraps an alloy [`DynProvider`] plus an optional local signer. View-only
+//! wallets hold just an address and can read balances, allowances, and token metadata;
+//! loaded wallets also carry a [`LocalSigner`] so the provider can sign and broadcast
+//! transactions.
+
 use std::{num::ParseFloatError, path::Path, str::FromStr};
 
 use alloy::{
@@ -230,7 +237,8 @@ impl EvmWallet {
         Ok(sig)
     }
 
-    /// Approves an ERC-20 token allowance for a spender address.
+    /// Approves `spender` to spend up to `amount` of the ERC-20 token at `token` from this
+    /// wallet. `amount` is in whole token units and is scaled by the token's on-chain decimals.
     pub async fn approve_token_spending(
         &self,
         token: &str,
@@ -251,7 +259,8 @@ impl EvmWallet {
         Ok(())
     }
 
-    /// Retrieves the current ERC-20 token allowance approved for a spender.
+    /// Returns the amount of the ERC-20 token at `token` that `spender` may currently spend
+    /// from this wallet, in whole token units.
     pub async fn get_token_allowance(
         &self,
         token: &str,
@@ -312,7 +321,8 @@ impl EvmWallet {
         Ok(amt)
     }
 
-    /// Transfers approximately the entire native balance to `to`, subtracting estimated gas fees.
+    /// Sweeps the wallet: sends the entire native balance to `to`, keeping back the estimated
+    /// gas fee plus a 2% buffer.
     pub async fn close(&self, to: &str) -> Result<(), EvmWalletErrors> {
         let to_addy = Address::from_str(to)?;
         let bal = self.balance().await?;
@@ -335,7 +345,7 @@ impl EvmWallet {
         Ok(())
     }
 
-    /// Fetches the wallet's native gas token (ETH) balance.
+    /// Fetches the wallet's native gas token (ETH) balance in ether as an `f64`.
     pub async fn balance(&self) -> Result<f64, EvmWalletErrors> {
         let bal = self.client.get_balance(self.pubkey).await?;
 
@@ -344,7 +354,7 @@ impl EvmWallet {
         Ok(fbal.parse()?)
     }
 
-    /// Transfers native tokens (ETH) to a recipient address.
+    /// Transfers `amount` native tokens (ETH) to `to` and returns the transaction receipt.
     pub async fn transfer(
         &self,
         to: &str,
@@ -362,7 +372,8 @@ impl EvmWallet {
         Ok(sig)
     }
 
-    /// Fetches the wallet's balance of the specified ERC-20 token.
+    /// Fetches the wallet's balance of the ERC-20 token at `token`, in whole token units as an
+    /// `f64`.
     pub async fn token_balance(&self, token: &str) -> Result<f64, EvmWalletErrors> {
         let token_addy = Address::from_str(token)?;
 
@@ -378,7 +389,8 @@ impl EvmWallet {
         Ok(bal.parse()?)
     }
 
-    /// Transfers an ERC-20 token amount to a recipient address.
+    /// Transfers `amount` of the ERC-20 token at `token` to `to` and returns the transaction
+    /// receipt. `amount` is in whole token units and is scaled by the token's on-chain decimals.
     pub async fn transfer_token(
         &self,
         token: &str,
@@ -399,7 +411,8 @@ impl EvmWallet {
         Ok(sig)
     }
 
-    /// Transfers the entire balance of an ERC-20 token to a recipient address.
+    /// Transfers the wallet's entire balance of the ERC-20 token at `token` to `to`. Does
+    /// nothing when the balance is zero.
     pub async fn transfer_all_tokens(&self, token: &str, to: &str) -> Result<(), EvmWalletErrors> {
         let amount = self.token_balance(token).await?;
 
@@ -410,7 +423,8 @@ impl EvmWallet {
         Ok(())
     }
 
-    /// Signs and sends a transaction request, returning its receipt.
+    /// Sends `txn` through the wallet's provider, which signs it with the loaded signer, and
+    /// returns the confirmed transaction receipt.
     pub async fn sign_and_send(
         &self,
         txn: TransactionRequest,

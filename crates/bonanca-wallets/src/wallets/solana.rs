@@ -1,3 +1,9 @@
+//! Solana wallet implementation.
+//!
+//! [`SolWallet`] wraps a [`RpcClient`] plus an optional [`Keypair`]. View-only wallets hold
+//! just a [`Pubkey`] and can read balances and derive token accounts; loaded wallets also
+//! carry a keypair so they can sign and send transactions.
+
 use std::{path::Path, str::FromStr};
 
 use bonanca_keyvault::{KeyVaultErrors, hd_keys::HDkeys, keyvault::KeyVault};
@@ -92,9 +98,14 @@ impl HdWallets<Keypair, &str> for HDkeys {
     }
 }
 
+/// A Solana wallet supporting view-only and transacting modes.
 pub struct SolWallet {
+    /// Optional keypair used to sign transactions. Present for loaded wallets, `None` for
+    /// view-only wallets.
     pub key_pair: Option<Keypair>,
+    /// RPC client used to query the cluster and send transactions.
     pub client: RpcClient,
+    /// Public key (address) of this wallet.
     pub pubkey: Pubkey,
 }
 
@@ -188,7 +199,10 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
 
 impl SolWallet {
     async fn build_sign_and_send(&self, instr: Instruction) -> Result<(), SolWalletErrors> {
-        let kp = self.key_pair.as_ref().unwrap();
+        let kp = match self.key_pair.as_ref() {
+            Some(keypair) => Ok(keypair),
+            None => Err(SolWalletErrors::General(GeneralWalletErrors::MissingSigner)),
+        }?;
 
         // Get blockhash and sign transaction
         let blockhash = self.client.get_latest_blockhash().await?;
@@ -201,12 +215,15 @@ impl SolWallet {
         Ok(())
     }
 
+    /// Returns the Unix block time of the current slot.
     pub async fn get_timestamp(&self) -> Result<i64, SolWalletErrors> {
         let slot = self.client.get_slot().await?;
         let time = self.client.get_block_time(slot).await?;
         Ok(time)
     }
 
+    /// Derives the associated token account (ATA) address for the SPL token `mint` and this
+    /// wallet, without creating it. The mint's owning token program is used in the derivation.
     pub async fn get_ata(&self, mint: &str) -> Result<Pubkey, SolWalletErrors> {
         let token = Pubkey::from_str(mint)?;
         let owner = self.client.get_account(&token).await?.owner;
@@ -219,6 +236,10 @@ impl SolWallet {
         Ok(token_account)
     }
 
+    /// Creates this wallet's associated token account for `mint` and returns its address.
+    ///
+    /// Requires a loaded wallet; a view-only wallet cannot sign the creation transaction and
+    /// returns an error instead.
     pub async fn create_token_account(&self, mint: &str) -> Result<Pubkey, SolWalletErrors> {
         let token = Pubkey::from_str(mint)?;
         let owner = self.client.get_account(&token).await?.owner;
@@ -246,6 +267,11 @@ impl SolWallet {
         Ok(token_account)
     }
 
+    /// Closes this wallet's associated token account for `mint`, refunding its rent to the
+    /// wallet. The account must have a zero token balance.
+    ///
+    /// Requires a loaded wallet; a view-only wallet cannot sign the closing transaction and
+    /// returns an error instead.
     pub async fn close_token_account(&self, mint_str: &str) -> Result<(), SolWalletErrors> {
         let mint = Pubkey::from_str(mint_str)?;
         let owner = self.client.get_account(&mint).await?.owner;
@@ -280,20 +306,30 @@ impl SolWallet {
         }
     }
 
+    /// Returns the wallet's public key as a base58 string.
     pub fn get_pubkey(&self) -> Result<String, SolWalletErrors> {
         Ok(self.pubkey.to_string())
     }
 
+    /// Converts a SOL amount in `f64` to lamports (`u64`), truncating fractional lamports.
     pub fn format_native(&self, amount: f64) -> Result<u64, SolWalletErrors> {
         let amt = (amount * 1e9) as u64;
 
         Ok(amt)
     }
 
+    /// Converts lamports (`u64`) to a SOL amount in `f64`.
     pub fn parse_native(&self, amount: u64) -> Result<f64, SolWalletErrors> {
         Ok((amount as f64) / 1.0e9)
     }
 
+    /// Converts a human-readable amount of the SPL token `mint` to raw token units (`u64`),
+    /// using the decimals of this wallet's token account for that mint.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `token` is not a valid public key, or if the cluster returns no data for the
+    /// wallet's token account.
     pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
@@ -306,6 +342,13 @@ impl SolWallet {
         Ok(amt)
     }
 
+    /// Converts raw units of the SPL token `mint` to a human-readable amount in `f64`, using the
+    /// decimals of this wallet's token account for that mint.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `token` is not a valid public key, or if the cluster returns no data for the
+    /// wallet's token account.
     pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
@@ -316,6 +359,13 @@ impl SolWallet {
         Ok((amount as f64) / 10.0_f64.powi(deci.into()))
     }
 
+    /// Transfers nearly the entire SOL balance to `to`, keeping `0.000005` SOL back for the
+    /// transaction fee.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair), if `to` is not a valid
+    /// public key, or if the cluster rejects the transaction.
     pub async fn close(&self, to: &str) -> Result<(), SolWalletErrors> {
         let bal = self.balance().await?;
 
@@ -327,6 +377,7 @@ impl SolWallet {
         Ok(())
     }
 
+    /// Fetches the wallet's SOL balance as an `f64`.
     pub async fn balance(&self) -> Result<f64, SolWalletErrors> {
         let balance = self.client.get_balance(&self.pubkey).await?;
         let bal = (balance as f64) / 1e9;
@@ -334,6 +385,12 @@ impl SolWallet {
         Ok(bal)
     }
 
+    /// Transfers `amount` SOL to `to` and returns the confirmed transaction receipt.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair), if `to` is not a valid
+    /// public key, or if the cluster rejects the transaction.
     pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.key_pair.as_ref().unwrap();
         let to_pubkey = Pubkey::from_str_const(to);
@@ -350,6 +407,12 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
+    /// Fetches the wallet's balance of the SPL token `mint` as an `f64`, returning `0.0` when
+    /// the wallet has no token account for that mint.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mint` is not a valid public key.
     pub async fn token_balance(&self, mint: &str) -> Result<f64, SolWalletErrors> {
         let mint_pubkey = Pubkey::from_str_const(mint);
         let addy_result = self.get_token_account(&mint_pubkey).await;
@@ -365,6 +428,13 @@ impl SolWallet {
         Ok(bal)
     }
 
+    /// Burns `amount` of the SPL token `mint` from the wallet's token account and returns the
+    /// confirmed transaction receipt.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair), if `mint` is not a valid
+    /// public key, or if the cluster rejects the transaction.
     pub async fn burn_token(
         &self,
         mint: &str,
@@ -399,6 +469,14 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
+    /// Transfers `amount` of the SPL token `mint` to `to` and returns the confirmed transaction
+    /// receipt. `to` must already have a token account for `mint`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair), if `to` or `mint` is not
+    /// a valid public key, if `to` has no token account for `mint`, or if the cluster rejects the
+    /// transaction.
     pub async fn transfer_token(
         &self,
         mint: &str,
@@ -441,6 +519,14 @@ impl SolWallet {
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
+    /// Transfers the wallet's entire balance of the SPL token `mint` to `to`, then closes the
+    /// wallet's token account for that mint.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair), if `mint` is not a valid
+    /// public key, if the balance is non-zero and `to` is not a valid public key or has no token
+    /// account for `mint`, or if the cluster rejects a transaction.
     pub async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<(), SolWalletErrors> {
         let amount = self.token_balance(mint).await?;
 
@@ -453,6 +539,13 @@ impl SolWallet {
         Ok(())
     }
 
+    /// Signs an externally built [`VersionedTransaction`] with this wallet's keypair, replaces
+    /// the fee-payer signature (the first signature slot) with that signature, refreshes the
+    /// recent blockhash, sends it, and returns the confirmed transaction receipt.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the wallet was created in view-only mode (no keypair).
     pub async fn sign_and_send(
         &self,
         mut txn: VersionedTransaction,
@@ -478,19 +571,34 @@ impl SolWallet {
     }
 }
 
+/// Details of a confirmed Solana transaction, returned by the transacting [`SolWallet`] methods.
 pub struct SolTxnReceipt {
+    /// Base58 transaction signature.
     pub hash: String,
+    /// Slot in which the transaction was confirmed.
     pub slot: u64,
+    /// Unix block time of the confirmation slot, if the cluster reported one.
     pub block_time: Option<i64>,
+    /// Transaction fee in SOL.
     pub gas_used: f64,
+    /// Account balances in SOL before the transaction, in account order.
     pub pre_balances: Vec<f64>,
+    /// Account balances in SOL after the transaction, in account order.
     pub post_balances: Vec<f64>,
+    /// SPL token balances before the transaction, if reported by the cluster.
     pub pre_token_balances: Option<Vec<UiTransactionTokenBalance>>,
+    /// SPL token balances after the transaction, if reported by the cluster.
     pub post_token_balances: Option<Vec<UiTransactionTokenBalance>>,
+    /// Address lookup table addresses loaded by the transaction, if any.
     pub loaded_addresses: OptionSerializer<UiLoadedAddresses>,
 }
 
 impl SolTxnReceipt {
+    /// Fetches the confirmed transaction identified by `sig` and builds a receipt from it.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the cluster does not return the transaction or its execution metadata.
     pub async fn new(sig: Signature, client: &RpcClient) -> Self {
         let config = RpcTransactionConfig {
             encoding: Some(UiTransactionEncoding::Json),

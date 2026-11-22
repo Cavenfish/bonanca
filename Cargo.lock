@@ -1912,7 +1912,6 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "alloy-primitives",
- "anyhow",
  "bonanca-keyvault",
  "solana-client",
  "solana-sdk 3.0.0",

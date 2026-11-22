@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 alloy.workspace = true
 alloy-primitives.workspace = true
-anyhow.workspace = true
 bonanca-keyvault.workspace = true
 solana-client = "3.1.14"
 solana-sdk.workspace = true

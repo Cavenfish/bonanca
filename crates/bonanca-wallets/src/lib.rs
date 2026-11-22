@@ -4,7 +4,7 @@
 //! interacting with Ethereum-compatible blockchains and Solana:
 //!
 //! - [`wallets::evm::EvmWallet`]: EVM wallet supporting balance queries, ERC-20 token interactions,
-//!   gas estimation, native/token transfers, and raw signing.
+//!   native/token transfers, and raw signing.
 //! - [`wallets::solana::SolWallet`]: Solana wallet supporting balance queries, SPL token account
 //!   management, native/token transfers, token burning, and transaction sending.
 //!
@@ -16,7 +16,7 @@
 //!
 //! Error handling is split into specialized enums and unified under a top-level enum:
 //!
-//! - [`SharedWalletErrors`]: Common failures shared across chains (keyvault operations, key
+//! - [`GeneralWalletErrors`]: Common failures shared across chains (keyvault operations, key
 //!   derivation, missing signers on view-only wallets, RPC URL parsing, and float conversions).
 //! - [`EvmWalletErrors`]: Failures specific to EVM wallets (address parsing, unit conversion, RPC
 //!   transport, ERC-20 contract calls, transaction receipts, and EVM signing).
@@ -109,13 +109,14 @@ pub trait WalletLoad<T>: Sized {
     fn load(value: T, rpc: &str) -> Result<Self, WalletErrors>;
 }
 
-/// Trait for constructing a view-only HD wallet from a KeyVault and child derivation path or index.
+/// Trait for constructing a view-only HD wallet from a `KeyVault` and child derivation path or
+/// index.
 pub trait HdWalletView<T, U>: Sized {
-    /// Views a child address from a KeyVault in read-only mode.
+    /// Views a child address from a `KeyVault` in read-only mode.
     fn view(value: T, rpc: &str, child: U) -> Result<Self, WalletErrors>;
 }
 
-/// Trait for loading an HD wallet with signing capabilities from an encrypted KeyVault.
+/// Trait for loading an HD wallet with signing capabilities from an encrypted `KeyVault`.
 pub trait HdWalletLoad<T, U>: Sized {
     /// Loads and decrypts a child wallet with signing capabilities using the given password.
     fn load(value: T, rpc: &str, child: U, password: &str) -> Result<Self, WalletErrors>;

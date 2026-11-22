@@ -1,9 +1,13 @@
 use anyhow::{Context, Result};
-use bonanca::defi::{Jupiter, ZeroX};
-use bonanca::wallets::{EvmWallet, HdWalletLoad, SolWallet};
+use bonanca::{
+    defi::{Jupiter, ZeroX},
+    wallets::{EvmWallet, HdWalletLoad, SolWallet},
+};
 
-use crate::args::{BalArgs, RebalArgs};
-use crate::index_fund::{IndexFund, RebalTrade};
+use crate::{
+    args::{BalArgs, RebalArgs},
+    index_fund::{IndexFund, RebalTrade},
+};
 
 pub async fn show_index_balance(cmd: BalArgs) -> Result<()> {
     let fund = IndexFund::load(&cmd.index);
@@ -44,12 +48,7 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
         ""
     } else {
         let aux_assets = fund.auxiliary_assets.as_ref().unwrap();
-        &aux_assets
-            .iter()
-            .find(|a| a.symbol == aux_token_symbol)
-            .unwrap()
-            .address
-            .clone()
+        &aux_assets.iter().find(|a| a.symbol == aux_token_symbol).unwrap().address.clone()
     };
 
     if aux_token.is_empty() && cmd.method != "redistribute" {
@@ -67,10 +66,8 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 
     // NOTE: Using a password from a CLI argument is not a secure way to handle
     // secrets in real applications. This is done here for demo purposes only.
-    let password = cmd
-        .password
-        .as_deref()
-        .context("--password is required unless --preview is set")?;
+    let password =
+        cmd.password.as_deref().context("--password is required unless --preview is set")?;
 
     let _ = make_trades(&fund, trades, password).await?;
 
@@ -78,11 +75,8 @@ pub async fn rebalance_index_fund(cmd: RebalArgs) -> Result<()> {
 }
 
 async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>, password: &str) -> Result<()> {
-    let chain = if fund.chain.contains(":") {
-        fund.chain.split(":").next().unwrap()
-    } else {
-        &fund.chain
-    };
+    let chain =
+        if fund.chain.contains(":") { fund.chain.split(":").next().unwrap() } else { &fund.chain };
 
     match (chain, fund.aggregator.name.as_str()) {
         ("EVM", "0x") => {
@@ -90,10 +84,8 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>, password: &str) 
             let dex = ZeroX::new(fund.aggregator.api_key.clone(), fund.chain_id.unwrap());
 
             for trade in trades.iter() {
-                let issues = dex
-                    .check_swap(&wallet, &trade.from, &trade.to, trade.amount)
-                    .await
-                    .unwrap();
+                let issues =
+                    dex.check_swap(&wallet, &trade.from, &trade.to, trade.amount).await.unwrap();
 
                 if let Some(allowance) = issues.allowance {
                     let amount = trade.amount - allowance.actual.parse::<f64>().unwrap();
@@ -103,10 +95,8 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>, password: &str) 
                         .unwrap();
                 }
 
-                let _ = dex
-                    .quick_swap(&wallet, &trade.from, &trade.to, trade.amount)
-                    .await
-                    .unwrap();
+                let _ =
+                    dex.quick_swap(&wallet, &trade.from, &trade.to, trade.amount).await.unwrap();
             }
         }
         ("Solana", "Jupiter") => {
@@ -114,10 +104,8 @@ async fn make_trades(fund: &IndexFund, trades: Vec<RebalTrade>, password: &str) 
             let dex = Jupiter::new(fund.aggregator.api_key.clone());
 
             for trade in trades.iter() {
-                let _ = dex
-                    .quick_swap(&wallet, &trade.from, &trade.to, trade.amount)
-                    .await
-                    .unwrap();
+                let _ =
+                    dex.quick_swap(&wallet, &trade.from, &trade.to, trade.amount).await.unwrap();
             }
         }
         _ => panic!(),

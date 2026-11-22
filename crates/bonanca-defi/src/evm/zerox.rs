@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use alloy::{
     network::TransactionBuilder,
     rpc::types::{TransactionInput, TransactionReceipt, TransactionRequest},
@@ -6,7 +8,6 @@ use alloy_primitives::{Address, Bytes, U256, Uint, hex::decode};
 use anyhow::Result;
 use bonanca_api_lib::defi::zerox::{Issues, ZeroXApi, ZeroXSwapQuote};
 use bonanca_wallets::wallets::evm::EvmWallet;
-use std::str::FromStr;
 
 pub struct ZeroX {
     api: ZeroXApi,
@@ -29,10 +30,7 @@ impl ZeroX {
 
         let big_amount = wallet.parse_token(amount, sell).await?;
 
-        let quote = self
-            .api
-            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
-            .await?;
+        let quote = self.api.get_swap_quote(sell, buy, &big_amount.to_string(), &taker).await?;
 
         Ok(quote.issues)
     }
@@ -48,9 +46,7 @@ impl ZeroX {
 
         let big_amount = wallet.parse_token(amount, sell).await?;
 
-        self.api
-            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
-            .await
+        self.api.get_swap_quote(sell, buy, &big_amount.to_string(), &taker).await
     }
 
     pub async fn swap(
@@ -101,10 +97,7 @@ impl ZeroX {
 
         let big_amount = wallet.parse_token(amount, sell).await?;
 
-        let quote = self
-            .api
-            .get_swap_quote(sell, buy, &big_amount.to_string(), &taker)
-            .await?;
+        let quote = self.api.get_swap_quote(sell, buy, &big_amount.to_string(), &taker).await?;
 
         if let Some(issues) = quote.issues.allowance {
             panic!("Allowance issues: {:?}", issues);

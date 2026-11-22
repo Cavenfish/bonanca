@@ -1,7 +1,7 @@
-use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::solana::SolWallet};
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::prelude::*;
 use std::path::PathBuf;
+
+use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::solana::SolWallet};
+use pyo3::{exceptions::PyRuntimeError, prelude::*};
 use tokio::runtime::Runtime;
 
 #[pyclass(name = "SolWallet")]
@@ -55,15 +55,11 @@ impl PySolWallet {
     }
 
     fn format_native(&self, amount: f64) -> PyResult<u64> {
-        self.inner
-            .format_native(amount)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+        self.inner.format_native(amount).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
     fn parse_native(&self, amount: u64) -> PyResult<f64> {
-        self.inner
-            .parse_native(amount)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+        self.inner.parse_native(amount).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
     fn format_token(&self, amount: f64, token: &str) -> PyResult<u64> {

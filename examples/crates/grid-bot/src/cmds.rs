@@ -16,12 +16,8 @@ pub async fn balance(cmds: BalArgs) -> Result<()> {
     let settings = GridBotSettings::load(&cmds.json);
     let wallet = EvmWallet::view(&settings.keyvault, &settings.rpc_url, settings.child)?;
 
-    let bal_a = wallet
-        .token_balance(&settings.trading_pair.token_a.address)
-        .await?;
-    let bal_b = wallet
-        .token_balance(&settings.trading_pair.token_b.address)
-        .await?;
+    let bal_a = wallet.token_balance(&settings.trading_pair.token_a.address).await?;
+    let bal_b = wallet.token_balance(&settings.trading_pair.token_b.address).await?;
 
     println!(
         "Bal {}: {:.4} || Bal {}: {:.4}",
@@ -42,10 +38,8 @@ pub async fn run(cmds: RunArgs) -> Result<()> {
     } else {
         // NOTE: Using a password from a CLI argument is not a secure way to handle
         // secrets in real applications. This is done here for demo purposes only.
-        let password = cmds
-            .password
-            .as_deref()
-            .context("--password is required unless --dry is set")?;
+        let password =
+            cmds.password.as_deref().context("--password is required unless --dry is set")?;
         EvmWallet::load(&settings.keyvault, &settings.rpc_url, settings.child, password)?
     };
     let cow = CoW::new(&settings.chain)?;
@@ -106,9 +100,7 @@ fn get_buy_levels(pair: &TradePair) -> Result<Vec<f64>> {
     let mid = ((pair.upper_limit) + (pair.lower_limit)) * 0.5;
     let delta = (mid - pair.lower_limit) / (pair.num_grids as f64);
 
-    let levels: Vec<f64> = (1..=pair.num_grids)
-        .map(|n| mid - ((n as f64) * delta))
-        .collect();
+    let levels: Vec<f64> = (1..=pair.num_grids).map(|n| mid - ((n as f64) * delta)).collect();
 
     Ok(levels)
 }
@@ -117,9 +109,7 @@ fn get_sell_levels(pair: &TradePair) -> Result<Vec<f64>> {
     let mid = ((pair.upper_limit) + (pair.lower_limit)) * 0.5;
     let delta = (pair.upper_limit - mid) / (pair.num_grids as f64);
 
-    let levels: Vec<f64> = (1..=pair.num_grids)
-        .map(|n| (n as f64) * delta + mid)
-        .collect();
+    let levels: Vec<f64> = (1..=pair.num_grids).map(|n| (n as f64) * delta + mid).collect();
 
     Ok(levels)
 }

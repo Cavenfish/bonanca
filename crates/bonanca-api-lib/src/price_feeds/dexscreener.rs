@@ -10,10 +10,7 @@ pub struct DexScreenerApi {
 
 impl DexScreenerApi {
     pub fn new() -> Self {
-        Self {
-            base_url: "https://api.dexscreener.com".to_string(),
-            client: Client::new(),
-        }
+        Self { base_url: "https://api.dexscreener.com".to_string(), client: Client::new() }
     }
 
     pub async fn get_pair_data(&self, chain: &str, pair: &str) -> Result<DexScreenerResponse> {

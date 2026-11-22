@@ -26,10 +26,7 @@ pub struct AaveV3Api {
 
 impl AaveV3Api {
     pub fn new() -> Self {
-        Self {
-            base_url: "https://api.v3.aave.com/graphql".to_string(),
-            client: Client::new(),
-        }
+        Self { base_url: "https://api.v3.aave.com/graphql".to_string(), client: Client::new() }
     }
 
     pub fn get_pool_address(&self, chain_id: u64) -> Result<Address> {
@@ -75,15 +72,9 @@ impl AaveV3Api {
     pub async fn query_market(&self, chain_id: u64) -> Result<Vec<AaveV3ReserveData>> {
         let address = self.get_pool_address(chain_id)?;
 
-        let market_vars = market_query::MarketRequest {
-            address,
-            chain_id,
-            user: None,
-        };
+        let market_vars = market_query::MarketRequest { address, chain_id, user: None };
 
-        let variables = market_query::Variables {
-            request: market_vars,
-        };
+        let variables = market_query::Variables { request: market_vars };
 
         let body = MarketQuery::build_query(variables);
 
@@ -103,14 +94,9 @@ impl AaveV3Api {
     }
 
     pub async fn query_markets(&self, chain_ids: Vec<u64>) -> Result<markets_query::ResponseData> {
-        let markets_vars = markets_query::MarketsRequest {
-            chain_ids,
-            user: None,
-        };
+        let markets_vars = markets_query::MarketsRequest { chain_ids, user: None };
 
-        let variables = markets_query::Variables {
-            request: markets_vars,
-        };
+        let variables = markets_query::Variables { request: markets_vars };
 
         let body = MarketsQuery::build_query(variables);
 

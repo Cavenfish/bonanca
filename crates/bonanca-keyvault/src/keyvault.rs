@@ -4,10 +4,12 @@
 //! already-derived public keys, and is serialized to JSON. Creating a vault (or
 //! decrypting it) prompts for the password interactively via `rpassword`.
 
-use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::{BufReader, Write};
-use std::path::Path;
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{BufReader, Write},
+    path::Path,
+};
 
 use aes_gcm::{
     AeadCore, Aes256Gcm,
@@ -19,9 +21,7 @@ use serde_json;
 use tempfile::NamedTempFile;
 use zeroize::Zeroizing;
 
-use crate::KeyVaultErrors;
-use crate::hd_keys::HDkeys;
-use crate::utils::decrypt_seed;
+use crate::{KeyVaultErrors, hd_keys::HDkeys, utils::decrypt_seed};
 
 /// Generates a random 16-byte salt string
 fn get_salt_string() -> String {
@@ -54,10 +54,7 @@ impl KeyVault {
     /// Returns [`KeyVaultErrors::UnsupportedLanguage`] if `lang` is not one of
     /// the supported names. Generation and encryption errors from
     /// [`HDkeys::new`] and [`HDkeys::get_keyvault`] are propagated unchanged.
-    pub fn new(
-        lang: &str,
-        password: &str,
-    ) -> Result<(Self, Zeroizing<String>), KeyVaultErrors> {
+    pub fn new(lang: &str, password: &str) -> Result<(Self, Zeroizing<String>), KeyVaultErrors> {
         let language = match lang {
             "English" => Language::English,
             "Simplified Chinese" => Language::SimplifiedChinese,
@@ -112,9 +109,7 @@ impl KeyVault {
     /// Propagates the errors from [`HDkeys::get_keyvault`], including
     /// [`KeyVaultErrors::EncryptionFailed`] if encryption fails.
     pub fn from_seed(seed: [u8; 64], password: &str) -> Result<Self, KeyVaultErrors> {
-        let hd_key = HDkeys {
-            seed: Zeroizing::new(seed),
-        };
+        let hd_key = HDkeys { seed: Zeroizing::new(seed) };
 
         let salt = get_salt_string();
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
@@ -183,25 +178,17 @@ impl KeyVault {
     /// [`KeyVaultErrors::WriteFailed`] with `fname` if the temporary file
     /// cannot be created, written, or renamed into place.
     pub fn write(&self, fname: &Path) -> Result<(), KeyVaultErrors> {
-        let mut tmpfile =
-            NamedTempFile::new().map_err(|source| KeyVaultErrors::WriteFailed {
-                path: fname.to_path_buf(),
-                source,
-            })?;
+        let mut tmpfile = NamedTempFile::new()
+            .map_err(|source| KeyVaultErrors::WriteFailed { path: fname.to_path_buf(), source })?;
 
         let content = serde_json::to_string_pretty(&self).map_err(KeyVaultErrors::InvalidJson)?;
 
         tmpfile
             .write_all(content.as_bytes())
-            .map_err(|source| KeyVaultErrors::WriteFailed {
-                path: fname.to_path_buf(),
-                source,
-            })?;
+            .map_err(|source| KeyVaultErrors::WriteFailed { path: fname.to_path_buf(), source })?;
 
-        fs::rename(tmpfile.path(), fname).map_err(|source| KeyVaultErrors::WriteFailed {
-            path: fname.to_path_buf(),
-            source,
-        })?;
+        fs::rename(tmpfile.path(), fname)
+            .map_err(|source| KeyVaultErrors::WriteFailed { path: fname.to_path_buf(), source })?;
         Ok(())
     }
 
@@ -269,9 +256,7 @@ impl Vault {
             ));
         }
         if self.kdf_params.salt.is_empty() {
-            return Err(KeyVaultErrors::InvalidKdfParams(
-                "PBKDF2 salt must not be empty",
-            ));
+            return Err(KeyVaultErrors::InvalidKdfParams("PBKDF2 salt must not be empty"));
         }
         Ok(())
     }

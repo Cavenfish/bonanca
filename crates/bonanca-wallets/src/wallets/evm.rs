@@ -59,11 +59,7 @@ impl WalletView<&str> for EvmWallet {
         let rpc_url = Url::parse(rpc)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Ok(Self {
-            signer: None,
-            client,
-            pubkey: Address::from_str(pubkey)?,
-        })
+        Ok(Self { signer: None, client, pubkey: Address::from_str(pubkey)? })
     }
 }
 
@@ -73,16 +69,10 @@ impl WalletLoad<[u8; 32]> for EvmWallet {
         let signer = PrivateKeySigner::from_bytes(&key_bytes)?;
         let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer.clone())
-            .connect_http(rpc_url)
-            .erased();
+        let client: DynProvider =
+            ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
 
-        Ok(Self {
-            signer: Some(signer),
-            client,
-            pubkey,
-        })
+        Ok(Self { signer: Some(signer), client, pubkey })
     }
 }
 
@@ -98,11 +88,7 @@ impl<T: AsRef<Path>> HdWalletView<T, u32> for EvmWallet {
         let addy = Address::from_str(pubkey)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Ok(Self {
-            signer: None,
-            client,
-            pubkey: addy,
-        })
+        Ok(Self { signer: None, client, pubkey: addy })
     }
 }
 
@@ -117,11 +103,7 @@ impl<T: AsRef<Path>> HdWalletView<T, &str> for EvmWallet {
         let addy = Address::from_str(pubkey)?;
         let client: DynProvider = ProviderBuilder::new().connect_http(rpc_url).erased();
 
-        Ok(Self {
-            signer: None,
-            client,
-            pubkey: addy,
-        })
+        Ok(Self { signer: None, client, pubkey: addy })
     }
 }
 
@@ -133,10 +115,8 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(child)?;
         let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer.clone())
-            .connect_http(rpc_url)
-            .erased();
+        let client: DynProvider =
+            ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
 
         // Add pubkey to keyvault if not already in it
         match key_vault.chain_keys.get(&path) {
@@ -147,11 +127,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for EvmWallet {
             }
         }
 
-        Ok(Self {
-            signer: Some(signer),
-            client,
-            pubkey,
-        })
+        Ok(Self { signer: Some(signer), client, pubkey })
     }
 }
 
@@ -162,10 +138,8 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
         let signer: LocalSigner<SigningKey> = hd_keys.get_child_keypair(path)?;
         let rpc_url = Url::parse(rpc)?;
         let pubkey = signer.address();
-        let client: DynProvider = ProviderBuilder::new()
-            .wallet(signer.clone())
-            .connect_http(rpc_url)
-            .erased();
+        let client: DynProvider =
+            ProviderBuilder::new().wallet(signer.clone()).connect_http(rpc_url).erased();
 
         // Add pubkey to keyvault if not already in it
         match key_vault.chain_keys.get(path) {
@@ -176,11 +150,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for EvmWallet {
             }
         }
 
-        Ok(Self {
-            signer: Some(signer),
-            client,
-            pubkey,
-        })
+        Ok(Self { signer: Some(signer), client, pubkey })
     }
 }
 
@@ -205,12 +175,7 @@ impl EvmWallet {
         let decimals = erc20.decimals().call().await?;
         let value: Uint<256, 4> = parse_units(&amount.to_string(), decimals)?.into();
 
-        let _ = erc20
-            .approve(spender_addy, value)
-            .send()
-            .await?
-            .watch()
-            .await?;
+        let _ = erc20.approve(spender_addy, value).send().await?.watch().await?;
 
         Ok(())
     }
@@ -273,10 +238,8 @@ impl EvmWallet {
 
         let fees = self.client.estimate_eip1559_fees().await?;
 
-        let tx = TransactionRequest::default()
-            .with_from(self.pubkey)
-            .with_to(to_addy)
-            .with_value(wei);
+        let tx =
+            TransactionRequest::default().with_from(self.pubkey).with_to(to_addy).with_value(wei);
 
         let gas = self.client.estimate_gas(tx).await?;
 
@@ -301,17 +264,10 @@ impl EvmWallet {
         let to_addy = Address::from_str(to)?;
         let wei = parse_ether(&amount.to_string())?;
 
-        let tx = TransactionRequest::default()
-            .with_from(self.pubkey)
-            .with_to(to_addy)
-            .with_value(wei);
+        let tx =
+            TransactionRequest::default().with_from(self.pubkey).with_to(to_addy).with_value(wei);
 
-        let sig = self
-            .client
-            .send_transaction(tx)
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = self.client.send_transaction(tx).await?.get_receipt().await?;
 
         Ok(sig)
     }
@@ -345,12 +301,7 @@ impl EvmWallet {
 
         let amnt: Uint<256, 4> = parse_units(&amount.to_string(), deci)?.into();
 
-        let sig = erc20
-            .transfer(to_addy, amnt)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = erc20.transfer(to_addy, amnt).send().await?.get_receipt().await?;
 
         Ok(sig)
     }
@@ -366,12 +317,7 @@ impl EvmWallet {
     }
 
     pub async fn sign_and_send(&self, txn: TransactionRequest) -> Result<TransactionReceipt> {
-        let sig = self
-            .client
-            .send_transaction(txn)
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = self.client.send_transaction(txn).await?.get_receipt().await?;
 
         Ok(sig)
     }

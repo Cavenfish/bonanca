@@ -1,7 +1,6 @@
 use bonanca_api_lib::defi::zerox::{Issues as RustIssues, ZeroXSwapQuote as RustZeroXSwapQuote};
 use bonanca_defi::evm::zerox::ZeroX;
-use pyo3::prelude::*;
-use pyo3::{exceptions::PyRuntimeError, types::PyDict};
+use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyDict};
 
 use crate::wallets::evm::{PyEvmWallet, parse_txn_receipt};
 
@@ -136,10 +135,7 @@ impl PyZeroXSwapQuote {
             },
             liquidity_available: self.liquidity_available,
             min_buy_amount: self.min_buy_amount,
-            route: bonanca_api_lib::defi::zerox::Route {
-                fills: vec![],
-                tokens: vec![],
-            },
+            route: bonanca_api_lib::defi::zerox::Route { fills: vec![], tokens: vec![] },
             sell_amount: self.sell_amount,
             sell_token: self.sell_token,
             token_metadata: bonanca_api_lib::defi::zerox::TokenMetadata {

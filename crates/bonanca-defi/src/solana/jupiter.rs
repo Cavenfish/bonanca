@@ -1,8 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD;
+use base64::{Engine, engine::general_purpose::STANDARD};
 use bincode::deserialize;
 use bonanca_api_lib::defi::jupiter::{
     JupEarnInput, JupLimitOrder, JupLimitParams, JupiterApi, JupiterLendMarket, JupiterSwapQuote,
@@ -11,9 +10,7 @@ use bonanca_wallets::wallets::solana::{SolTxnReceipt, SolWallet};
 use solana_sdk::transaction::VersionedTransaction;
 
 fn make_txn(encoded_txn: String) -> Result<VersionedTransaction> {
-    let swap_tx_bytes = STANDARD
-        .decode(encoded_txn)
-        .expect("Failed to decode base64 transaction");
+    let swap_tx_bytes = STANDARD.decode(encoded_txn).expect("Failed to decode base64 transaction");
 
     let txn: VersionedTransaction = deserialize(&swap_tx_bytes).unwrap();
 

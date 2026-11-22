@@ -49,9 +49,7 @@ impl CoinGecko {
             CoinGeckoDays::Year => "365",
         };
 
-        self.api
-            .get_ohlc_by_id(currency, id, gecko_days, precision)
-            .await
+        self.api.get_ohlc_by_id(currency, id, gecko_days, precision).await
     }
 }
 

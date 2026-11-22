@@ -3,10 +3,10 @@
 //! This crate provides the primitives used by Bonanca to keep a wallet's master
 //! seed at rest and to derive per-chain private keys from it:
 //!
-//! - [`hd_keys::HDkeys`] wraps a BIP-39 seed and derives Ed25519 (Solana) and
-//!   secp256k1 (EVM) child keys from derivation paths.
-//! - [`keyvault::KeyVault`] is the serializable, encrypted container that is
-//!   written to disk and read back by the wallet crates.
+//! - [`hd_keys::HDkeys`] wraps a BIP-39 seed and derives Ed25519 (Solana) and secp256k1 (EVM) child
+//!   keys from derivation paths.
+//! - [`keyvault::KeyVault`] is the serializable, encrypted container that is written to disk and
+//!   read back by the wallet crates.
 //!
 //! The seed is encrypted with AES-256-GCM under a key derived from the user's
 //! password via PBKDF2. There is no separate password verifier: the GCM
@@ -18,19 +18,17 @@
 //! Fallible operations return [`KeyVaultErrors`]. Its variants fall into four
 //! groups:
 //!
-//! - **Input errors** — unsupported languages, malformed mnemonics, and
-//!   derivation paths that cannot be parsed or used.
-//! - **Vault format errors** — unsupported cipher/KDF identifiers, invalid hex,
-//!   bad nonce length, or unusable KDF parameters. These are detected before
-//!   decryption where possible, so a corrupt vault is not reported as a wrong
-//!   password.
+//! - **Input errors** — unsupported languages, malformed mnemonics, and derivation paths that
+//!   cannot be parsed or used.
+//! - **Vault format errors** — unsupported cipher/KDF identifiers, invalid hex, bad nonce length,
+//!   or unusable KDF parameters. These are detected before decryption where possible, so a corrupt
+//!   vault is not reported as a wrong password.
 //! - **Crypto failures** — [`KeyVaultErrors::EncryptionFailed`] and
-//!   [`KeyVaultErrors::DecryptionFailed`]. The latter intentionally covers both
-//!   a wrong password and modified ciphertext: the GCM tag cannot tell them
-//!   apart, and revealing which one occurred would leak information about the
-//!   encrypted seed.
-//! - **Storage errors** — file read/write failures (including the affected
-//!   path) and JSON serialization/deserialization failures.
+//!   [`KeyVaultErrors::DecryptionFailed`]. The latter intentionally covers both a wrong password
+//!   and modified ciphertext: the GCM tag cannot tell them apart, and revealing which one occurred
+//!   would leak information about the encrypted seed.
+//! - **Storage errors** — file read/write failures (including the affected path) and JSON
+//!   serialization/deserialization failures.
 //!
 //! The enum is `#[non_exhaustive]`, so external matches should include a
 //! wildcard arm. Error messages and sources never include the password, seed,
@@ -174,10 +172,9 @@ pub enum KeyVaultErrors {
 
 #[cfg(test)]
 mod tests {
-    use super::hd_keys::HDkeys;
-    use super::keyvault::KeyVault;
-    use super::utils::decrypt_seed;
     use zeroize::Zeroizing;
+
+    use super::{hd_keys::HDkeys, keyvault::KeyVault, utils::decrypt_seed};
 
     #[test]
     fn test_encrypt_and_decrypt() {
@@ -186,11 +183,7 @@ mod tests {
         let hd_keys = HDkeys::from_mnemonic(mnemonic).unwrap();
 
         let seed_hex = "b6a6d8921942dd9806607ebc2750416b289adea669198769f2e15ed926c3aa92bf88ece232317b4ea463e84b0fcd3b53577812ee449ccc448eb45e6f544e25b6";
-        let seed: [u8; 64] = hex::decode(seed_hex)
-            .unwrap()
-            .as_slice()
-            .try_into()
-            .unwrap();
+        let seed: [u8; 64] = hex::decode(seed_hex).unwrap().as_slice().try_into().unwrap();
         let seed = Zeroizing::new(seed);
 
         assert_eq!(hd_keys.seed, seed);
@@ -239,11 +232,7 @@ mod tests {
 
         let password = "password";
         let seed_hex = "b6a6d8921942dd9806607ebc2750416b289adea669198769f2e15ed926c3aa92bf88ece232317b4ea463e84b0fcd3b53577812ee449ccc448eb45e6f544e25b6";
-        let seed: [u8; 64] = hex::decode(seed_hex)
-            .unwrap()
-            .as_slice()
-            .try_into()
-            .unwrap();
+        let seed: [u8; 64] = hex::decode(seed_hex).unwrap().as_slice().try_into().unwrap();
 
         let decrypted_seed = decrypt_seed(
             &keyvault.vault.cipher_text,

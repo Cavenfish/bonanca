@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
-use std::collections::HashMap;
 
 pub struct JupiterApi {
     base_url: String,
@@ -12,11 +13,7 @@ pub struct JupiterApi {
 
 impl JupiterApi {
     pub fn new(api_key: String) -> Self {
-        Self {
-            base_url: "https://api.jup.ag".to_string(),
-            api_key,
-            client: Client::new(),
-        }
+        Self { base_url: "https://api.jup.ag".to_string(), api_key, client: Client::new() }
     }
 
     pub async fn get_ultra_order(
@@ -91,10 +88,8 @@ impl JupiterApi {
     ) -> Result<SwapOrder> {
         let url = format!("{}/swap/v1/swap", &self.base_url);
 
-        let swap_data = SwapData {
-            user_public_key: pubkey.to_string(),
-            quote_response: swap_quote,
-        };
+        let swap_data =
+            SwapData { user_public_key: pubkey.to_string(), quote_response: swap_quote };
 
         let order: SwapOrder = self
             .client

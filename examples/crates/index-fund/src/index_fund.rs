@@ -112,11 +112,8 @@ impl IndexFund {
             for asset in &sector.assets {
                 let bal = self.get_asset_balance(asset).await?;
 
-                let usd = if bal != 0.0 {
-                    self.get_asset_value(asset, bal, chain).await?
-                } else {
-                    0.0
-                };
+                let usd =
+                    if bal != 0.0 { self.get_asset_value(asset, bal, chain).await? } else { 0.0 };
 
                 balances.push(AssetBalance {
                     name: asset.name.clone(),
@@ -136,11 +133,8 @@ impl IndexFund {
             for asset in self.auxiliary_assets.as_ref().unwrap() {
                 let bal = self.get_asset_balance(asset).await?;
 
-                let usd = if bal != 0.0 {
-                    self.get_asset_value(asset, bal, chain).await?
-                } else {
-                    0.0
-                };
+                let usd =
+                    if bal != 0.0 { self.get_asset_value(asset, bal, chain).await? } else { 0.0 };
 
                 aux_balances.push(AuxAssetBalance {
                     name: asset.name.clone(),
@@ -151,12 +145,7 @@ impl IndexFund {
             }
         }
 
-        Ok(IndexBalances {
-            gas,
-            total,
-            balances,
-            aux_balances,
-        })
+        Ok(IndexBalances { gas, total, balances, aux_balances })
     }
 
     pub fn get_trades(
@@ -169,11 +158,7 @@ impl IndexFund {
             "redistribute" => make_rebal_trades(bals, self.max_offset)?,
             "sell" => make_skim_trades(bals, aux_token, self.max_offset)?,
             "buy" => {
-                let from_asset = bals
-                    .aux_balances
-                    .iter()
-                    .find(|x| x.addy == aux_token)
-                    .unwrap();
+                let from_asset = bals.aux_balances.iter().find(|x| x.addy == aux_token).unwrap();
                 let usd_per_from_token = from_asset.value / from_asset.amount;
                 make_buyin_trades(bals, aux_token, usd_per_from_token, self.max_offset)?
             }
@@ -237,10 +222,6 @@ pub struct RebalTrade {
 
 impl fmt::Display for RebalTrade {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "Trade {} {} for {}",
-            self.amount, self.from_name, self.to_name
-        )
+        writeln!(f, "Trade {} {} for {}", self.amount, self.from_name, self.to_name)
     }
 }

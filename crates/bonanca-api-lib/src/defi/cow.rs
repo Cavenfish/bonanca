@@ -11,10 +11,7 @@ pub struct CowApi {
 
 impl CowApi {
     pub fn new(chain: &str) -> Self {
-        Self {
-            base_url: format!("https://api.cow.fi/{}", chain),
-            client: Client::new(),
-        }
+        Self { base_url: format!("https://api.cow.fi/{}", chain), client: Client::new() }
     }
 
     pub async fn get_order_info(&self, uid: &str) -> Result<CowSwapPlacedOrder> {
@@ -211,7 +208,7 @@ impl CowQuote {
             buy_token_balance: self.buy_token_balance,
             signing_scheme: self.signing_scheme,
             signature: sig,
-            from: from,
+            from,
         }
     }
 }

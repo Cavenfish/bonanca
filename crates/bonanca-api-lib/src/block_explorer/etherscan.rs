@@ -11,10 +11,7 @@ pub struct EtherscanApi {
 
 impl EtherscanApi {
     pub fn new(api_key: String) -> Self {
-        Self {
-            base_url: "https://api.etherscan.io/v2/api".to_string(),
-            api_key,
-        }
+        Self { base_url: "https://api.etherscan.io/v2/api".to_string(), api_key }
     }
 
     pub async fn get_native_history(

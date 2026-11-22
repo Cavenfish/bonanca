@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use alloy::{primitives::Address, rpc::types::TransactionReceipt, sol};
 use anyhow::Result;
 use bonanca_api_lib::defi::morpho::{
@@ -5,7 +7,6 @@ use bonanca_api_lib::defi::morpho::{
     vaults_v1_query::VaultsV1QueryVaultsItems,
 };
 use bonanca_wallets::wallets::evm::EvmWallet;
-use std::str::FromStr;
 
 sol! {
     #[allow(missing_docs)]
@@ -30,11 +31,7 @@ impl MorphoVaultV1 {
         user: &str,
         chain_id: i64,
     ) -> Result<Vec<UserDataQueryUserByAddressVaultPositions>> {
-        Ok(self
-            .api
-            .query_user_data(user, chain_id)
-            .await?
-            .vault_positions)
+        Ok(self.api.query_user_data(user, chain_id).await?.vault_positions)
     }
 
     pub async fn get_token_vaults(
@@ -56,12 +53,7 @@ impl MorphoVaultV1 {
         let token = vault.asset().call().await?;
         let amnt = wallet.parse_token(amount, &token.to_string()).await?;
 
-        let sig = vault
-            .deposit(amnt, wallet.pubkey)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = vault.deposit(amnt, wallet.pubkey).send().await?.get_receipt().await?;
 
         Ok(sig)
     }
@@ -77,12 +69,8 @@ impl MorphoVaultV1 {
         let token = vault.asset().call().await?;
         let amnt = wallet.parse_token(amount, &token.to_string()).await?;
 
-        let sig = vault
-            .withdraw(amnt, wallet.pubkey, wallet.pubkey)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
+        let sig =
+            vault.withdraw(amnt, wallet.pubkey, wallet.pubkey).send().await?.get_receipt().await?;
 
         Ok(sig)
     }

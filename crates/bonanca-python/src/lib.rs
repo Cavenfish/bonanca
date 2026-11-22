@@ -9,15 +9,12 @@ use pyo3::prelude::*;
 mod bonanca {
     #[pymodule_export]
     use super::keyvault::PyKeyVault;
-
-    #[pymodule_export]
-    use super::pywallets;
-
     #[pymodule_export]
     use super::pydefi;
-
     #[pymodule_export]
     use super::pyoracle;
+    #[pymodule_export]
+    use super::pywallets;
 }
 
 #[pymodule(name = "wallets", submodule)]

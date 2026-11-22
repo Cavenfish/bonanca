@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use alloy::{
     primitives::{Address, U256},
     providers::DynProvider,
@@ -7,7 +9,6 @@ use alloy::{
 use anyhow::Result;
 use bonanca_api_lib::defi::aave::{AaveV3Api, AaveV3ReserveData};
 use bonanca_wallets::wallets::evm::EvmWallet;
-use std::str::FromStr;
 
 sol! {
     #[allow(missing_docs)]
@@ -86,12 +87,7 @@ impl AaveV3 {
         let asset = Address::from_str(token)?;
         let amnt = wallet.parse_token(amount, token).await?;
 
-        let sig = poolv3
-            .supply(asset, amnt, wallet.pubkey, 0)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = poolv3.supply(asset, amnt, wallet.pubkey, 0).send().await?.get_receipt().await?;
 
         Ok(sig)
     }
@@ -148,12 +144,7 @@ impl AaveV3 {
         let asset = Address::from_str(token)?;
         let amnt = wallet.parse_token(amount, token).await?;
 
-        let sig = poolv3
-            .withdraw(asset, amnt, wallet.pubkey)
-            .send()
-            .await?
-            .get_receipt()
-            .await?;
+        let sig = poolv3.withdraw(asset, amnt, wallet.pubkey).send().await?.get_receipt().await?;
 
         Ok(sig)
     }

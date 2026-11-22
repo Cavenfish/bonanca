@@ -1,8 +1,8 @@
+use std::path::PathBuf;
+
 use alloy::rpc::types::TransactionReceipt;
 use bonanca_wallets::{HdWalletLoad, HdWalletView, wallets::evm::EvmWallet};
-use pyo3::prelude::*;
-use pyo3::{exceptions::PyRuntimeError, types::PyDict};
-use std::path::PathBuf;
+use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyDict};
 use tokio::runtime::Runtime;
 
 pub fn parse_txn_receipt<'py>(
@@ -99,11 +99,7 @@ impl PyEvmWallet {
     }
 
     fn parse_token(&self, amount: f64, token: &str) -> PyResult<String> {
-        Ok(self
-            .rt
-            .block_on(self.inner.parse_token(amount, token))
-            .unwrap()
-            .to_string())
+        Ok(self.rt.block_on(self.inner.parse_token(amount, token)).unwrap().to_string())
     }
 
     fn close(&self, to: &str) -> PyResult<()> {

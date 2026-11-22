@@ -1,5 +1,7 @@
-use std::str::FromStr;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    str::FromStr,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use alloy::{
     sol,
@@ -151,11 +153,8 @@ impl CoW {
         let taker = wallet.pubkey.to_string();
         let sell_amnt = wallet.parse_token(sell_amount, sell).await?;
         let buy_amnt = wallet.parse_token(buy_amount, buy).await?;
-        let valid_to = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            + lifetime.as_secs();
+        let valid_to =
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() + lifetime.as_secs();
 
         let quote = CowQuote::build_quote(
             sell,
@@ -188,11 +187,8 @@ impl CoW {
         let taker = wallet.pubkey.to_string();
         let sell_amount = wallet.parse_token(amount, sell).await?;
         let buy_amount = wallet.parse_token(amount / price, buy).await?;
-        let valid_to = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            + lifetime.as_secs();
+        let valid_to =
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() + lifetime.as_secs();
 
         let quote = CowQuote::build_quote(
             sell,

@@ -3,9 +3,8 @@ mod cmds;
 mod index_fund;
 mod rebal_methods;
 
-use clap::Parser;
-
 use args::{Index, IndexArgs};
+use clap::Parser;
 use cmds::show_index_balance;
 
 use crate::cmds::rebalance_index_fund;

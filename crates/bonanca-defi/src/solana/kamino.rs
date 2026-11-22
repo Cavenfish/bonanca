@@ -1,3 +1,5 @@
+use std::{rc::Rc, str::FromStr};
+
 use anchor_client::{
     Client, Cluster,
     solana_sdk::{
@@ -9,7 +11,6 @@ use anchor_lang::prelude::*;
 use anyhow::Result;
 use bonanca_api_lib::defi::kamino::{KVaultInfo, KVaultPosition, KaminoApi};
 use bonanca_wallets::wallets::solana::SolWallet;
-use std::{rc::Rc, str::FromStr};
 
 const SYSVAR: Pubkey = Pubkey::from_str_const("Sysvar1nstructions1111111111111111111111111");
 const TOKEN_ID: Pubkey = Pubkey::from_str_const("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -23,8 +24,7 @@ declare_program!(kvault);
 
 use kvault::{
     accounts::{Reserve, VaultState},
-    client::accounts,
-    client::args,
+    client::{accounts, args},
 };
 
 // This only exists to solve the dependency mismatch between Anchor
@@ -74,10 +74,8 @@ impl Kamino {
     pub async fn get_token_vaults(&self, token: &str) -> Result<Vec<KVaultInfo>> {
         let vaults = self.api.get_all_kvaults().await?;
 
-        let token_vaults: Vec<KVaultInfo> = vaults
-            .into_iter()
-            .filter(|v| v.state.token_mint == token)
-            .collect();
+        let token_vaults: Vec<KVaultInfo> =
+            vaults.into_iter().filter(|v| v.state.token_mint == token).collect();
 
         Ok(token_vaults)
     }
@@ -108,9 +106,7 @@ impl Kamino {
 
         let event_authority = get_event_authority(&program.id());
 
-        let amnt = wallet
-            .format_token(amount, &vault_data.state.token_mint)
-            .await?;
+        let amnt = wallet.format_token(amount, &vault_data.state.token_mint).await?;
 
         let mut remaining_accounts = Vec::new();
 
@@ -197,9 +193,7 @@ impl Kamino {
 
         let event_authority = get_event_authority(&program.id());
 
-        let amnt = wallet
-            .format_token(amount, &vault_data.state.token_mint)
-            .await?;
+        let amnt = wallet.format_token(amount, &vault_data.state.token_mint).await?;
 
         let global_config =
             Pubkey::find_program_address(&["global_config".as_bytes()], &program.id()).0;
@@ -248,13 +242,8 @@ impl Kamino {
         }
 
         let reserve_addy = remaining_accounts.get(0).unwrap().pubkey;
-        let ctoken = vault_data
-            .state
-            .vault_allocation_strategy
-            .get(0)
-            .unwrap()
-            .ctoken_vault
-            .clone();
+        let ctoken =
+            vault_data.state.vault_allocation_strategy.get(0).unwrap().ctoken_vault.clone();
         let reserve: Reserve = program.account(reserve_addy).await?;
 
         let withdraw_from_reserve_accounts = accounts::WithdrawFromReserveAccounts {
@@ -278,9 +267,7 @@ impl Kamino {
                 program: program.id(),
             })
             .accounts(remaining_accounts)
-            .args(args::Withdraw {
-                shares_amount: amnt,
-            })
+            .args(args::Withdraw { shares_amount: amnt })
             .instructions()?
             .remove(0);
 

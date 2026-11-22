@@ -4,17 +4,18 @@
 //! mnemonic, be built from an existing one, or derive child private keys for
 //! the supported curves.
 
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use bip32::XPrv;
 use bip39::{Language, Mnemonic};
 use ed25519_dalek_bip32::{DerivationPath, ExtendedSigningKey};
 use zeroize::Zeroizing;
 
-use crate::KeyVaultErrors;
-use crate::keyvault::{CipherParams, KdfParams, KeyVault, Vault};
-use crate::utils::encrypt_seed;
+use crate::{
+    KeyVaultErrors,
+    keyvault::{CipherParams, KdfParams, KeyVault, Vault},
+    utils::encrypt_seed,
+};
 
 /// A master seed from which per-chain keys are derived.
 ///
@@ -42,12 +43,12 @@ impl HDkeys {
         word_count: usize,
     ) -> Result<(Self, Zeroizing<String>), KeyVaultErrors> {
         let mut rng = bip39::rand::thread_rng();
-        let mnemonic = Mnemonic::generate_in_with(&mut rng, language, word_count).map_err(|err| {
-            match err {
+        let mnemonic = Mnemonic::generate_in_with(&mut rng, language, word_count).map_err(
+            |err| match err {
                 bip39::Error::BadWordCount(count) => KeyVaultErrors::InvalidWordCount(count),
                 err => KeyVaultErrors::InvalidMnemonic(err),
-            }
-        })?;
+            },
+        )?;
 
         let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
         let mnemonic_str = Zeroizing::new(mnemonic.to_string());
@@ -64,8 +65,7 @@ impl HDkeys {
     /// Returns [`KeyVaultErrors::InvalidMnemonic`] if the phrase has an invalid
     /// word count, an unknown word, or a bad checksum.
     pub fn from_mnemonic(mnemonic_str: &str) -> Result<Self, KeyVaultErrors> {
-        let mnemonic =
-            Mnemonic::from_str(mnemonic_str).map_err(KeyVaultErrors::InvalidMnemonic)?;
+        let mnemonic = Mnemonic::from_str(mnemonic_str).map_err(KeyVaultErrors::InvalidMnemonic)?;
 
         let seed = Zeroizing::new(mnemonic.to_seed_normalized(""));
 
@@ -99,9 +99,7 @@ impl HDkeys {
 
         let cipher_text = encrypt_seed(&self.seed, &password, nonce, &kdf_params)?;
 
-        let cipher_params = CipherParams {
-            nonce: nonce.to_string(),
-        };
+        let cipher_params = CipherParams { nonce: nonce.to_string() };
 
         let vault = Vault {
             cipher: "aes256-gcm".to_string(),
@@ -134,26 +132,16 @@ impl HDkeys {
         path: String,
     ) -> Result<Zeroizing<[u8; 32]>, KeyVaultErrors> {
         let master_key = ExtendedSigningKey::from_seed(&*self.seed).map_err(|source| {
-            KeyVaultErrors::Ed25519DerivationFailed {
-                path: path.clone(),
-                source,
-            }
+            KeyVaultErrors::Ed25519DerivationFailed { path: path.clone(), source }
         })?;
 
-        let derivation_path: DerivationPath =
-            path.parse()
-                .map_err(|source| KeyVaultErrors::InvalidEd25519Path {
-                    path: path.clone(),
-                    source,
-                })?;
+        let derivation_path: DerivationPath = path
+            .parse()
+            .map_err(|source| KeyVaultErrors::InvalidEd25519Path { path: path.clone(), source })?;
 
-        let child_key =
-            master_key
-                .derive(&derivation_path)
-                .map_err(|source| KeyVaultErrors::Ed25519DerivationFailed {
-                    path: path.clone(),
-                    source,
-                })?;
+        let child_key = master_key.derive(&derivation_path).map_err(|source| {
+            KeyVaultErrors::Ed25519DerivationFailed { path: path.clone(), source }
+        })?;
         let secret_key = child_key.signing_key;
 
         Ok(Zeroizing::new(secret_key.to_bytes()))
@@ -172,16 +160,12 @@ impl HDkeys {
         &self,
         path: String,
     ) -> Result<Zeroizing<[u8; 32]>, KeyVaultErrors> {
-        let derivation_path =
-            path.parse::<bip32::DerivationPath>()
-                .map_err(|source| KeyVaultErrors::InvalidSecp256k1Path {
-                    path: path.clone(),
-                    source,
-                })?;
-
-        let child_key = XPrv::derive_from_path(&self.seed, &derivation_path).map_err(|source| {
-            KeyVaultErrors::Secp256k1DerivationFailed { path, source }
+        let derivation_path = path.parse::<bip32::DerivationPath>().map_err(|source| {
+            KeyVaultErrors::InvalidSecp256k1Path { path: path.clone(), source }
         })?;
+
+        let child_key = XPrv::derive_from_path(&self.seed, &derivation_path)
+            .map_err(|source| KeyVaultErrors::Secp256k1DerivationFailed { path, source })?;
 
         Ok(Zeroizing::new(child_key.to_bytes()))
     }

@@ -1,10 +1,11 @@
+use std::time::Duration;
+
 use bonanca_api_lib::defi::cow::CowSwapPlacedOrder;
 use bonanca_defi::evm::cow::CoW;
 use pyo3::{
     prelude::*,
     types::{PyDict, PyList},
 };
-use std::time::Duration;
 
 use crate::wallets::evm::PyEvmWallet;
 
@@ -37,14 +38,10 @@ impl PyCoW {
         limit: u16,
     ) -> PyResult<Py<PyList>> {
         let rt = tokio::runtime::Runtime::new()?;
-        let info = rt
-            .block_on(self.inner.get_user_orders(user, Some(limit)))
-            .unwrap();
+        let info = rt.block_on(self.inner.get_user_orders(user, Some(limit))).unwrap();
 
-        let vec_dict: Vec<Bound<'_, PyDict>> = info
-            .iter()
-            .map(|i| cow_swap_placed_order_to_dict(py, i).unwrap())
-            .collect();
+        let vec_dict: Vec<Bound<'_, PyDict>> =
+            info.iter().map(|i| cow_swap_placed_order_to_dict(py, i).unwrap()).collect();
 
         let list = PyList::new(py, vec_dict)?;
 
@@ -60,10 +57,7 @@ impl PyCoW {
     ) -> PyResult<String> {
         let quote = wallet
             .rt
-            .block_on(
-                self.inner
-                    .get_market_quote(&wallet.inner, sell, buy, amount),
-            )
+            .block_on(self.inner.get_market_quote(&wallet.inner, sell, buy, amount))
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
         wallet
@@ -131,10 +125,7 @@ fn cow_swap_placed_order_to_dict<'py>(
     dict.set_item("available_balance", &order.available_balance)?;
     dict.set_item("executed_buy_amount", &order.executed_buy_amount)?;
     dict.set_item("executed_sell_amount", &order.executed_sell_amount)?;
-    dict.set_item(
-        "executed_sell_amount_before_fees",
-        &order.executed_sell_amount_before_fees,
-    )?;
+    dict.set_item("executed_sell_amount_before_fees", &order.executed_sell_amount_before_fees)?;
     dict.set_item("executed_fee_amount", &order.executed_fee_amount)?;
     dict.set_item("executed_fee", &order.executed_fee)?;
     dict.set_item("executed_fee_token", &order.executed_fee_token)?;

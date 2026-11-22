@@ -75,12 +75,7 @@ pub fn make_skim_trades(
 ) -> Result<Vec<RebalTrade>> {
     let mut trades: Vec<RebalTrade> = Vec::new();
 
-    let to_name = &bals
-        .aux_balances
-        .iter()
-        .find(|a| a.addy == to)
-        .unwrap()
-        .name;
+    let to_name = &bals.aux_balances.iter().find(|a| a.addy == to).unwrap().name;
 
     for asset in &bals.balances {
         let actual = asset.value / bals.total;
@@ -110,12 +105,7 @@ pub fn make_buyin_trades(
 ) -> Result<Vec<RebalTrade>> {
     let mut trades: Vec<RebalTrade> = Vec::new();
 
-    let from_name = &bals
-        .aux_balances
-        .iter()
-        .find(|a| a.addy == from)
-        .unwrap()
-        .name;
+    let from_name = &bals.aux_balances.iter().find(|a| a.addy == from).unwrap().name;
 
     for asset in &bals.balances {
         let actual = asset.value / bals.total;

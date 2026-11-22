@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use bonanca_keyvault::keyvault::KeyVault;
 use pyo3::prelude::*;
-use std::path::PathBuf;
 
 #[pyclass(name = "KeyVault")]
 pub struct PyKeyVault {

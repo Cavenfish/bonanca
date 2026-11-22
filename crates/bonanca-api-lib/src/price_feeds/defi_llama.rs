@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
-use std::collections::HashMap;
 
 pub struct DefiLlamaApi {
     base_url: String,
@@ -10,10 +11,7 @@ pub struct DefiLlamaApi {
 
 impl DefiLlamaApi {
     pub fn new() -> Self {
-        Self {
-            base_url: "https://coins.llama.fi".to_string(),
-            client: Client::new(),
-        }
+        Self { base_url: "https://coins.llama.fi".to_string(), client: Client::new() }
     }
 
     pub async fn get_price_quote(&self, chain: &str, address: &str) -> Result<LlamaPrice> {

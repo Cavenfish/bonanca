@@ -1,6 +1,5 @@
 use bonanca_defi::evm::morpho::MorphoVaultV1;
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::{prelude::*, types::PyDict};
 
 use crate::wallets::evm::{PyEvmWallet, parse_txn_receipt};
 
@@ -47,10 +46,11 @@ impl PyMorphoVaultV1 {
         vault_address: &str,
         amount: f64,
     ) -> PyResult<Py<PyDict>> {
-        let receipt = wallet
-            .rt
-            .block_on(self.inner.supply(&wallet.inner, vault_address, amount))
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        let receipt =
+            wallet
+                .rt
+                .block_on(self.inner.supply(&wallet.inner, vault_address, amount))
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
         parse_txn_receipt(py, receipt)
     }

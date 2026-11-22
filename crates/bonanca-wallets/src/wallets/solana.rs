@@ -1,12 +1,12 @@
+use std::{path::Path, str::FromStr};
+
 use anyhow::{Context, Result, anyhow};
 use bonanca_keyvault::{hd_keys::HDkeys, keyvault::KeyVault};
 use solana_client::{
     nonblocking::rpc_client::RpcClient,
     rpc_config::{CommitmentConfig, RpcTransactionConfig, UiTransactionEncoding},
-    rpc_response::{OptionSerializer, UiLoadedAddresses},
-};
-use solana_client::{
-    rpc_request::TokenAccountsFilter::Mint, rpc_response::UiTransactionTokenBalance,
+    rpc_request::TokenAccountsFilter::Mint,
+    rpc_response::{OptionSerializer, UiLoadedAddresses, UiTransactionTokenBalance},
 };
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
@@ -16,7 +16,6 @@ use solana_sdk::{
     transaction::{Transaction, VersionedTransaction},
 };
 use solana_system_interface::instruction::transfer;
-use std::{path::Path, str::FromStr};
 
 use crate::{HdWalletLoad, HdWalletView, HdWallets, WalletLoad, WalletView};
 
@@ -62,11 +61,7 @@ impl WalletLoad<[u8; 32]> for SolWallet {
         let client = RpcClient::new(rpc.to_string());
         let pubkey = kp.pubkey();
 
-        Ok(Self {
-            key_pair: Some(kp),
-            client,
-            pubkey,
-        })
+        Ok(Self { key_pair: Some(kp), client, pubkey })
     }
 }
 
@@ -119,11 +114,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, u32> for SolWallet {
             }
         }
 
-        Ok(Self {
-            key_pair: Some(kp),
-            client,
-            pubkey,
-        })
+        Ok(Self { key_pair: Some(kp), client, pubkey })
     }
 }
 
@@ -144,11 +135,7 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
             }
         }
 
-        Ok(Self {
-            key_pair: Some(kp),
-            client,
-            pubkey,
-        })
+        Ok(Self { key_pair: Some(kp), client, pubkey })
     }
 }
 
@@ -178,11 +165,7 @@ impl SolWallet {
         let owner = self.client.get_account(&token).await?.owner;
 
         let (token_account, _) = Pubkey::find_program_address(
-            &[
-                &self.pubkey.to_bytes(),
-                &owner.to_bytes(),
-                &token.to_bytes(),
-            ],
+            &[&self.pubkey.to_bytes(), &owner.to_bytes(), &token.to_bytes()],
             &ATOKEN_ID,
         );
 
@@ -194,11 +177,7 @@ impl SolWallet {
         let owner = self.client.get_account(&token).await?.owner;
 
         let (token_account, _) = Pubkey::find_program_address(
-            &[
-                &self.pubkey.to_bytes(),
-                &owner.to_bytes(),
-                &token.to_bytes(),
-            ],
+            &[&self.pubkey.to_bytes(), &owner.to_bytes(), &token.to_bytes()],
             &ATOKEN_ID,
         );
 
@@ -243,10 +222,7 @@ impl SolWallet {
 
     async fn get_token_account(&self, mint: &Pubkey) -> Result<Pubkey> {
         // Get token account
-        let accounts = self
-            .client
-            .get_token_accounts_by_owner(&self.pubkey, Mint(*mint))
-            .await?;
+        let accounts = self.client.get_token_accounts_by_owner(&self.pubkey, Mint(*mint)).await?;
         let token = accounts.first().context("Could not find token account")?;
 
         // Get token account pubkey
@@ -320,11 +296,7 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self
-            .client
-            .send_and_confirm_transaction(&trans)
-            .await
-            .unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
@@ -369,11 +341,7 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self
-            .client
-            .send_and_confirm_transaction(&trans)
-            .await
-            .unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
@@ -389,10 +357,8 @@ impl SolWallet {
         let mut data = vec![3];
         data.extend_from_slice(&lamp.to_le_bytes());
 
-        let accounts = self
-            .client
-            .get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey))
-            .await?;
+        let accounts =
+            self.client.get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey)).await?;
 
         let token = accounts.first().unwrap();
         let destination = Pubkey::from_str_const(&token.pubkey);
@@ -412,11 +378,7 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self
-            .client
-            .send_and_confirm_transaction(&trans)
-            .await
-            .unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
@@ -475,23 +437,13 @@ impl SolTxnReceipt {
             max_supported_transaction_version: Some(0),
         };
 
-        let data = client
-            .get_transaction_with_config(&sig, config)
-            .await
-            .expect("Transaction not found");
+        let data =
+            client.get_transaction_with_config(&sig, config).await.expect("Transaction not found");
 
         let meta = data.transaction.meta.unwrap();
         let gas_used = (meta.fee as f64) / 1e9;
-        let pre_balances = meta
-            .pre_balances
-            .iter()
-            .map(|b| (*b as f64) / 1e9)
-            .collect();
-        let post_balances = meta
-            .post_balances
-            .iter()
-            .map(|b| (*b as f64) / 1e9)
-            .collect();
+        let pre_balances = meta.pre_balances.iter().map(|b| (*b as f64) / 1e9).collect();
+        let post_balances = meta.post_balances.iter().map(|b| (*b as f64) / 1e9).collect();
 
         Self {
             hash: sig.to_string(),

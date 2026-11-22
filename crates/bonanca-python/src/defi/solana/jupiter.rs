@@ -1,8 +1,8 @@
+use std::time::Duration;
+
 use bonanca_api_lib::defi::jupiter::{JupiterLendMarket, JupiterSwapQuote};
 use bonanca_defi::solana::jupiter::Jupiter;
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::prelude::*;
-use std::time::Duration;
+use pyo3::{exceptions::PyRuntimeError, prelude::*};
 
 use crate::wallets::solana::PySolWallet;
 
@@ -232,10 +232,7 @@ impl PyJupiter {
             .block_on(self.inner.get_lendable_tokens())
             .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
 
-        Ok(markets
-            .into_iter()
-            .map(PyJupiterLendMarket::from_rust)
-            .collect())
+        Ok(markets.into_iter().map(PyJupiterLendMarket::from_rust).collect())
     }
 
     fn deposit(&self, wallet: &PySolWallet, token: &str, amount: f64) -> PyResult<PySolTxnReceipt> {

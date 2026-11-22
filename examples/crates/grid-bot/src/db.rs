@@ -23,10 +23,7 @@ impl GridBotLog {
         trades.insert(settings.trading_pair.token_a.address.clone(), 0);
         trades.insert(settings.trading_pair.token_b.address.clone(), 0);
 
-        Self {
-            active_orders: vec![],
-            trades,
-        }
+        Self { active_orders: vec![], trades }
     }
 
     pub fn load(settings: &GridBotSettings) -> Self {

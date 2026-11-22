@@ -26,10 +26,7 @@ pub struct MorphoApi {
 
 impl MorphoApi {
     pub fn new() -> Self {
-        Self {
-            base_url: "https://api.morpho.org/graphql".to_string(),
-            client: Client::new(),
-        }
+        Self { base_url: "https://api.morpho.org/graphql".to_string(), client: Client::new() }
     }
 
     pub async fn query_user_data(
@@ -37,10 +34,7 @@ impl MorphoApi {
         user: &str,
         chain_id: i64,
     ) -> Result<user_data_query::UserDataQueryUserByAddress> {
-        let variables = user_data_query::Variables {
-            address: user.to_string(),
-            chain_id: chain_id,
-        };
+        let variables = user_data_query::Variables { address: user.to_string(), chain_id };
         let body = UserDataQuery::build_query(variables);
 
         let res = self.client.post(&self.base_url).json(&body).send().await?;
@@ -55,11 +49,8 @@ impl MorphoApi {
         token_symbol: &str,
         chain_id: i64,
     ) -> Result<Vec<vaults_v1_query::VaultsV1QueryVaultsItems>> {
-        let variables = vaults_v1_query::Variables {
-            first: 15,
-            chain_id: chain_id,
-            asset: token_symbol.to_string(),
-        };
+        let variables =
+            vaults_v1_query::Variables { first: 15, chain_id, asset: token_symbol.to_string() };
         let body = VaultsV1Query::build_query(variables);
 
         let res = self.client.post(&self.base_url).json(&body).send().await?;

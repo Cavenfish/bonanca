@@ -198,11 +198,15 @@ impl<T: AsRef<Path>> HdWalletLoad<T, &str> for SolWallet {
 }
 
 impl SolWallet {
-    async fn build_sign_and_send(&self, instr: Instruction) -> Result<(), SolWalletErrors> {
-        let kp = match self.key_pair.as_ref() {
-            Some(keypair) => Ok(keypair),
+    fn get_keypair(&self) -> Result<&Keypair, SolWalletErrors> {
+        match self.key_pair.as_ref() {
+            Some(kp) => return Ok(kp),
             None => Err(SolWalletErrors::General(GeneralWalletErrors::MissingSigner)),
-        }?;
+        }
+    }
+
+    async fn build_sign_and_send(&self, instr: Instruction) -> Result<(), SolWalletErrors> {
+        let kp = self.get_keypair()?;
 
         // Get blockhash and sign transaction
         let blockhash = self.client.get_latest_blockhash().await?;
@@ -325,15 +329,14 @@ impl SolWallet {
 
     /// Converts a human-readable amount of the SPL token `mint` to raw token units (`u64`),
     /// using the decimals of this wallet's token account for that mint.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `token` is not a valid public key, or if the cluster returns no data for the
-    /// wallet's token account.
     pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
-        let acct = self.client.get_token_account(&token_addy).await?.unwrap();
+        let acct = self
+            .client
+            .get_token_account(&token_addy)
+            .await?
+            .ok_or(SolWalletErrors::AccountNotFound(token.to_string()))?;
 
         let deci = acct.token_amount.decimals;
 
@@ -344,15 +347,14 @@ impl SolWallet {
 
     /// Converts raw units of the SPL token `mint` to a human-readable amount in `f64`, using the
     /// decimals of this wallet's token account for that mint.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `token` is not a valid public key, or if the cluster returns no data for the
-    /// wallet's token account.
     pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64, SolWalletErrors> {
         let pubkey = Pubkey::from_str_const(token);
         let token_addy = self.get_token_account(&pubkey).await?;
-        let acct = self.client.get_token_account(&token_addy).await?.unwrap();
+        let acct = self
+            .client
+            .get_token_account(&token_addy)
+            .await?
+            .ok_or(SolWalletErrors::AccountNotFound(token.to_string()))?;
 
         let deci = acct.token_amount.decimals;
 
@@ -361,11 +363,6 @@ impl SolWallet {
 
     /// Transfers nearly the entire SOL balance to `to`, keeping `0.000005` SOL back for the
     /// transaction fee.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair), if `to` is not a valid
-    /// public key, or if the cluster rejects the transaction.
     pub async fn close(&self, to: &str) -> Result<(), SolWalletErrors> {
         let bal = self.balance().await?;
 
@@ -386,13 +383,8 @@ impl SolWallet {
     }
 
     /// Transfers `amount` SOL to `to` and returns the confirmed transaction receipt.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair), if `to` is not a valid
-    /// public key, or if the cluster rejects the transaction.
     pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt, SolWalletErrors> {
-        let kp = self.key_pair.as_ref().unwrap();
+        let kp = self.get_keypair()?;
         let to_pubkey = Pubkey::from_str_const(to);
         let lamp = self.format_native(amount)?;
 
@@ -402,45 +394,32 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
     /// Fetches the wallet's balance of the SPL token `mint` as an `f64`, returning `0.0` when
     /// the wallet has no token account for that mint.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `mint` is not a valid public key.
     pub async fn token_balance(&self, mint: &str) -> Result<f64, SolWalletErrors> {
         let mint_pubkey = Pubkey::from_str_const(mint);
-        let addy_result = self.get_token_account(&mint_pubkey).await;
+        let addy = self.get_token_account(&mint_pubkey).await?;
 
-        let bal = match addy_result {
-            Ok(addy) => {
-                let token_data = self.client.get_token_account_balance(&addy).await?;
-                token_data.ui_amount.unwrap_or(0.0)
-            }
-            Err(_) => 0.0,
-        };
+        let token_data = self.client.get_token_account_balance(&addy).await?;
+
+        let bal = token_data.ui_amount.unwrap_or(0.0);
 
         Ok(bal)
     }
 
     /// Burns `amount` of the SPL token `mint` from the wallet's token account and returns the
     /// confirmed transaction receipt.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair), if `mint` is not a valid
-    /// public key, or if the cluster rejects the transaction.
     pub async fn burn_token(
         &self,
         mint: &str,
         amount: f64,
     ) -> Result<SolTxnReceipt, SolWalletErrors> {
-        let kp = self.key_pair.as_ref().unwrap();
+        let kp = self.get_keypair()?;
         let mint_pubkey = Pubkey::from_str_const(mint);
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
@@ -464,26 +443,20 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
     /// Transfers `amount` of the SPL token `mint` to `to` and returns the confirmed transaction
     /// receipt. `to` must already have a token account for `mint`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair), if `to` or `mint` is not
-    /// a valid public key, if `to` has no token account for `mint`, or if the cluster rejects the
-    /// transaction.
     pub async fn transfer_token(
         &self,
         mint: &str,
         amount: f64,
         to: &str,
     ) -> Result<SolTxnReceipt, SolWalletErrors> {
-        let kp = self.key_pair.as_ref().unwrap();
+        let kp = self.get_keypair()?;
         let to_pubkey = Pubkey::from_str_const(to);
         let mint_pubkey = Pubkey::from_str_const(mint);
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
@@ -496,7 +469,7 @@ impl SolWallet {
         let accounts =
             self.client.get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey)).await?;
 
-        let token = accounts.first().unwrap();
+        let token = accounts.first().ok_or(SolWalletErrors::AccountNotFound(mint.to_string()))?;
         let destination = Pubkey::from_str_const(&token.pubkey);
 
         let instruction = Instruction {
@@ -514,19 +487,13 @@ impl SolWallet {
         let blockhash = self.client.get_latest_blockhash().await?;
         trans.sign(&[kp], blockhash);
 
-        let sig = self.client.send_and_confirm_transaction(&trans).await.unwrap();
+        let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
         Ok(SolTxnReceipt::new(sig, &self.client).await)
     }
 
     /// Transfers the wallet's entire balance of the SPL token `mint` to `to`, then closes the
     /// wallet's token account for that mint.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair), if `mint` is not a valid
-    /// public key, if the balance is non-zero and `to` is not a valid public key or has no token
-    /// account for `mint`, or if the cluster rejects a transaction.
     pub async fn transfer_all_tokens(&self, mint: &str, to: &str) -> Result<(), SolWalletErrors> {
         let amount = self.token_balance(mint).await?;
 
@@ -542,15 +509,11 @@ impl SolWallet {
     /// Signs an externally built [`VersionedTransaction`] with this wallet's keypair, replaces
     /// the fee-payer signature (the first signature slot) with that signature, refreshes the
     /// recent blockhash, sends it, and returns the confirmed transaction receipt.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the wallet was created in view-only mode (no keypair).
     pub async fn sign_and_send(
         &self,
         mut txn: VersionedTransaction,
     ) -> Result<SolTxnReceipt, SolWalletErrors> {
-        let kp = self.key_pair.as_ref().unwrap();
+        let kp = self.get_keypair()?;
         let message = txn.message.serialize();
         let signature = kp.sign_message(&message);
 

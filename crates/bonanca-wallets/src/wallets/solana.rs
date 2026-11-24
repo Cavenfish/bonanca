@@ -392,7 +392,7 @@ impl SolWallet {
         let mut trans = Transaction::new_with_payer(&[info], Some(&self.pubkey));
 
         let blockhash = self.client.get_latest_blockhash().await?;
-        trans.sign(&[kp], blockhash);
+        trans.try_sign(&[kp], blockhash)?;
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
@@ -441,7 +441,7 @@ impl SolWallet {
         let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
 
         let blockhash = self.client.get_latest_blockhash().await?;
-        trans.sign(&[kp], blockhash);
+        trans.try_sign(&[kp], blockhash)?;
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
@@ -485,7 +485,8 @@ impl SolWallet {
         let mut trans = Transaction::new_with_payer(&[instruction], Some(&self.pubkey));
 
         let blockhash = self.client.get_latest_blockhash().await?;
-        trans.sign(&[kp], blockhash);
+
+        trans.try_sign(&[kp], blockhash)?;
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 

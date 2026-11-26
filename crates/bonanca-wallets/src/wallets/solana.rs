@@ -35,6 +35,11 @@ impl From<ParsePubkeyError> for WalletErrors {
     }
 }
 
+fn str_to_pubkey(token: &str) -> Result<Pubkey, SolWalletErrors> {
+    std::panic::catch_unwind(|| Pubkey::from_str_const(token))
+        .map_err(|_| SolWalletErrors::TokenAccountNotFound(token.to_string()))
+}
+
 /// Errors produced while interacting with a [`SolWallet`].
 #[derive(Error, Debug)]
 #[non_exhaustive]
@@ -303,7 +308,7 @@ impl SolWallet {
 
         match accounts.first() {
             Some(token) => {
-                let addy = Pubkey::from_str_const(&token.pubkey);
+                let addy = str_to_pubkey(&token.pubkey)?;
                 return Ok(addy);
             }
             None => Err(SolWalletErrors::AccountNotFound(mint.to_string())),
@@ -330,7 +335,7 @@ impl SolWallet {
     /// Converts a human-readable amount of the SPL token `mint` to raw token units (`u64`),
     /// using the decimals of this wallet's token account for that mint.
     pub async fn format_token(&self, amount: f64, token: &str) -> Result<u64, SolWalletErrors> {
-        let pubkey = Pubkey::from_str_const(token);
+        let pubkey = str_to_pubkey(token)?;
         let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self
             .client
@@ -348,7 +353,7 @@ impl SolWallet {
     /// Converts raw units of the SPL token `mint` to a human-readable amount in `f64`, using the
     /// decimals of this wallet's token account for that mint.
     pub async fn parse_token(&self, amount: u64, token: &str) -> Result<f64, SolWalletErrors> {
-        let pubkey = Pubkey::from_str_const(token);
+        let pubkey = str_to_pubkey(token)?;
         let token_addy = self.get_token_account(&pubkey).await?;
         let acct = self
             .client
@@ -385,7 +390,7 @@ impl SolWallet {
     /// Transfers `amount` SOL to `to` and returns the confirmed transaction receipt.
     pub async fn transfer(&self, to: &str, amount: f64) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.get_keypair()?;
-        let to_pubkey = Pubkey::from_str_const(to);
+        let to_pubkey = str_to_pubkey(to)?;
         let lamp = self.format_native(amount)?;
 
         let info = transfer(&self.pubkey, &to_pubkey, lamp);
@@ -396,13 +401,13 @@ impl SolWallet {
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
-        Ok(SolTxnReceipt::new(sig, &self.client).await)
+        SolTxnReceipt::new(sig, &self.client).await
     }
 
     /// Fetches the wallet's balance of the SPL token `mint` as an `f64`, returning `0.0` when
     /// the wallet has no token account for that mint.
     pub async fn token_balance(&self, mint: &str) -> Result<f64, SolWalletErrors> {
-        let mint_pubkey = Pubkey::from_str_const(mint);
+        let mint_pubkey = str_to_pubkey(mint)?;
         let addy = self.get_token_account(&mint_pubkey).await?;
 
         let token_data = self.client.get_token_account_balance(&addy).await?;
@@ -420,7 +425,7 @@ impl SolWallet {
         amount: f64,
     ) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.get_keypair()?;
-        let mint_pubkey = Pubkey::from_str_const(mint);
+        let mint_pubkey = str_to_pubkey(mint)?;
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
         let lamp = self.format_token(amount, mint).await?;
@@ -445,7 +450,7 @@ impl SolWallet {
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
-        Ok(SolTxnReceipt::new(sig, &self.client).await)
+        SolTxnReceipt::new(sig, &self.client).await
     }
 
     /// Transfers `amount` of the SPL token `mint` to `to` and returns the confirmed transaction
@@ -457,8 +462,8 @@ impl SolWallet {
         to: &str,
     ) -> Result<SolTxnReceipt, SolWalletErrors> {
         let kp = self.get_keypair()?;
-        let to_pubkey = Pubkey::from_str_const(to);
-        let mint_pubkey = Pubkey::from_str_const(mint);
+        let to_pubkey = str_to_pubkey(to)?;
+        let mint_pubkey = str_to_pubkey(mint)?;
         let owner = self.client.get_account(&mint_pubkey).await?.owner;
         let source = self.get_token_account(&mint_pubkey).await?;
         let lamp = self.format_token(amount, mint).await?;
@@ -470,7 +475,7 @@ impl SolWallet {
             self.client.get_token_accounts_by_owner(&to_pubkey, Mint(mint_pubkey)).await?;
 
         let token = accounts.first().ok_or(SolWalletErrors::AccountNotFound(mint.to_string()))?;
-        let destination = Pubkey::from_str_const(&token.pubkey);
+        let destination = str_to_pubkey(&token.pubkey)?;
 
         let instruction = Instruction {
             program_id: owner,
@@ -490,7 +495,7 @@ impl SolWallet {
 
         let sig = self.client.send_and_confirm_transaction(&trans).await?;
 
-        Ok(SolTxnReceipt::new(sig, &self.client).await)
+        SolTxnReceipt::new(sig, &self.client).await
     }
 
     /// Transfers the wallet's entire balance of the SPL token `mint` to `to`, then closes the
@@ -531,7 +536,7 @@ impl SolWallet {
 
         let sig = self.client.send_and_confirm_transaction(&txn).await?;
 
-        Ok(SolTxnReceipt::new(sig, &self.client).await)
+        SolTxnReceipt::new(sig, &self.client).await
     }
 }
 
@@ -559,26 +564,21 @@ pub struct SolTxnReceipt {
 
 impl SolTxnReceipt {
     /// Fetches the confirmed transaction identified by `sig` and builds a receipt from it.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the cluster does not return the transaction or its execution metadata.
-    pub async fn new(sig: Signature, client: &RpcClient) -> Self {
+    pub async fn new(sig: Signature, client: &RpcClient) -> Result<Self, SolWalletErrors> {
         let config = RpcTransactionConfig {
             encoding: Some(UiTransactionEncoding::Json),
             commitment: Some(CommitmentConfig::confirmed()),
             max_supported_transaction_version: Some(0),
         };
 
-        let data =
-            client.get_transaction_with_config(&sig, config).await.expect("Transaction not found");
+        let data = client.get_transaction_with_config(&sig, config).await?;
 
-        let meta = data.transaction.meta.unwrap();
+        let meta = data.transaction.meta.ok_or(SolWalletErrors::MissingTransactionMeta)?;
         let gas_used = (meta.fee as f64) / 1e9;
         let pre_balances = meta.pre_balances.iter().map(|b| (*b as f64) / 1e9).collect();
         let post_balances = meta.post_balances.iter().map(|b| (*b as f64) / 1e9).collect();
 
-        Self {
+        Ok(Self {
             hash: sig.to_string(),
             slot: data.slot,
             block_time: data.block_time,
@@ -588,6 +588,6 @@ impl SolTxnReceipt {
             pre_token_balances: meta.pre_token_balances.into(),
             post_token_balances: meta.post_token_balances.into(),
             loaded_addresses: meta.loaded_addresses,
-        }
+        })
     }
 }

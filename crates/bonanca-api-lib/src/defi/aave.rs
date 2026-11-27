@@ -1,8 +1,11 @@
+//! Aave V3 GraphQL API client and reserve data types.
+
 use alloy_primitives::{Address, ChainId, address};
 use anyhow::Result;
 use graphql_client::{GraphQLQuery, Response};
 use reqwest::Client;
 
+/// GraphQL query for fetching a single Aave V3 market by pool address and chain ID.
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "schemas/aave/schema.graphql",
@@ -11,6 +14,7 @@ use reqwest::Client;
 )]
 pub struct MarketQuery;
 
+/// GraphQL query for fetching multiple Aave V3 markets by chain IDs.
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "schemas/aave/schema.graphql",
@@ -19,16 +23,23 @@ pub struct MarketQuery;
 )]
 pub struct MarketsQuery;
 
+/// Client for the Aave V3 GraphQL API.
 pub struct AaveV3Api {
     base_url: String,
     client: Client,
 }
 
 impl AaveV3Api {
+    /// Creates a new [`AaveV3Api`] client pointing at `https://api.v3.aave.com/graphql`.
     pub fn new() -> Self {
         Self { base_url: "https://api.v3.aave.com/graphql".to_string(), client: Client::new() }
     }
 
+    /// Returns the Aave V3 `Pool` contract address for `chain_id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `chain_id` does not correspond to a supported Aave V3 deployment.
     pub fn get_pool_address(&self, chain_id: u64) -> Result<Address> {
         let addy = match chain_id {
             // Ethereum
@@ -69,6 +80,17 @@ impl AaveV3Api {
         Ok(addy)
     }
 
+    /// Queries reserve data for the Aave V3 market on `chain_id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `chain_id` is unsupported, if the HTTP request fails, or if the
+    /// response body cannot be deserialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the GraphQL response `data` or `data.market` field is `None`, or if any APY,
+    /// max LTV, supply cap, or borrow cap numeric string fails to parse as `f64`.
     pub async fn query_market(&self, chain_id: u64) -> Result<Vec<AaveV3ReserveData>> {
         let address = self.get_pool_address(chain_id)?;
 
@@ -93,6 +115,15 @@ impl AaveV3Api {
         Ok(data)
     }
 
+    /// Queries raw Aave V3 market data for all `chain_ids`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or if the response body cannot be deserialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the GraphQL response `data` field is `None`.
     pub async fn query_markets(&self, chain_ids: Vec<u64>) -> Result<markets_query::ResponseData> {
         let markets_vars = markets_query::MarketsRequest { chain_ids, user: None };
 
@@ -108,13 +139,20 @@ impl AaveV3Api {
     }
 }
 
+/// Parsed reserve configuration and rate summary for an Aave V3 asset.
 #[derive(Debug, Clone)]
 pub struct AaveV3ReserveData {
+    /// Whether the reserve is currently frozen.
     pub is_frozen: bool,
+    /// Whether all actions on the reserve are currently paused.
     pub is_paused: bool,
+    /// Interest-bearing aToken metadata for this reserve.
     pub a_token: Token,
+    /// Underlying asset token metadata.
     pub underlying_token: Token,
+    /// Supply-side parameters and APY.
     pub supply_info: SupplyInfo,
+    /// Borrow-side parameters and APY, if borrowing is enabled.
     pub borrow_info: Option<BorrowInfo>,
 }
 
@@ -156,26 +194,40 @@ impl AaveV3ReserveData {
     }
 }
 
+/// Token identifier metadata inside [`AaveV3ReserveData`].
 #[derive(Debug, Clone)]
 pub struct Token {
+    /// On-chain token contract address.
     pub address: String,
+    /// Human-readable token name.
     pub name: String,
+    /// Token ticker symbol.
     pub symbol: String,
 }
 
+/// Supply-side parameters for an Aave V3 reserve.
 #[derive(Debug, Clone)]
 pub struct SupplyInfo {
+    /// Whether supplied assets can be used as collateral.
     pub can_be_collateral: bool,
+    /// Whether the supply cap has been reached.
     pub supply_cap_reached: bool,
+    /// Current supply APY as a decimal fraction.
     pub supply_apy: f64,
+    /// Maximum loan-to-value ratio as a decimal fraction.
     pub max_ltv: f64,
+    /// Maximum total supply cap in token units.
     pub supply_cap: f64,
 }
 
+/// Borrow-side parameters for an Aave V3 reserve.
 #[derive(Debug, Clone)]
 pub struct BorrowInfo {
+    /// Whether the borrow cap has been reached.
     pub borrow_cap_reached: bool,
+    /// Current variable borrow APY as a decimal fraction.
     pub borrow_apy: f64,
+    /// Maximum total borrow cap in token units.
     pub borrow_cap: f64,
 }
 

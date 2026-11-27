@@ -1,8 +1,11 @@
+//! Morpho GraphQL API client and vault/user query types.
+
 use alloy_primitives::Address;
 use anyhow::Result;
 use graphql_client::{GraphQLQuery, Response};
 use reqwest::Client;
 
+/// GraphQL query for fetching Morpho vaults (V1) filtered by asset and chain.
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "schemas/morpho/schema.graphql",
@@ -11,6 +14,7 @@ use reqwest::Client;
 )]
 pub struct VaultsV1Query;
 
+/// GraphQL query for fetching a user's Morpho positions by address and chain.
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "schemas/morpho/schema.graphql",
@@ -19,16 +23,27 @@ pub struct VaultsV1Query;
 )]
 pub struct UserDataQuery;
 
+/// Client for the Morpho GraphQL API.
 pub struct MorphoApi {
     base_url: String,
     client: Client,
 }
 
 impl MorphoApi {
+    /// Creates a new [`MorphoApi`] client pointing at `https://api.morpho.org/graphql`.
     pub fn new() -> Self {
         Self { base_url: "https://api.morpho.org/graphql".to_string(), client: Client::new() }
     }
 
+    /// Queries Morpho positions for `user` on `chain_id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or if the response body cannot be deserialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the GraphQL response `data` field is `None`.
     pub async fn query_user_data(
         &self,
         user: &str,
@@ -44,6 +59,15 @@ impl MorphoApi {
         Ok(data)
     }
 
+    /// Queries up to 15 Morpho V1 vaults on `chain_id` whose asset symbol matches `token_symbol`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or if the response body cannot be deserialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the GraphQL response `data` field is `None` or if `vaults.items` is `None`.
     pub async fn query_vaults_v1(
         &self,
         token_symbol: &str,
